@@ -11,16 +11,16 @@ import type {
 } from "@/types/tmdb";
 
 const BASE_URL = "https://api.themoviedb.org/3";
-const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+const API_KEY = process.env.TMDB_API_KEY;
 
 async function tmdbFetch<T>(
   endpoint: string,
-  revalidate: number = 3600
+  revalidate: number = 3600,
 ): Promise<T> {
   const separator = endpoint.includes("?") ? "&" : "?";
   const res = await fetch(
     `${BASE_URL}${endpoint}${separator}api_key=${API_KEY}`,
-    { next: { revalidate } }
+    { next: { revalidate } },
   );
   if (!res.ok) throw new Error(`TMDB API error: ${res.status}`);
   return res.json();
@@ -100,7 +100,7 @@ export async function getUpcoming(): Promise<Movie[]> {
 
 export async function getMoviesByGenre(genreId: number): Promise<Movie[]> {
   const data = await tmdbFetch<MovieResponse>(
-    `/discover/movie?with_genres=${genreId}&sort_by=popularity.desc`
+    `/discover/movie?with_genres=${genreId}&sort_by=popularity.desc`,
   );
   return data.results;
 }
@@ -147,7 +147,7 @@ export async function getOnTheAirTV(): Promise<TVShow[]> {
 
 export async function getTVByGenre(genreId: number): Promise<TVShow[]> {
   const data = await tmdbFetch<TVShowResponse>(
-    `/discover/tv?with_genres=${genreId}&sort_by=popularity.desc`
+    `/discover/tv?with_genres=${genreId}&sort_by=popularity.desc`,
   );
   return data.results;
 }
@@ -170,6 +170,6 @@ export async function getSimilarTV(id: number): Promise<TVShow[]> {
 export async function searchMulti(query: string): Promise<MultiSearchResponse> {
   return tmdbFetch<MultiSearchResponse>(
     `/search/multi?query=${encodeURIComponent(query)}`,
-    600
+    600,
   );
 }
