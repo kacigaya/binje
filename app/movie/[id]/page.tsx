@@ -90,13 +90,15 @@ export default async function MoviePage({
             </h1>
 
             {movie.tagline && (
-              <p className="text-lg text-amber/80 italic">{movie.tagline}</p>
+              <p className="text-lg text-accent-red/80 italic">
+                {movie.tagline}
+              </p>
             )}
 
             {/* Meta row */}
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1 text-amber font-semibold">
-                <Star className="h-4 w-4 fill-amber" />
+              <div className="flex items-center gap-1 text-accent-red font-semibold">
+                <Star className="h-4 w-4 fill-accent-red" />
                 {movie.vote_average.toFixed(1)}
                 <span className="text-muted-foreground font-normal ml-1">
                   ({movie.vote_count.toLocaleString()} votes)
@@ -124,14 +126,16 @@ export default async function MoviePage({
             <Link href={`/watch/${movie.id}`}>
               <Button
                 size="lg"
-                className="rounded-full bg-amber text-black font-semibold hover:bg-amber/90 gap-2 px-10 h-12 text-base mt-2 cursor-pointer"
+                className="rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base mt-2 cursor-pointer"
               >
-                <Play className="h-5 w-5 fill-black" />
+                <Play className="h-5 w-5 fill-white" />
                 Watch Now
               </Button>
             </Link>
 
-            <Separator className="bg-white/10" />
+            <div className="mt-6">
+              <Separator className="bg-white/10" />
+            </div>
 
             {/* Overview */}
             <div>
@@ -204,7 +208,10 @@ export default async function MoviePage({
         {/* Similar movies */}
         {similar.length > 0 && (
           <div className="mt-12">
-            <Carousel title="Similar Movies" items={similar.map(movieToMedia)} />
+            <Carousel
+              title="Similar Movies"
+              items={similar.map(movieToMedia)}
+            />
           </div>
         )}
       </div>

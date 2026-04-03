@@ -48,7 +48,7 @@ export default async function WatchTVPage({
         </Link>
 
         <div className="flex flex-wrap gap-2">
-          <Badge className="bg-amber/90 text-black text-xs uppercase tracking-wider hover:bg-amber/80">
+          <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
             TV Series
           </Badge>
           {show.genres.map((g) => (
@@ -70,8 +70,8 @@ export default async function WatchTVPage({
         </h1>
 
         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1 text-amber font-semibold">
-            <Star className="h-4 w-4 fill-amber" />
+          <div className="flex items-center gap-1 text-accent-red font-semibold">
+            <Star className="h-4 w-4 fill-accent-red" />
             {show.vote_average.toFixed(1)}
           </div>
           <div className="flex items-center gap-1">

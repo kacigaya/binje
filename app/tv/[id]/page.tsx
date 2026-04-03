@@ -69,7 +69,7 @@ export default async function TVShowPage({
           {/* Info */}
           <div className="flex-1 space-y-5 pt-4 sm:pt-16">
             <div className="flex flex-wrap gap-2">
-              <Badge className="bg-amber/90 text-black text-xs uppercase tracking-wider hover:bg-amber/80">
+              <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
                 TV Series
               </Badge>
               {show.genres.map((g) => (
@@ -91,13 +91,13 @@ export default async function TVShowPage({
             </h1>
 
             {show.tagline && (
-              <p className="text-lg text-amber/80 italic">{show.tagline}</p>
+              <p className="text-lg text-accent-red/80 italic">{show.tagline}</p>
             )}
 
             {/* Meta row */}
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1 text-amber font-semibold">
-                <Star className="h-4 w-4 fill-amber" />
+              <div className="flex items-center gap-1 text-accent-red font-semibold">
+                <Star className="h-4 w-4 fill-accent-red" />
                 {show.vote_average.toFixed(1)}
                 <span className="text-muted-foreground font-normal ml-1">
                   ({show.vote_count.toLocaleString()} votes)
@@ -139,9 +139,9 @@ export default async function TVShowPage({
             <Link href={`/watch/tv/${show.id}`}>
               <Button
                 size="lg"
-                className="rounded-full bg-amber text-black font-semibold hover:bg-amber/90 gap-2 px-10 h-12 text-base mt-2 cursor-pointer"
+                className="rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base mt-2 cursor-pointer"
               >
-                <Play className="h-5 w-5 fill-black" />
+                <Play className="h-5 w-5 fill-white" />
                 Watch Now
               </Button>
             </Link>
@@ -203,7 +203,7 @@ export default async function TVShowPage({
                       href={`/watch/tv/${show.id}?s=${season.season_number}&e=1`}
                       className="group flex-shrink-0"
                     >
-                      <div className="relative w-[140px] sm:w-[160px] overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_20px_rgba(245,158,11,0.12)]">
+                      <div className="relative w-[140px] sm:w-[160px] overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_20px_rgba(225,29,72,0.12)]">
                         <div className="relative aspect-[2/3] overflow-hidden rounded-xl">
                           <Image
                             src={sPoster}

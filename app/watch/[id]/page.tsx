@@ -50,8 +50,8 @@ export default async function WatchPage({
         </h1>
 
         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1 text-amber font-semibold">
-            <Star className="h-4 w-4 fill-amber" />
+          <div className="flex items-center gap-1 text-accent-red font-semibold">
+            <Star className="h-4 w-4 fill-accent-red" />
             {movie.vote_average.toFixed(1)}
           </div>
           {movie.runtime > 0 && (

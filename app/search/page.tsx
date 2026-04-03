@@ -6,13 +6,10 @@ import { Search, X, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { measureLines } from "@/lib/pretext";
-
-const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
 interface SearchResult {
   id: number;
-  media_type: "movie" | "tv" | "person";
+  media_type: "movie" | "tv";
   title?: string;
   name?: string;
   poster_path: string | null;
@@ -44,16 +41,9 @@ export default function SearchPage() {
     setLoading(true);
     setSearched(true);
     try {
-      const res = await fetch(
-        `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(q)}`,
-      );
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
       const data = await res.json();
-      setResults(
-        (data.results || []).filter(
-          (r: SearchResult) =>
-            r.media_type === "movie" || r.media_type === "tv",
-        ),
-      );
+      setResults(data.results || []);
     } catch {
       setResults([]);
     } finally {
@@ -94,7 +84,7 @@ export default function SearchPage() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search movies & TV shows..."
           autoFocus
-          className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-13 pr-12 text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber/50 focus:border-amber/50 transition-all"
+          className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-13 pr-12 text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition-all"
         />
         {query && (
           <button
@@ -114,7 +104,7 @@ export default function SearchPage() {
             onClick={() => setFilter(type)}
             className={`px-5 py-2 rounded-full text-sm font-medium transition-all cursor-pointer ${
               filter === type
-                ? "bg-amber text-black"
+                ? "bg-accent-red text-white"
                 : "bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
             }`}
           >
@@ -138,9 +128,6 @@ export default function SearchPage() {
           {filtered.map((item) => {
             const title = item.title || item.name || "Untitled";
             const date = item.release_date || item.first_air_date;
-            // Pre-compute title line count to set stable overlay height
-            // text-sm = 14px, leading-tight ≈ 1.25 * 14 = 17.5px, card inner width ≈ 136px
-            const titleLines = measureLines(title, "body", 14, 136, 17.5);
             const href =
               item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
             return (
@@ -149,7 +136,7 @@ export default function SearchPage() {
                 href={href}
                 className="group block"
               >
-                <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_30px_rgba(245,158,11,0.15)]">
+                <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
                   {item.poster_path ? (
                     <Image
                       src={`https://image.tmdb.org/t/p/w500${item.poster_path}`}
@@ -167,24 +154,21 @@ export default function SearchPage() {
 
                   {/* Rating */}
                   {item.vote_average != null && (
-                    <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-amber">
-                      <Star className="h-3 w-3 fill-amber" />
+                    <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
+                      <Star className="h-3 w-3 fill-accent-red" />
                       {item.vote_average.toFixed(1)}
                     </div>
                   )}
 
                   {/* Media type badge */}
                   {item.media_type === "tv" && (
-                    <div className="absolute top-2 left-2 rounded-full bg-amber/90 px-2 py-0.5 text-[10px] font-bold text-black uppercase tracking-wider">
+                    <div className="absolute top-2 left-2 rounded-full bg-accent-red/90 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
                       TV
                     </div>
                   )}
 
-                  {/* Title on hover — explicit minHeight prevents layout shift */}
-                  <div
-                    className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    style={{ minHeight: titleLines.lineCount > 1 ? 56 : 38 }}
-                  >
+                  {/* Title on hover */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <p className="text-sm font-semibold text-white leading-tight line-clamp-2">
                       {title}
                     </p>

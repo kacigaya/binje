@@ -24,9 +24,9 @@ export default function Navbar() {
           className="flex items-center gap-2 text-xl font-bold tracking-tight"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          <Film className="h-6 w-6 text-amber" />
+          <Film className="h-6 w-6 text-accent-red" />
           <span className="text-foreground">
-            b!n<span className="text-amber">je</span>
+            b!n<span className="text-accent-red">je</span>
           </span>
         </Link>
 
@@ -56,7 +56,7 @@ export default function Navbar() {
               placeholder="Search movies & TV..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="h-9 w-44 sm:w-56 rounded-full bg-white/5 border border-white/10 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-amber/50 focus:border-amber/50 transition-all"
+              className="h-9 w-44 sm:w-56 rounded-full bg-white/5 border border-white/10 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition-all"
             />
           </form>
         </div>

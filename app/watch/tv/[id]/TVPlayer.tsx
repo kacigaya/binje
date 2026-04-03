@@ -80,7 +80,7 @@ export default function TVPlayer({
             <select
               value={season}
               onChange={(e) => navigate(Number(e.target.value), 1)}
-              className="h-9 rounded-lg bg-white/5 border border-white/10 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber/50 cursor-pointer"
+              className="h-9 rounded-lg bg-white/5 border border-white/10 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 cursor-pointer"
             >
               {seasons.map((s) => (
                 <option key={s.season_number} value={s.season_number}>
@@ -95,7 +95,7 @@ export default function TVPlayer({
             <select
               value={episode}
               onChange={(e) => navigate(season, Number(e.target.value))}
-              className="h-9 rounded-lg bg-white/5 border border-white/10 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber/50 cursor-pointer"
+              className="h-9 rounded-lg bg-white/5 border border-white/10 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 cursor-pointer"
             >
               {Array.from({ length: maxEpisodes }, (_, i) => i + 1).map(
                 (ep) => (

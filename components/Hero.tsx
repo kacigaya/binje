@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
 import { backdropUrl } from "@/lib/tmdb";
-import { wouldTruncate } from "@/lib/pretext";
 import ExpandableOverview from "@/components/ExpandableOverview";
 
 export default function Hero({ item }: { item: MediaItem }) {
@@ -14,17 +13,6 @@ export default function Hero({ item }: { item: MediaItem }) {
     item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
   const watchHref =
     item.media_type === "tv" ? `/watch/tv/${item.id}` : `/watch/${item.id}`;
-
-  // Pre-compute whether the overview text exceeds 3 lines at max-w-xl (576px)
-  // text-base = 16px, leading-relaxed = 1.625 * 16 = 26px
-  const overviewIsTruncated = wouldTruncate(
-    item.overview,
-    "body",
-    16,
-    576,
-    26,
-    3,
-  );
 
   return (
     <section className="relative w-full h-[70vh] sm:h-[80vh] overflow-hidden">
@@ -48,17 +36,17 @@ export default function Hero({ item }: { item: MediaItem }) {
             <div className="flex items-center gap-3">
               <Badge
                 variant="outline"
-                className="border-amber/40 text-amber bg-amber/10 text-xs uppercase tracking-wider"
+                className="border-accent-red/40 text-accent-red bg-accent-red/10 text-xs uppercase tracking-wider"
               >
                 Trending
               </Badge>
               {item.media_type === "tv" && (
-                <Badge className="bg-amber/90 text-black text-xs uppercase tracking-wider hover:bg-amber/80">
+                <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
                   TV Series
                 </Badge>
               )}
-              <div className="flex items-center gap-1 text-amber">
-                <Star className="h-4 w-4 fill-amber" />
+              <div className="flex items-center gap-1 text-accent-red">
+                <Star className="h-4 w-4 fill-accent-red" />
                 <span className="text-sm font-semibold">
                   {item.vote_average.toFixed(1)}
                 </span>
@@ -79,7 +67,11 @@ export default function Hero({ item }: { item: MediaItem }) {
 
             <ExpandableOverview
               text={item.overview}
-              isTruncated={overviewIsTruncated}
+              fontKey="body"
+              fontSize={16}
+              containerWidth={576}
+              lineHeight={26}
+              maxLines={3}
               className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-xl"
             />
 
@@ -87,9 +79,9 @@ export default function Hero({ item }: { item: MediaItem }) {
               <Link href={watchHref}>
                 <Button
                   size="lg"
-                  className="rounded-full bg-amber text-black font-semibold hover:bg-amber/90 gap-2 px-8 h-12 text-base cursor-pointer"
+                  className="rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-8 h-12 text-base cursor-pointer"
                 >
-                  <Play className="h-5 w-5 fill-black" />
+                  <Play className="h-5 w-5 fill-white" />
                   Watch Now
                 </Button>
               </Link>
