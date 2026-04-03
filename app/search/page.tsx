@@ -6,6 +6,7 @@ import { Search, X, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { measureLines } from "@/lib/pretext";
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
@@ -137,6 +138,9 @@ export default function SearchPage() {
           {filtered.map((item) => {
             const title = item.title || item.name || "Untitled";
             const date = item.release_date || item.first_air_date;
+            // Pre-compute title line count to set stable overlay height
+            // text-sm = 14px, leading-tight ≈ 1.25 * 14 = 17.5px, card inner width ≈ 136px
+            const titleLines = measureLines(title, "body", 14, 136, 17.5);
             const href =
               item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
             return (
@@ -176,8 +180,11 @@ export default function SearchPage() {
                     </div>
                   )}
 
-                  {/* Title on hover */}
-                  <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  {/* Title on hover — explicit minHeight prevents layout shift */}
+                  <div
+                    className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{ minHeight: titleLines.lineCount > 1 ? 56 : 38 }}
+                  >
                     <p className="text-sm font-semibold text-white leading-tight line-clamp-2">
                       {title}
                     </p>

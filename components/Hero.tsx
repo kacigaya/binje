@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
 import { backdropUrl } from "@/lib/tmdb";
+import { wouldTruncate } from "@/lib/pretext";
+import ExpandableOverview from "@/components/ExpandableOverview";
 
 export default function Hero({ item }: { item: MediaItem }) {
   const backdrop = backdropUrl(item.backdrop_path);
@@ -12,6 +14,17 @@ export default function Hero({ item }: { item: MediaItem }) {
     item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
   const watchHref =
     item.media_type === "tv" ? `/watch/tv/${item.id}` : `/watch/${item.id}`;
+
+  // Pre-compute whether the overview text exceeds 3 lines at max-w-xl (576px)
+  // text-base = 16px, leading-relaxed = 1.625 * 16 = 26px
+  const overviewIsTruncated = wouldTruncate(
+    item.overview,
+    "body",
+    16,
+    576,
+    26,
+    3,
+  );
 
   return (
     <section className="relative w-full h-[70vh] sm:h-[80vh] overflow-hidden">
@@ -64,9 +77,11 @@ export default function Hero({ item }: { item: MediaItem }) {
               {item.title}
             </h1>
 
-            <p className="text-base sm:text-lg text-foreground/70 line-clamp-3 leading-relaxed max-w-xl">
-              {item.overview}
-            </p>
+            <ExpandableOverview
+              text={item.overview}
+              isTruncated={overviewIsTruncated}
+              className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-xl"
+            />
 
             <div className="flex items-center gap-3 pt-2">
               <Link href={watchHref}>
