@@ -91,7 +91,9 @@ export default async function TVShowPage({
             </h1>
 
             {show.tagline && (
-              <p className="text-lg text-accent-red/80 italic">{show.tagline}</p>
+              <p className="text-lg text-accent-red/80 italic">
+                {show.tagline}
+              </p>
             )}
 
             {/* Meta row */}
@@ -105,7 +107,8 @@ export default async function TVShowPage({
               </div>
               <div className="flex items-center gap-1">
                 <Layers className="h-4 w-4" />
-                {show.number_of_seasons} Season{show.number_of_seasons !== 1 ? "s" : ""}
+                {show.number_of_seasons} Season
+                {show.number_of_seasons !== 1 ? "s" : ""}
               </div>
               <div className="flex items-center gap-1">
                 <Tv className="h-4 w-4" />
@@ -146,7 +149,9 @@ export default async function TVShowPage({
               </Button>
             </Link>
 
-            <Separator className="bg-white/10" />
+            <div className="mt-6">
+              <Separator className="bg-white/10" />
+            </div>
 
             {/* Overview */}
             <div>
@@ -164,7 +169,9 @@ export default async function TVShowPage({
             {/* Created by */}
             {show.created_by.length > 0 && (
               <div>
-                <span className="text-sm text-muted-foreground">Created by</span>
+                <span className="text-sm text-muted-foreground">
+                  Created by
+                </span>
                 <p className="font-medium">
                   {show.created_by.map((c) => c.name).join(", ")}
                 </p>
