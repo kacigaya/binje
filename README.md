@@ -6,7 +6,7 @@
 
 <p align="center">
    <strong>A modern movie and TV show discovery web application built with Next.js.</strong><br>
-   <em>Powered by [TMDB API](https://www.themoviedb.org/documentation/api).</em>
+   <em>Powered by TMDB API.</em>
 </p>
 
 ## Features
