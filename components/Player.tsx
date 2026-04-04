@@ -23,14 +23,16 @@ export default function Player({
     src = `https://player.videasy.net/movie/${tmdbId}`;
   }
 
+  const proxiedSrc = `/api/embed/player?src=${encodeURIComponent(src)}`;
+
   const [iframeEnabled, setIframeEnabled] = useState(false);
 
   return (
     <div className="space-y-3">
       <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
         <iframe
-          key={src}
-          src={src}
+          key={proxiedSrc}
+          src={proxiedSrc}
           className={`absolute inset-0 w-full h-full ${
             iframeEnabled ? "pointer-events-auto" : "pointer-events-none"
           }`}
