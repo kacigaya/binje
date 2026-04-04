@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
+
 export default function Player({
   tmdbId,
   type = "movie",
@@ -11,6 +13,8 @@ export default function Player({
   season?: number;
   episode?: number;
 }) {
+  const [showOverlay, setShowOverlay] = useState(true);
+
   let src: string;
   if (type === "tv" && season !== undefined && episode !== undefined) {
     src = `https://player.videasy.net/tv/${tmdbId}/${season}/${episode}`;
@@ -20,17 +24,41 @@ export default function Player({
     src = `https://player.videasy.net/movie/${tmdbId}`;
   }
 
+  // Block popup windows opened by the iframe
+  useEffect(() => {
+    const originalOpen = window.open;
+    window.open = function (...args) {
+      // Block popups from ad scripts
+      return null;
+    };
+    return () => {
+      window.open = originalOpen;
+    };
+  }, []);
+
+  // Re-show overlay periodically to catch repeated ad triggers
+  const handleOverlayClick = useCallback(() => {
+    setShowOverlay(false);
+    // Re-enable overlay after a short delay to catch the next ad click
+    setTimeout(() => setShowOverlay(true), 3000);
+  }, []);
+
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <iframe
         src={src}
         className="absolute inset-0 w-full h-full"
         allowFullScreen
-        sandbox="allow-scripts allow-same-origin allow-forms"
         allow="autoplay; fullscreen; picture-in-picture"
         referrerPolicy="origin"
         title="Player"
       />
+      {showOverlay && (
+        <div
+          className="absolute inset-0 z-10 cursor-pointer"
+          onClick={handleOverlayClick}
+        />
+      )}
     </div>
   );
 }
