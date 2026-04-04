@@ -48,39 +48,21 @@ export default async function HomePage() {
     getOnTheAirTV(),
   ]);
 
-  const featured = movieToMedia(trending[0]);
+  const featuredItems = trending.map(movieToMedia);
 
   return (
     <div className="flex flex-col">
-      {featured && <Hero item={featured} />}
+      {featuredItems.length > 0 && <Hero items={featuredItems} />}
 
       <div className="-mt-16 relative z-10 flex flex-col gap-10 pb-16 max-w-7xl mx-auto w-full">
-        <Carousel
-          title="Trending Movies"
-          items={trending.map(movieToMedia)}
-        />
-        <Carousel
-          title="Trending TV Shows"
-          items={trendingTV.map(tvToMedia)}
-        />
+        <Carousel title="Trending Movies" items={trending.map(movieToMedia)} />
+        <Carousel title="Trending TV Shows" items={trendingTV.map(tvToMedia)} />
         <Carousel title="Popular Movies" items={popular.map(movieToMedia)} />
-        <Carousel
-          title="Popular TV Shows"
-          items={popularTV.map(tvToMedia)}
-        />
-        <Carousel
-          title="Top Rated Movies"
-          items={topRated.map(movieToMedia)}
-        />
-        <Carousel
-          title="Top Rated TV"
-          items={topRatedTV.map(tvToMedia)}
-        />
+        <Carousel title="Popular TV Shows" items={popularTV.map(tvToMedia)} />
+        <Carousel title="Top Rated Movies" items={topRated.map(movieToMedia)} />
+        <Carousel title="Top Rated TV" items={topRatedTV.map(tvToMedia)} />
         <Carousel title="Now Playing" items={nowPlaying.map(movieToMedia)} />
-        <Carousel
-          title="On The Air"
-          items={onTheAirTV.map(tvToMedia)}
-        />
+        <Carousel title="On The Air" items={onTheAirTV.map(tvToMedia)} />
         <Carousel title="Upcoming" items={upcoming.map(movieToMedia)} />
         <Carousel title="Action" items={action.map(movieToMedia)} />
         <Carousel title="Comedy" items={comedy.map(movieToMedia)} />

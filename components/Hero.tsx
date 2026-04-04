@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Play, Star, Info } from "lucide-react";
@@ -7,19 +10,49 @@ import type { MediaItem } from "@/types/tmdb";
 import { backdropUrl } from "@/lib/tmdb";
 import ExpandableOverview from "@/components/ExpandableOverview";
 
-export default function Hero({ item }: { item: MediaItem }) {
-  const backdrop = backdropUrl(item.backdrop_path);
+interface HeroProps {
+  items: MediaItem[];
+}
+
+export default function Hero({ items }: HeroProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const safeItems = useMemo(
+    () => items.filter((item) => Boolean(item?.id)),
+    [items],
+  );
+
+  useEffect(() => {
+    if (safeItems.length <= 1) return;
+
+    const intervalId = window.setInterval(() => {
+      setActiveIndex((previousIndex) => (previousIndex + 1) % safeItems.length);
+    }, 15000);
+
+    return () => window.clearInterval(intervalId);
+  }, [safeItems.length]);
+
+  const normalizedIndex =
+    safeItems.length > 0 ? activeIndex % safeItems.length : 0;
+  const activeItem = safeItems[normalizedIndex];
+  if (!activeItem) return null;
+
+  const backdrop = backdropUrl(activeItem.backdrop_path);
   const detailHref =
-    item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
+    activeItem.media_type === "tv"
+      ? `/tv/${activeItem.id}`
+      : `/movie/${activeItem.id}`;
   const watchHref =
-    item.media_type === "tv" ? `/watch/tv/${item.id}` : `/watch/${item.id}`;
+    activeItem.media_type === "tv"
+      ? `/watch/tv/${activeItem.id}`
+      : `/watch/${activeItem.id}`;
 
   return (
     <section className="relative w-full h-[70vh] sm:h-[80vh] overflow-hidden">
       {backdrop && (
         <Image
           src={backdrop}
-          alt={item.title}
+          alt={activeItem.title}
           fill
           priority
           className="object-cover object-top"
@@ -40,7 +73,7 @@ export default function Hero({ item }: { item: MediaItem }) {
               >
                 Trending
               </Badge>
-              {item.media_type === "tv" && (
+              {activeItem.media_type === "tv" && (
                 <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
                   TV Series
                 </Badge>
@@ -48,12 +81,12 @@ export default function Hero({ item }: { item: MediaItem }) {
               <div className="flex items-center gap-1 text-accent-red">
                 <Star className="h-4 w-4 fill-accent-red" />
                 <span className="text-sm font-semibold">
-                  {item.vote_average.toFixed(1)}
+                  {activeItem.vote_average.toFixed(1)}
                 </span>
               </div>
-              {item.date && (
+              {activeItem.date && (
                 <span className="text-sm text-muted-foreground">
-                  {new Date(item.date).getFullYear()}
+                  {new Date(activeItem.date).getFullYear()}
                 </span>
               )}
             </div>
@@ -62,11 +95,11 @@ export default function Hero({ item }: { item: MediaItem }) {
               className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              {item.title}
+              {activeItem.title}
             </h1>
 
             <ExpandableOverview
-              text={item.overview}
+              text={activeItem.overview}
               fontKey="body"
               fontSize={16}
               containerWidth={576}

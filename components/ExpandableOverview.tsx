@@ -27,13 +27,15 @@ export default function ExpandableOverview({
   const [isTruncated, setIsTruncated] = useState(false);
 
   useEffect(() => {
-    setIsTruncated(wouldTruncate(text, fontKey, fontSize, containerWidth, lineHeight, maxLines));
-  }, [text, fontKey, fontSize, containerWidth, lineHeight, maxLines]);
+    setIsTruncated(
+      wouldTruncate(text, fontKey, fontSize, containerWidth, lineHeight, 3),
+    );
+  }, [text, fontKey, fontSize, containerWidth, lineHeight]);
 
   return (
     <div>
       <p
-        className={`${className} ${!expanded && isTruncated ? `line-clamp-${maxLines}` : ""}`}
+        className={`${className} ${!expanded && isTruncated ? "line-clamp-3" : ""}`}
       >
         {text}
       </p>
