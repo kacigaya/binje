@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useRef } from "react";
+import { getAdBlocker } from "@/lib/adblocker/blocker";
 
 export default function Player({
   tmdbId,
@@ -13,7 +14,7 @@ export default function Player({
   season?: number;
   episode?: number;
 }) {
-  const [showOverlay, setShowOverlay] = useState(true);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   let src: string;
   if (type === "tv" && season !== undefined && episode !== undefined) {
@@ -24,28 +25,20 @@ export default function Player({
     src = `https://player.videasy.net/movie/${tmdbId}`;
   }
 
-  // Block popup windows opened by the iframe
+  // Initialize the ad blocker when the player mounts
   useEffect(() => {
-    const originalOpen = window.open;
-    window.open = function (...args) {
-      // Block popups from ad scripts
-      return null;
-    };
-    return () => {
-      window.open = originalOpen;
-    };
-  }, []);
+    const blocker = getAdBlocker();
+    blocker.start();
 
-  // Re-show overlay periodically to catch repeated ad triggers
-  const handleOverlayClick = useCallback(() => {
-    setShowOverlay(false);
-    // Re-enable overlay after a short delay to catch the next ad click
-    setTimeout(() => setShowOverlay(true), 3000);
+    return () => {
+      blocker.stop();
+    };
   }, []);
 
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <iframe
+        ref={iframeRef}
         src={src}
         className="absolute inset-0 w-full h-full"
         allowFullScreen
@@ -53,12 +46,6 @@ export default function Player({
         referrerPolicy="origin"
         title="Player"
       />
-      {showOverlay && (
-        <div
-          className="absolute inset-0 z-10 cursor-pointer"
-          onClick={handleOverlayClick}
-        />
-      )}
     </div>
   );
 }
