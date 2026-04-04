@@ -5,16 +5,20 @@ import { AD_DOMAINS, AD_PATH_PATTERNS, ALLOWED_DOMAINS } from "./domains";
 /**
  * AdBlocker — A client-side TypeScript ad blocker inspired by uBlock Origin.
  *
- * Techniques used:
- * 1. Popup interception — Overrides window.open and blocks ad-triggered popups
- * 2. Navigation hijack prevention — Blocks ad scripts from redirecting the page
- * 3. Click hijack detection — Intercepts suspicious click handlers on the document
- * 4. DOM mutation observer — Removes injected ad elements from the parent page
- * 5. Service Worker registration — Blocks ad network requests at the fetch level
+ * Techniques used (mirrors uBlock Origin scriptlets):
+ * 1. Popup interception — Overrides window.open with a fake Proxy window (nowoif)
+ * 2. Navigation hijack prevention — Blocks ad-triggered page redirects
+ * 3. Click hijack detection — Intercepts suspicious click handlers
+ * 4. addEventListener interception — Filters ad-injected event listeners
+ * 5. DOM mutation observer — Removes injected ad elements + strips target=_blank
+ * 6. Synthetic click blocking — Prevents HTMLElement.prototype.click abuse
+ * 7. Service Worker registration — Blocks ad network requests at fetch level
  */
 export class AdBlocker {
   private active = false;
   private originalWindowOpen: typeof window.open | null = null;
+  private originalAddEventListener: typeof EventTarget.prototype.addEventListener | null = null;
+  private originalElementClick: typeof HTMLElement.prototype.click | null = null;
   private observer: MutationObserver | null = null;
   private cleanupHandlers: (() => void)[] = [];
 
@@ -37,6 +41,8 @@ export class AdBlocker {
     this.interceptPopups();
     this.blockNavigationHijacks();
     this.interceptClickHijacks();
+    this.interceptAddEventListener();
+    this.interceptSyntheticClicks();
     this.observeDOM();
     this.registerServiceWorker();
   }
@@ -97,7 +103,6 @@ export class AdBlocker {
   private isDomainInList(hostname: string, domainSet: Set<string>): boolean {
     if (domainSet.has(hostname)) return true;
 
-    // Check parent domains: a.b.example.com → b.example.com → example.com
     const parts = hostname.split(".");
     for (let i = 1; i < parts.length - 1; i++) {
       const parent = parts.slice(i).join(".");
@@ -108,9 +113,71 @@ export class AdBlocker {
   }
 
   /**
-   * 1. Popup Interception
+   * Create a fake window Proxy that tricks ad scripts into thinking
+   * their popup succeeded. This is uBlock Origin's "nowoif" technique.
+   * Ad scripts check the return value of window.open() — if they get null,
+   * they retry or fall back to redirect-based ads. A fake Proxy prevents that.
+   */
+  private createDecoyWindow(): Window {
+    const noop = () => {};
+    const decoy = new Proxy(Object.create(null), {
+      get(_target, prop) {
+        switch (prop) {
+          case "closed":
+            return false;
+          case "document":
+            return new Proxy(Object.create(null), {
+              get() {
+                return noop;
+              },
+            });
+          case "focus":
+          case "blur":
+          case "close":
+          case "moveTo":
+          case "moveBy":
+          case "resizeTo":
+          case "resizeBy":
+          case "scroll":
+          case "scrollTo":
+          case "scrollBy":
+          case "postMessage":
+          case "print":
+          case "stop":
+          case "alert":
+          case "confirm":
+          case "prompt":
+            return noop;
+          case "location":
+            return new Proxy(Object.create(null), {
+              get() {
+                return "";
+              },
+              set() {
+                return true;
+              },
+            });
+          case "top":
+          case "self":
+          case "parent":
+          case "opener":
+          case "window":
+            return decoy;
+          default:
+            return undefined;
+        }
+      },
+      set() {
+        return true;
+      },
+    });
+    return decoy as unknown as Window;
+  }
+
+  /**
+   * 1. Popup Interception (uBlock's nowoif / prevent-window-open)
    * Override window.open to block popups to ad domains.
-   * Mimics uBlock's popup blocking by intercepting the window.open API.
+   * Returns a decoy Proxy window so ad scripts think the popup succeeded.
    */
   private interceptPopups(): void {
     this.originalWindowOpen = window.open.bind(window);
@@ -123,13 +190,12 @@ export class AdBlocker {
     ): Window | null {
       const urlStr = url?.toString() ?? "";
 
-      // Block if it's an ad URL or if opened without user gesture (empty URL popup trick)
+      // Block if it's an ad URL or empty URL (popup trick)
       if (!urlStr || self.isAdURL(urlStr)) {
         console.debug("[AdBlocker] Blocked popup:", urlStr || "(empty)");
-        return null;
+        return self.createDecoyWindow();
       }
 
-      // Allow legitimate popups
       return self.originalWindowOpen!(url, target, features);
     };
 
@@ -143,23 +209,13 @@ export class AdBlocker {
 
   /**
    * 2. Navigation Hijack Prevention
-   * Prevents ad scripts from redirecting the parent page via location changes.
-   * Blocks beforeunload-based redirects and monitors location descriptor changes.
+   * Prevents ad scripts from redirecting the parent page.
+   * Intercepts both beforeunload events and location assignment.
    */
   private blockNavigationHijacks(): void {
-    // Capture the original location descriptor
-    const originalLocationDescriptor = Object.getOwnPropertyDescriptor(
-      window,
-      "location",
-    );
-
-    // Block suspicious beforeunload handlers that ads inject
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // If the navigation is to an ad URL, prevent it
-      // We check document.activeElement to see if the user was interacting with our iframe
       const activeEl = document.activeElement;
       if (activeEl?.tagName === "IFRAME") {
-        // Likely an ad-triggered navigation from inside the player iframe
         e.preventDefault();
         e.returnValue = "";
       }
@@ -169,51 +225,84 @@ export class AdBlocker {
     this.cleanupHandlers.push(() => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     });
+
+    // Intercept location.assign and location.replace to block ad redirects
+    const origAssign = window.location.assign.bind(window.location);
+    const origReplace = window.location.replace.bind(window.location);
+    const self = this;
+
+    window.location.assign = function (url: string | URL) {
+      const urlStr = url.toString();
+      if (self.isAdURL(urlStr)) {
+        console.debug("[AdBlocker] Blocked location.assign:", urlStr);
+        return;
+      }
+      return origAssign(url);
+    };
+
+    window.location.replace = function (url: string | URL) {
+      const urlStr = url.toString();
+      if (self.isAdURL(urlStr)) {
+        console.debug("[AdBlocker] Blocked location.replace:", urlStr);
+        return;
+      }
+      return origReplace(url);
+    };
+
+    this.cleanupHandlers.push(() => {
+      window.location.assign = origAssign;
+      window.location.replace = origReplace;
+    });
   }
 
   /**
    * 3. Click Hijack Interception
-   * Detects and neutralizes click event handlers injected by ad scripts that
-   * try to intercept user clicks to trigger popups or redirects.
+   * Detects and neutralizes click handlers injected by ad scripts.
+   * Uses capture phase to intercept before ad scripts.
    */
   private interceptClickHijacks(): void {
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
-      // Check if a click on the page (outside the iframe) is trying to open an ad
-      if (target.tagName === "A") {
-        const anchor = target as HTMLAnchorElement;
-        if (
-          anchor.href &&
-          this.isAdURL(anchor.href) &&
-          anchor.target === "_blank"
-        ) {
-          e.preventDefault();
-          e.stopPropagation();
-          console.debug("[AdBlocker] Blocked ad link click:", anchor.href);
-        }
-      }
-    };
-
-    // Use capture phase to intercept before ad scripts
-    document.addEventListener("click", handleClick, true);
-    this.cleanupHandlers.push(() => {
-      document.removeEventListener("click", handleClick, true);
-    });
-
-    // Block auxclick (middle-click popups)
-    const handleAuxClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
+      // Block ad link clicks
       if (target.tagName === "A") {
         const anchor = target as HTMLAnchorElement;
         if (anchor.href && this.isAdURL(anchor.href)) {
           e.preventDefault();
           e.stopPropagation();
-          console.debug(
-            "[AdBlocker] Blocked ad auxclick:",
-            anchor.href,
-          );
+          console.debug("[AdBlocker] Blocked ad link click:", anchor.href);
         }
+      }
+
+      // Also check parent elements (ad links often wrap content)
+      const adLink = target.closest?.("a");
+      if (
+        adLink &&
+        adLink !== target &&
+        adLink.href &&
+        this.isAdURL(adLink.href)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.debug("[AdBlocker] Blocked nested ad link:", adLink.href);
+      }
+    };
+
+    document.addEventListener("click", handleClick, true);
+    this.cleanupHandlers.push(() => {
+      document.removeEventListener("click", handleClick, true);
+    });
+
+    const handleAuxClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const link =
+        target.tagName === "A"
+          ? (target as HTMLAnchorElement)
+          : target.closest?.("a");
+      if (link?.href && this.isAdURL(link.href)) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.debug("[AdBlocker] Blocked ad auxclick:", link.href);
       }
     };
 
@@ -224,9 +313,95 @@ export class AdBlocker {
   }
 
   /**
-   * 4. DOM Mutation Observer
-   * Watches for ad elements injected into the parent document by scripts that
-   * escape iframe sandboxing. Removes iframes, scripts, and divs that load ad content.
+   * 4. addEventListener Interception
+   * Wraps EventTarget.prototype.addEventListener to monitor and filter
+   * click handlers added by ad scripts. Inspired by uBlock's
+   * abort-current-script technique.
+   */
+  private interceptAddEventListener(): void {
+    this.originalAddEventListener =
+      EventTarget.prototype.addEventListener.bind(document);
+    const origAddListener = EventTarget.prototype.addEventListener;
+    const self = this;
+
+    EventTarget.prototype.addEventListener = function (
+      type: string,
+      listener: EventListenerOrEventListenerObject | null,
+      options?: boolean | AddEventListenerOptions,
+    ) {
+      // Check if a click/mousedown listener on document/body is trying to open popups
+      if (
+        (type === "click" || type === "mousedown" || type === "pointerdown") &&
+        (this === document ||
+          this === document.body ||
+          this === document.documentElement ||
+          this === window)
+      ) {
+        const listenerStr = listener?.toString() ?? "";
+        // Detect listeners that reference popup-related APIs
+        if (
+          listenerStr.includes("window.open") ||
+          listenerStr.includes("window.location") ||
+          listenerStr.includes(".open(") ||
+          listenerStr.includes("location.href") ||
+          listenerStr.includes("location.assign") ||
+          listenerStr.includes("location.replace")
+        ) {
+          console.debug(
+            "[AdBlocker] Blocked suspicious",
+            type,
+            "listener on",
+            this === window ? "window" : (this as HTMLElement).tagName,
+          );
+          return;
+        }
+      }
+
+      return origAddListener.call(this, type, listener, options);
+    };
+
+    this.cleanupHandlers.push(() => {
+      EventTarget.prototype.addEventListener = origAddListener;
+    });
+  }
+
+  /**
+   * 5. Synthetic Click Blocking
+   * Prevents ad scripts from programmatically clicking invisible anchor tags
+   * via HTMLElement.prototype.click(). This is a common technique to bypass
+   * popup blockers — create an <a target="_blank" href="ad-url">, then call .click().
+   */
+  private interceptSyntheticClicks(): void {
+    this.originalElementClick = HTMLElement.prototype.click;
+    const origClick = HTMLElement.prototype.click;
+    const self = this;
+
+    HTMLElement.prototype.click = function () {
+      if (this.tagName === "A") {
+        const anchor = this as unknown as HTMLAnchorElement;
+        if (anchor.href && self.isAdURL(anchor.href)) {
+          console.debug(
+            "[AdBlocker] Blocked synthetic click on ad link:",
+            anchor.href,
+          );
+          return;
+        }
+      }
+      return origClick.call(this);
+    };
+
+    this.cleanupHandlers.push(() => {
+      HTMLElement.prototype.click = origClick;
+    });
+  }
+
+  /**
+   * 6. DOM Mutation Observer
+   * Watches for ad elements injected into the parent document.
+   * - Removes ad iframes, scripts, and overlay divs
+   * - Strips target="_blank" from dynamically created links to ad URLs
+   *   (uBlock's disable-newtab-links technique)
+   * - Removes <meta http-equiv="refresh"> tags (prevent-refresh technique)
    */
   private observeDOM(): void {
     this.observer = new MutationObserver((mutations) => {
@@ -254,6 +429,40 @@ export class AdBlocker {
             }
           }
 
+          // Remove <meta http-equiv="refresh"> tags (uBlock's prevent-refresh)
+          if (node.tagName === "META") {
+            const httpEquiv = node.getAttribute("http-equiv") ?? "";
+            if (httpEquiv.toLowerCase() === "refresh") {
+              console.debug("[AdBlocker] Removed meta refresh tag");
+              node.remove();
+              continue;
+            }
+          }
+
+          // Strip target="_blank" from ad links (disable-newtab-links)
+          if (node.tagName === "A") {
+            const anchor = node as HTMLAnchorElement;
+            if (
+              anchor.href &&
+              this.isAdURL(anchor.href) &&
+              anchor.target === "_blank"
+            ) {
+              anchor.removeAttribute("target");
+              anchor.addEventListener(
+                "click",
+                (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                },
+                true,
+              );
+              console.debug(
+                "[AdBlocker] Neutralized ad link:",
+                anchor.href,
+              );
+            }
+          }
+
           // Remove suspicious overlay divs (full-screen ad overlays)
           if (
             node.tagName === "DIV" &&
@@ -262,7 +471,6 @@ export class AdBlocker {
             node.style.zIndex &&
             parseInt(node.style.zIndex) > 9000
           ) {
-            // Check if it contains ad-related content
             const innerHTML = node.innerHTML.toLowerCase();
             if (
               innerHTML.includes("ad") ||
@@ -276,7 +484,7 @@ export class AdBlocker {
             }
           }
 
-          // Check children of added nodes too
+          // Check children of added nodes
           const adElements = node.querySelectorAll(
             'iframe[src], script[src], a[target="_blank"]',
           );
@@ -299,7 +507,7 @@ export class AdBlocker {
   }
 
   /**
-   * 5. Service Worker Registration
+   * 7. Service Worker Registration
    * Registers a service worker that intercepts fetch requests at the network level
    * and blocks requests to known ad domains before they reach the page.
    */
