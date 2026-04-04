@@ -1,6 +1,13 @@
-# Binje
+<p align="center">
+  <img src="app/icon.svg" alt="Logo" width="200">
+</p>
 
-A modern movie and TV show discovery web application built with Next.js, powered by [TMDB API](https://www.themoviedb.org/documentation/api).
+<h1 align="center">b!nje</h1>
+
+<p align="center">
+   <strong>A modern movie and TV show discovery web application built with Next.js.</strong><br>
+   <em>Powered by [TMDB API](https://www.themoviedb.org/documentation/api).</em>
+</p>
 
 ## Features
 
