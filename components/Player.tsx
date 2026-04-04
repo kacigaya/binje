@@ -26,7 +26,7 @@ export default function Player({
         src={src}
         className="absolute inset-0 w-full h-full"
         allowFullScreen
-        allow="autoplay; fullscreen; picture-in-picture"
+        allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
         referrerPolicy="origin"
         title="Player"
       />
