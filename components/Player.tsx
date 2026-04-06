@@ -27,6 +27,7 @@ export default function Player({
         className="absolute inset-0 w-full h-full"
         allowFullScreen
         allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+        sandbox="allow-scripts allow-same-origin allow-presentation"
         referrerPolicy="origin"
         title="Player"
       />

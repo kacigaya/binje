@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Play, Star, Calendar, Tv, Layers } from "lucide-react";
@@ -22,6 +23,7 @@ export default async function TVShowPage({
 }) {
   const { id } = await params;
   const showId = parseInt(id, 10);
+  if (!Number.isFinite(showId) || showId <= 0) notFound();
 
   const [show, credits, similar] = await Promise.all([
     getTVDetails(showId),

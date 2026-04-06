@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Play, Star, Clock, Calendar } from "lucide-react";
@@ -22,6 +23,7 @@ export default async function MoviePage({
 }) {
   const { id } = await params;
   const movieId = parseInt(id, 10);
+  if (!Number.isFinite(movieId) || movieId <= 0) notFound();
 
   const [movie, credits, similar] = await Promise.all([
     getMovieDetails(movieId),

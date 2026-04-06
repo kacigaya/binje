@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Star, Calendar, Layers, Tv } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ export default async function WatchTVPage({
   const { id } = await params;
   const { s, e } = await searchParams;
   const showId = parseInt(id, 10);
+  if (!Number.isFinite(showId) || showId <= 0) notFound();
   const show = await getTVDetails(showId);
 
   const season = s ? parseInt(s, 10) : 1;

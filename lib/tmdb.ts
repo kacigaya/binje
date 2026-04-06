@@ -173,8 +173,8 @@ export async function searchMulti(
   page = 1,
 ): Promise<MultiSearchResponse> {
   const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-  const variations = generateQueryVariations(query);
-  const pagesToFetch = safePage === 1 ? [1, 2, 3, 4, 5, 6, 7] : [safePage];
+  const variations = generateQueryVariations(query).slice(0, 3);
+  const pagesToFetch = safePage === 1 ? [1, 2, 3] : [safePage];
   const allResults: MultiSearchResult[] = [];
   const seen = new Set<string>();
   let totalPages = 1;

@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Star, Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ export default async function WatchPage({
 }) {
   const { id } = await params;
   const movieId = parseInt(id, 10);
+  if (!Number.isFinite(movieId) || movieId <= 0) notFound();
   const movie = await getMovieDetails(movieId);
 
   return (
