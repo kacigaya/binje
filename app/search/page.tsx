@@ -3,9 +3,9 @@
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, X, Star } from "lucide-react";
+import { Skeleton } from "boneyard-js/react";
 import Image from "next/image";
 import Link from "next/link";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface SearchResult {
   id: number;
@@ -26,7 +26,7 @@ export default function SearchPage() {
       fallback={
         <div className="pt-24 pb-16 px-4 sm:px-6 max-w-7xl mx-auto w-full">
           <div className="relative max-w-2xl mx-auto mb-8">
-            <Skeleton className="w-full h-14 rounded-2xl" />
+            <div className="w-full h-14 rounded-2xl bg-muted animate-pulse" />
           </div>
         </div>
       }
@@ -129,110 +129,120 @@ function SearchContent() {
         ))}
       </div>
 
-      {/* Loading skeletons */}
-      {loading && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-2/3 rounded-xl" />
-          ))}
-        </div>
-      )}
-
-      {/* Results grid */}
-      {!loading && filtered.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-          {filtered.map((item, index) => {
-            const title = item.title || item.name || "Untitled";
-            const date = item.release_date || item.first_air_date;
-            const href =
-              item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
-            return (
-              <Link
-                key={`${item.media_type}-${item.id}`}
-                href={href}
-                className="group block"
-              >
-                <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
-                  {item.poster_path ? (
-                    <Image
-                      src={`https://image.tmdb.org/t/p/w342${item.poster_path}`}
-                      alt={title}
-                      fill
-                      loading={index < 6 ? "eager" : "lazy"}
-                      className="object-cover transition-transform duration-500 group-hover:scale-110"
-                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                      No Poster
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                  {/* Rating */}
-                  {item.vote_average != null && (
-                    <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
-                      <Star className="h-3 w-3 fill-accent-red" />
-                      {item.vote_average.toFixed(1)}
-                    </div>
-                  )}
-
-                  {/* Media type badge */}
-                  {item.media_type === "tv" && (
-                    <div className="absolute top-2 left-2 rounded-full bg-accent-red/90 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
-                      TV
-                    </div>
-                  )}
-
-                  {/* Title on hover */}
-                  <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <p className="text-sm font-semibold text-white leading-tight line-clamp-2">
-                      {title}
-                    </p>
-                    {date && (
-                      <p className="text-xs text-white/60 mt-1">
-                        {new Date(date).getFullYear()}
-                      </p>
+      {/* Results area */}
+      <Skeleton
+        name="search-results"
+        loading={loading}
+        animate="shimmer"
+        fixture={
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="aspect-[2/3] rounded-xl bg-card" />
+            ))}
+          </div>
+        }
+        fallback={
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div
+                key={i}
+                className="aspect-[2/3] rounded-xl bg-muted animate-pulse"
+              />
+            ))}
+          </div>
+        }
+      >
+        {filtered.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+            {filtered.map((item, index) => {
+              const title = item.title || item.name || "Untitled";
+              const date = item.release_date || item.first_air_date;
+              const href =
+                item.media_type === "tv"
+                  ? `/tv/${item.id}`
+                  : `/movie/${item.id}`;
+              return (
+                <Link
+                  key={`${item.media_type}-${item.id}`}
+                  href={href}
+                  className="group block"
+                >
+                  <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
+                    {item.poster_path ? (
+                      <Image
+                        src={`https://image.tmdb.org/t/p/w342${item.poster_path}`}
+                        alt={title}
+                        fill
+                        loading={index < 6 ? "eager" : "lazy"}
+                        className="object-cover transition-transform duration-500 group-hover:scale-110"
+                        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                        No Poster
+                      </div>
                     )}
+                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                    {/* Rating */}
+                    {item.vote_average != null && (
+                      <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
+                        <Star className="h-3 w-3 fill-accent-red" />
+                        {item.vote_average.toFixed(1)}
+                      </div>
+                    )}
+
+                    {/* Media type badge */}
+                    {item.media_type === "tv" && (
+                      <div className="absolute top-2 left-2 rounded-full bg-accent-red/90 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
+                        TV
+                      </div>
+                    )}
+
+                    {/* Title on hover */}
+                    <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <p className="text-sm font-semibold text-white leading-tight line-clamp-2">
+                        {title}
+                      </p>
+                      {date && (
+                        <p className="text-xs text-white/60 mt-1">
+                          {new Date(date).getFullYear()}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && searched && filtered.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <Search className="h-12 w-12 text-muted-foreground/40 mb-4" />
-          <h3
-            className="text-xl font-semibold mb-2"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            No results found
-          </h3>
-          <p className="text-muted-foreground">
-            Try a different search term or check the spelling.
-          </p>
-        </div>
-      )}
-
-      {/* Initial state */}
-      {!loading && !searched && (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <Search className="h-12 w-12 text-muted-foreground/40 mb-4" />
-          <h3
-            className="text-xl font-semibold mb-2"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            Discover movies & TV shows
-          </h3>
-          <p className="text-muted-foreground">
-            Start typing to search thousands of titles.
-          </p>
-        </div>
-      )}
+                </Link>
+              );
+            })}
+          </div>
+        ) : searched ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <Search className="h-12 w-12 text-muted-foreground/40 mb-4" />
+            <h3
+              className="text-xl font-semibold mb-2"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              No results found
+            </h3>
+            <p className="text-muted-foreground">
+              Try a different search term or check the spelling.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <Search className="h-12 w-12 text-muted-foreground/40 mb-4" />
+            <h3
+              className="text-xl font-semibold mb-2"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              Discover movies & TV shows
+            </h3>
+            <p className="text-muted-foreground">
+              Start typing to search thousands of titles.
+            </p>
+          </div>
+        )}
+      </Skeleton>
     </div>
   );
 }
