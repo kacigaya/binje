@@ -20,7 +20,6 @@ export default function ExpandableOverview({
   fontSize,
   containerWidth,
   lineHeight,
-  maxLines,
   className,
 }: Props) {
   const [expanded, setExpanded] = useState(false);

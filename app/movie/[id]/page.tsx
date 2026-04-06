@@ -61,6 +61,7 @@ export default async function MoviePage({
                 src={poster}
                 alt={movie.title}
                 fill
+                priority
                 className="object-cover"
                 sizes="260px"
               />

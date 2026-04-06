@@ -60,6 +60,7 @@ export default async function TVShowPage({
                 src={poster}
                 alt={show.name}
                 fill
+                priority
                 className="object-cover"
                 sizes="260px"
               />

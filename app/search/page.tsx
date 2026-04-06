@@ -125,7 +125,7 @@ export default function SearchPage() {
       {/* Results grid */}
       {!loading && filtered.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-          {filtered.map((item) => {
+          {filtered.map((item, index) => {
             const title = item.title || item.name || "Untitled";
             const date = item.release_date || item.first_air_date;
             const href =
@@ -142,6 +142,7 @@ export default function SearchPage() {
                       src={`https://image.tmdb.org/t/p/w500${item.poster_path}`}
                       alt={title}
                       fill
+                      loading={index < 6 ? "eager" : "lazy"}
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
                       sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
                     />
