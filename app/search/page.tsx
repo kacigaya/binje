@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, X, Star } from "lucide-react";
 import Image from "next/image";
@@ -21,6 +21,22 @@ interface SearchResult {
 type FilterType = "all" | "movie" | "tv";
 
 export default function SearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="pt-24 pb-16 px-4 sm:px-6 max-w-7xl mx-auto w-full">
+          <div className="relative max-w-2xl mx-auto mb-8">
+            <Skeleton className="w-full h-14 rounded-2xl" />
+          </div>
+        </div>
+      }
+    >
+      <SearchContent />
+    </Suspense>
+  );
+}
+
+function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQuery = searchParams.get("q") || "";
@@ -139,7 +155,7 @@ export default function SearchPage() {
                 <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
                   {item.poster_path ? (
                     <Image
-                      src={`https://image.tmdb.org/t/p/w500${item.poster_path}`}
+                      src={`https://image.tmdb.org/t/p/w342${item.poster_path}`}
                       alt={title}
                       fill
                       loading={index < 6 ? "eager" : "lazy"}

@@ -8,9 +8,11 @@ import type { MediaItem } from "@/types/tmdb";
 export default function Carousel({
   title,
   items,
+  priority = false,
 }: {
   title: string;
   items: MediaItem[];
+  priority?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -63,8 +65,12 @@ export default function Carousel({
           onScroll={checkScroll}
           className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 pb-2"
         >
-          {items.map((item) => (
-            <MediaCard key={`${item.media_type}-${item.id}`} item={item} />
+          {items.map((item, i) => (
+            <MediaCard
+              key={`${item.media_type}-${item.id}`}
+              item={item}
+              eager={priority && i < 6}
+            />
           ))}
         </div>
 

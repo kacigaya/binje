@@ -4,8 +4,14 @@ import { Star } from "lucide-react";
 import type { MediaItem } from "@/types/tmdb";
 import { posterUrl } from "@/lib/tmdb";
 
-export default function MediaCard({ item }: { item: MediaItem }) {
-  const poster = posterUrl(item.poster_path, "w500");
+export default function MediaCard({
+  item,
+  eager = false,
+}: {
+  item: MediaItem;
+  eager?: boolean;
+}) {
+  const poster = posterUrl(item.poster_path, "w342");
   const href =
     item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
 
@@ -17,6 +23,7 @@ export default function MediaCard({ item }: { item: MediaItem }) {
             src={poster}
             alt={item.title}
             fill
+            loading={eager ? "eager" : "lazy"}
             className="object-cover transition-transform duration-500 group-hover:scale-110"
             sizes="(max-width: 640px) 160px, 185px"
           />

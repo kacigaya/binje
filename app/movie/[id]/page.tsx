@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Play, Star, Clock, Calendar } from "lucide-react";
@@ -16,6 +17,21 @@ import {
   profileUrl,
 } from "@/lib/tmdb";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const movieId = parseInt(id, 10);
+  if (!Number.isFinite(movieId) || movieId <= 0) return {};
+  const movie = await getMovieDetails(movieId);
+  return {
+    title: `${movie.title} — b!nje`,
+    description: movie.overview,
+  };
+}
+
 export default async function MoviePage({
   params,
 }: {
@@ -31,7 +47,7 @@ export default async function MoviePage({
     getSimilarMovies(movieId),
   ]);
 
-  const backdrop = backdropUrl(movie.backdrop_path);
+  const backdrop = backdropUrl(movie.backdrop_path, "w1280");
   const poster = posterUrl(movie.poster_path, "w500");
   const director = credits.crew.find((c) => c.job === "Director");
   const topCast = credits.cast.slice(0, 12);
@@ -186,6 +202,7 @@ export default async function MoviePage({
                           src={photo}
                           alt={person.name}
                           fill
+                          loading="lazy"
                           className="object-cover"
                           sizes="110px"
                         />

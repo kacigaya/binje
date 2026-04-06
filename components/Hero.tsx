@@ -37,7 +37,7 @@ export default function Hero({ items }: HeroProps) {
   const activeItem = safeItems[normalizedIndex];
   if (!activeItem) return null;
 
-  const backdrop = backdropUrl(activeItem.backdrop_path);
+  const backdrop = backdropUrl(activeItem.backdrop_path, "w1280");
   const detailHref =
     activeItem.media_type === "tv"
       ? `/tv/${activeItem.id}`

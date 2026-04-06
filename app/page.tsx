@@ -15,7 +15,7 @@ import {
   tvToMedia,
 } from "@/lib/tmdb";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function HomePage() {
   const [
@@ -55,7 +55,7 @@ export default async function HomePage() {
       {featuredItems.length > 0 && <Hero items={featuredItems} />}
 
       <div className="-mt-20 relative z-10 flex flex-col gap-10 pb-16 max-w-7xl mx-auto w-full">
-        <Carousel title="Trending Movies" items={trending.map(movieToMedia)} />
+        <Carousel title="Trending Movies" items={trending.map(movieToMedia)} priority />
         <Carousel title="Trending TV Shows" items={trendingTV.map(tvToMedia)} />
         <Carousel title="Popular Movies" items={popular.map(movieToMedia)} />
         <Carousel title="Popular TV Shows" items={popularTV.map(tvToMedia)} />

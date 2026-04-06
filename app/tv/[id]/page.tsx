@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Play, Star, Calendar, Tv, Layers } from "lucide-react";
@@ -16,6 +17,21 @@ import {
   profileUrl,
 } from "@/lib/tmdb";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const showId = parseInt(id, 10);
+  if (!Number.isFinite(showId) || showId <= 0) return {};
+  const show = await getTVDetails(showId);
+  return {
+    title: `${show.name} — b!nje`,
+    description: show.overview,
+  };
+}
+
 export default async function TVShowPage({
   params,
 }: {
@@ -31,7 +47,7 @@ export default async function TVShowPage({
     getSimilarTV(showId),
   ]);
 
-  const backdrop = backdropUrl(show.backdrop_path);
+  const backdrop = backdropUrl(show.backdrop_path, "w1280");
   const poster = posterUrl(show.poster_path, "w500");
   const topCast = credits.cast.slice(0, 12);
 
@@ -219,6 +235,7 @@ export default async function TVShowPage({
                             src={sPoster}
                             alt={season.name}
                             fill
+                            loading="lazy"
                             className="object-cover"
                             sizes="160px"
                           />
@@ -263,6 +280,7 @@ export default async function TVShowPage({
                           src={photo}
                           alt={person.name}
                           fill
+                          loading="lazy"
                           className="object-cover"
                           sizes="110px"
                         />
