@@ -53,7 +53,7 @@ export default function Carousel({
         {canScrollLeft && (
           <button
             onClick={() => scroll("left")}
-            className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center bg-gradient-to-r from-background to-transparent opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center bg-linear-to-r from-background to-transparent opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
             aria-label="Scroll left"
           >
             <ChevronLeft className="h-8 w-8 text-foreground" />
@@ -77,7 +77,7 @@ export default function Carousel({
         {canScrollRight && (
           <button
             onClick={() => scroll("right")}
-            className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center bg-gradient-to-l from-background to-transparent opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center bg-linear-to-l from-background to-transparent opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
             aria-label="Scroll right"
           >
             <ChevronRight className="h-8 w-8 text-foreground" />

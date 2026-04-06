@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Search, Film } from "lucide-react";
-import { useState } from "react";
+import { useState, SyntheticEvent } from "react";
 
 export default function Navbar() {
   const router = useRouter();
   const [query, setQuery] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (query.trim()) {
       router.push(`/search?q=${encodeURIComponent(query.trim())}`);

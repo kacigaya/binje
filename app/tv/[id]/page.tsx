@@ -65,15 +65,15 @@ export default async function TVShowPage({
             sizes="100vw"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/30" />
+        <div className="absolute inset-0 bg-linear-to-t from-background via-background/70 to-background/30" />
       </div>
 
       {/* Content */}
       <div className="relative -mt-48 z-10 mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16">
         <div className="flex flex-col sm:flex-row gap-8">
           {/* Poster */}
-          <div className="flex-shrink-0 mx-auto sm:mx-0">
-            <div className="relative w-[200px] sm:w-[260px] aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10">
+          <div className="shrink-0 mx-auto sm:mx-0">
+            <div className="relative w-50 sm:w-65 aspect-2/3 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10">
               <Image
                 src={poster}
                 alt={show.name}
@@ -227,10 +227,10 @@ export default async function TVShowPage({
                     <Link
                       key={season.id}
                       href={`/watch/tv/${show.id}?s=${season.season_number}&e=1`}
-                      className="group flex-shrink-0"
+                      className="group shrink-0"
                     >
-                      <div className="relative w-[140px] sm:w-[160px] overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_20px_rgba(225,29,72,0.12)]">
-                        <div className="relative aspect-[2/3] overflow-hidden rounded-xl">
+                      <div className="relative w-35 sm:w-40 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_20px_rgba(225,29,72,0.12)]">
+                        <div className="relative aspect-2/3 overflow-hidden rounded-xl">
                           <Image
                             src={sPoster}
                             alt={season.name}
@@ -239,7 +239,7 @@ export default async function TVShowPage({
                             className="object-cover"
                             sizes="160px"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent" />
                           <div className="absolute bottom-0 left-0 right-0 p-3">
                             <p className="text-sm font-semibold text-white leading-tight">
                               {season.name}
@@ -272,9 +272,9 @@ export default async function TVShowPage({
                 return (
                   <div
                     key={`${person.id}-${i}`}
-                    className="flex-shrink-0 w-[110px] text-center"
+                    className="shrink-0 w-27.5 text-center"
                   >
-                    <div className="relative w-[110px] h-[110px] rounded-full overflow-hidden bg-muted mx-auto mb-2">
+                    <div className="relative w-27.5 h-27.5 rounded-full overflow-hidden bg-muted mx-auto mb-2">
                       {photo ? (
                         <Image
                           src={photo}
