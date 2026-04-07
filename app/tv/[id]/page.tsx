@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import BoneSkeleton from "@/components/BoneSkeleton";
 import Image from "next/image";
 import Link from "next/link";
 import { Play, Star, Calendar, Tv, Layers } from "lucide-react";
@@ -53,7 +52,6 @@ export default async function TVShowPage({
   const topCast = credits.cast.slice(0, 12);
 
   return (
-    <BoneSkeleton name="tv-detail">
     <div className="flex flex-col">
       {/* Backdrop */}
       <div className="relative w-full h-[50vh] sm:h-[60vh]">
@@ -313,6 +311,5 @@ export default async function TVShowPage({
         )}
       </div>
     </div>
-    </BoneSkeleton>
   );
 }

@@ -3,7 +3,6 @@ import { Space_Grotesk, Outfit } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import BoneRegistry from "@/components/BoneRegistry";
 
 const heading = Space_Grotesk({
   variable: "--font-heading",
@@ -35,7 +34,6 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
       </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground antialiased">
-        <BoneRegistry />
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />
