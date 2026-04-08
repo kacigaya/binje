@@ -14,6 +14,9 @@ export default function MediaCard({
   const poster = posterUrl(item.poster_path, "w342");
   const href =
     item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
+  const rating = Number.isFinite(item.vote_average)
+    ? item.vote_average.toFixed(1)
+    : "N/A";
 
   return (
     <Link href={href} className="group block shrink-0">
@@ -31,7 +34,7 @@ export default function MediaCard({
 
           <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
             <Star className="h-3 w-3 fill-accent-red" />
-            {item.vote_average.toFixed(1)}
+            {rating}
           </div>
 
           {item.media_type === "tv" && (
