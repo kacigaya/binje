@@ -46,6 +46,9 @@ export default function Hero({ items }: HeroProps) {
     activeItem.media_type === "tv"
       ? `/watch/tv/${activeItem.id}`
       : `/watch/${activeItem.id}`;
+  const rating = Number.isFinite(activeItem.vote_average)
+    ? activeItem.vote_average.toFixed(1)
+    : "N/A";
 
   return (
     <section className="relative w-full h-[70vh] sm:h-[80vh] overflow-hidden">
@@ -80,9 +83,7 @@ export default function Hero({ items }: HeroProps) {
               )}
               <div className="flex items-center gap-1 text-accent-red">
                 <Star className="h-4 w-4 fill-accent-red" />
-                <span className="text-sm font-semibold">
-                  {activeItem.vote_average.toFixed(1)}
-                </span>
+                <span className="text-sm font-semibold">{rating}</span>
               </div>
               {activeItem.date && (
                 <span className="text-sm text-muted-foreground">
