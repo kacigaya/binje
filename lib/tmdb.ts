@@ -54,7 +54,7 @@ export function movieToMedia(m: Movie): MediaItem {
     poster_path: m.poster_path,
     backdrop_path: m.backdrop_path,
     date: m.release_date,
-    vote_average: m.vote_average,
+    vote_average: Number.isFinite(m.vote_average) ? m.vote_average : 0,
     media_type: "movie",
   };
 }
@@ -67,7 +67,7 @@ export function tvToMedia(t: TVShow): MediaItem {
     poster_path: t.poster_path,
     backdrop_path: t.backdrop_path,
     date: t.first_air_date,
-    vote_average: t.vote_average,
+    vote_average: Number.isFinite(t.vote_average) ? t.vote_average : 0,
     media_type: "tv",
   };
 }
