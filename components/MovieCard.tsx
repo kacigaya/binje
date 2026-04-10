@@ -5,7 +5,7 @@ import type { Movie } from "@/types/tmdb";
 import { posterUrl } from "@/lib/tmdb";
 
 export default function MovieCard({ movie }: { movie: Movie }) {
-  const poster = posterUrl(movie.poster_path, "w500");
+  const poster = posterUrl(movie.poster_path, "w342");
 
   return (
     <Link href={`/movie/${movie.id}`} className="group block shrink-0">

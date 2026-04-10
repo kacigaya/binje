@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import MediaCard from "@/components/MediaCard";
 import type { MediaItem } from "@/types/tmdb";
@@ -15,19 +15,43 @@ export default function Carousel({
   priority?: boolean;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  function checkScroll() {
+  const checkScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     setCanScrollLeft(el.scrollLeft > 0);
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
-  }
+  }, []);
+
+  // Throttle scroll checks to one per animation frame to keep the main thread free.
+  const handleScroll = useCallback(() => {
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      checkScroll();
+      rafRef.current = null;
+    });
+  }, [checkScroll]);
 
   useEffect(() => {
     checkScroll();
-  }, [items]);
+  }, [items, checkScroll]);
+
+  // Attach a passive scroll listener so the browser can optimise scroll compositing.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [handleScroll]);
 
   function scroll(direction: "left" | "right") {
     const el = scrollRef.current;
@@ -62,7 +86,6 @@ export default function Carousel({
 
         <div
           ref={scrollRef}
-          onScroll={checkScroll}
           className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 pb-2"
         >
           {items.map((item, i) => (
