@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/icon.svg" alt="Logo" width="200">
+  <img src="public/icon.svg" alt="Logo" width="200">
 </p>
 
 <h1 align="center">b!nje</h1>
