@@ -18,7 +18,20 @@ interface SearchResult {
   vote_average?: number;
 }
 
+interface SearchApiResponse {
+  results?: SearchResult[];
+  page?: number;
+  totalPages?: number;
+  error?: string;
+}
+
 type FilterType = "all" | "movie" | "tv";
+
+const FILTER_TYPES: readonly FilterType[] = ["all", "movie", "tv"] as const;
+
+function parseFilterType(value: string | null): FilterType {
+  return FILTER_TYPES.includes(value as FilterType) ? (value as FilterType) : "all";
+}
 
 export default function SearchPage() {
   return (
@@ -40,7 +53,7 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQuery = searchParams.get("q") || "";
-  const initialType = (searchParams.get("type") as FilterType) || "all";
+  const initialType = parseFilterType(searchParams.get("type"));
 
   const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -58,8 +71,8 @@ function SearchContent() {
     setSearched(true);
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-      const data = await res.json();
-      setResults(data.results || []);
+      const data: SearchApiResponse = await res.json();
+      setResults(data.results ?? []);
     } catch {
       setResults([]);
     } finally {
@@ -114,7 +127,7 @@ function SearchContent() {
 
       {/* Filter tabs */}
       <div className="flex items-center justify-center gap-2 mb-8">
-        {(["all", "movie", "tv"] as const).map((type) => (
+        {FILTER_TYPES.map((type) => (
           <button
             key={type}
             onClick={() => setFilter(type)}
