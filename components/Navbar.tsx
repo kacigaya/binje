@@ -26,7 +26,7 @@ export default function Navbar() {
         >
           <Film className="h-6 w-6 text-accent-red" />
           <span className="text-foreground">
-            b!n<span className="text-accent-red">je</span>
+            b<span className="text-accent-red">!</span>nje
           </span>
         </Link>
 
