@@ -88,19 +88,6 @@ export default async function MoviePage({
 
           {/* Info */}
           <div className="flex-1 space-y-5 pt-4 sm:pt-16">
-            {/* Genres */}
-            <div className="flex flex-wrap gap-2">
-              {movie.genres.map((g) => (
-                <Badge
-                  key={g.id}
-                  variant="outline"
-                  className="border-white/15 text-foreground/80 text-xs"
-                >
-                  {g.name}
-                </Badge>
-              ))}
-            </div>
-
             <h1
               className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight"
               style={{ fontFamily: "var(--font-heading)" }}
@@ -113,6 +100,19 @@ export default async function MoviePage({
                 {movie.tagline}
               </p>
             )}
+
+            {/* Genres */}
+            <div className="flex flex-wrap gap-2">
+              {movie.genres.map((g) => (
+                <Badge
+                  key={g.id}
+                  variant="outline"
+                  className="border-white/15 text-foreground/80 text-xs"
+                >
+                  {g.name}
+                </Badge>
+              ))}
+            </div>
 
             {/* Meta row */}
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">

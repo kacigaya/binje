@@ -127,10 +127,3 @@
   scrollbar-width: none;
 }
 
-/* Glassmorphism utility */
-.glass {
-  background: rgba(12, 12, 15, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}

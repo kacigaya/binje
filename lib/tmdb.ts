@@ -9,6 +9,8 @@ import type {
   MediaItem,
   MultiSearchResponse,
   MultiSearchResult,
+  Episode,
+  SeasonDetails,
 } from "@/types/tmdb";
 
 const BASE_URL = "https://api.themoviedb.org/3";
@@ -40,6 +42,11 @@ export function backdropUrl(path: string | null, size = "original") {
 }
 
 export function profileUrl(path: string | null, size = "w185") {
+  if (!path) return null;
+  return `${IMAGE_BASE}/${size}${path}`;
+}
+
+export function stillUrl(path: string | null, size = "w300") {
   if (!path) return null;
   return `${IMAGE_BASE}/${size}${path}`;
 }
@@ -164,6 +171,17 @@ export async function getTVCredits(id: number): Promise<Credits> {
 export async function getSimilarTV(id: number): Promise<TVShow[]> {
   const data = await tmdbFetch<TVShowResponse>(`/tv/${id}/similar`);
   return data.results;
+}
+
+export async function getSeasonEpisodes(
+  showId: number,
+  seasonNumber: number,
+): Promise<Episode[]> {
+  const data = await tmdbFetch<SeasonDetails>(
+    `/tv/${showId}/season/${seasonNumber}`,
+    86400,
+  );
+  return data.episodes ?? [];
 }
 
 // ─── Search ────────────────────────────────────────────────

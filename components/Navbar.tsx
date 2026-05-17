@@ -17,7 +17,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-xl border-b border-white/5">
       <div className="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 h-16">
         <Link
           href="/"

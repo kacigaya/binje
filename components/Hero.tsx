@@ -63,12 +63,28 @@ export default function Hero({ items }: HeroProps) {
         />
       )}
 
+      {/* Blurred strip behind the navbar, fades out toward the bottom */}
+      <div
+        className="absolute inset-x-0 top-0 h-24 sm:h-28 z-10 backdrop-blur-xl"
+        style={{
+          maskImage: "linear-gradient(to bottom, black 55%, transparent)",
+          WebkitMaskImage: "linear-gradient(to bottom, black 55%, transparent)",
+        }}
+      />
+
       <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
       <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
 
       <div className="absolute inset-0 flex items-end">
         <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16 sm:pb-24">
           <div className="max-w-2xl space-y-4">
+            <h1
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {activeItem.title}
+            </h1>
+
             <div className="flex items-center gap-3">
               <Badge
                 variant="outline"
@@ -91,13 +107,6 @@ export default function Hero({ items }: HeroProps) {
                 </span>
               )}
             </div>
-
-            <h1
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {activeItem.title}
-            </h1>
 
             <ExpandableOverview
               text={activeItem.overview}

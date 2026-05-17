@@ -87,6 +87,19 @@ export default async function TVShowPage({
 
           {/* Info */}
           <div className="flex-1 space-y-5 pt-4 sm:pt-16">
+            <h1
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {show.name}
+            </h1>
+
+            {show.tagline && (
+              <p className="text-lg text-accent-red/80 italic">
+                {show.tagline}
+              </p>
+            )}
+
             <div className="flex flex-wrap gap-2">
               <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
                 TV Series
@@ -101,19 +114,6 @@ export default async function TVShowPage({
                 </Badge>
               ))}
             </div>
-
-            <h1
-              className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {show.name}
-            </h1>
-
-            {show.tagline && (
-              <p className="text-lg text-accent-red/80 italic">
-                {show.tagline}
-              </p>
-            )}
 
             {/* Meta row */}
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
