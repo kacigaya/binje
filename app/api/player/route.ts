@@ -14,6 +14,12 @@ type Subtitle = {
 
 const VIDEASY_API_BASE = "https://api.videasy.net";
 const DECODER_URL = "https://enc-dec.app/api/dec-videasy";
+const PLAYER_ORIGIN = "https://player.videasy.net";
+const BROWSER_USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
+
+export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const PROVIDERS = [
   "cdn",
@@ -64,6 +70,16 @@ async function fetchWithTimeout(url: string, init?: RequestInit) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function upstreamHeaders(extraHeaders?: HeadersInit) {
+  return {
+    accept: "*/*",
+    origin: PLAYER_ORIGIN,
+    referer: `${PLAYER_ORIGIN}/`,
+    "user-agent": BROWSER_USER_AGENT,
+    ...extraHeaders,
+  };
 }
 
 function normalizeSources(value: unknown): StreamSource[] {
@@ -152,51 +168,81 @@ export async function GET(request: NextRequest) {
   }
 
   const sourcesByUrl = new Map<string, StreamSource>();
-  let subtitles: Subtitle[] = [];
-  const providers: string[] = [];
+  const failures: string[] = [];
 
-  for (const provider of PROVIDERS) {
-    try {
-      const sourceResponse = await fetchWithTimeout(
-        `${VIDEASY_API_BASE}/${provider}/sources-with-title?${params}`,
-      );
+  const providerResults = await Promise.all(
+    PROVIDERS.map(async (provider) => {
+      try {
+        const sourceResponse = await fetchWithTimeout(
+          `${VIDEASY_API_BASE}/${provider}/sources-with-title?${params}`,
+          { headers: upstreamHeaders() },
+        );
 
-      if (!sourceResponse.ok) continue;
-
-      const encryptedText = (await sourceResponse.text()).trim();
-      if (!encryptedText) continue;
-
-      const decoderResponse = await fetchWithTimeout(DECODER_URL, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          text: encryptedText,
-          id: String(tmdbId),
-        }),
-      });
-
-      if (!decoderResponse.ok) continue;
-
-      const decoded = await decoderResponse.json();
-      const result = decoded?.result ?? decoded;
-      const sources = sortSources(normalizeSources(result?.sources));
-
-      if (sources.length === 0) continue;
-
-      providers.push(provider);
-
-      for (const source of sources) {
-        if (!sourcesByUrl.has(source.url)) {
-          sourcesByUrl.set(source.url, { ...source, provider });
+        if (!sourceResponse.ok) {
+          failures.push(`${provider}: source ${sourceResponse.status}`);
+          return null;
         }
-      }
 
-      if (subtitles.length === 0) {
-        subtitles = normalizeSubtitles(result?.subtitles);
+        const encryptedText = (await sourceResponse.text()).trim();
+        if (!encryptedText) {
+          failures.push(`${provider}: empty source`);
+          return null;
+        }
+
+        const decoderResponse = await fetchWithTimeout(DECODER_URL, {
+          method: "POST",
+          headers: upstreamHeaders({ "content-type": "application/json" }),
+          body: JSON.stringify({
+            text: encryptedText,
+            id: String(tmdbId),
+          }),
+        });
+
+        if (!decoderResponse.ok) {
+          failures.push(`${provider}: decoder ${decoderResponse.status}`);
+          return null;
+        }
+
+        const decoded = await decoderResponse.json();
+        const result = decoded?.result ?? decoded;
+        const sources = sortSources(normalizeSources(result?.sources));
+
+        if (sources.length === 0) {
+          failures.push(`${provider}: no sources`);
+          return null;
+        }
+
+        return {
+          provider,
+          sources: sources.map((source) => ({ ...source, provider })),
+          subtitles: normalizeSubtitles(result?.subtitles),
+        };
+      } catch (error) {
+        if (error instanceof Error) {
+          failures.push(`${provider}: ${error.name}`);
+        } else {
+          failures.push(`${provider}: failed`);
+        }
+        return null;
       }
-    } catch {
-      continue;
+    }),
+  );
+
+  const providers: string[] = [];
+  let subtitles: Subtitle[] = [];
+
+  for (const result of providerResults) {
+    if (!result) continue;
+
+    providers.push(result.provider);
+
+    for (const source of result.sources) {
+      if (!sourcesByUrl.has(source.url)) {
+        sourcesByUrl.set(source.url, source);
+      }
     }
+
+    if (subtitles.length === 0) subtitles = result.subtitles;
   }
 
   const sources = sortSources([...sourcesByUrl.values()]);
@@ -208,6 +254,13 @@ export async function GET(request: NextRequest) {
       subtitles,
     });
   }
+
+  console.warn("Player API found no sources", {
+    tmdbId,
+    title,
+    type,
+    failures,
+  });
 
   return NextResponse.json(
     { error: "No playable stream was found." },
