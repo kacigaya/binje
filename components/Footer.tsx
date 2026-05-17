@@ -11,7 +11,7 @@ export default function Footer() {
         >
           <Film className="h-4 w-4 text-accent-red" />
           <span>
-            b!n<span className="text-accent-red">je</span>
+            b<span className="text-accent-red">!</span>nje
           </span>
         </div>
 

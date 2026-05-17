@@ -171,6 +171,7 @@ function SearchContent() {
                       src={`https://image.tmdb.org/t/p/w342${item.poster_path}`}
                       alt={title}
                       fill
+                      priority={index < 6}
                       loading={index < 6 ? "eager" : "lazy"}
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
                       sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"

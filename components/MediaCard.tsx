@@ -26,6 +26,7 @@ export default function MediaCard({
             src={poster}
             alt={item.title}
             fill
+            priority={eager}
             loading={eager ? "eager" : "lazy"}
             className="object-cover transition-transform duration-500 group-hover:scale-110"
             sizes="(max-width: 640px) 160px, 185px"

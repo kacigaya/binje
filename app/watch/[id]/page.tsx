@@ -19,7 +19,17 @@ export default async function WatchPage({
     <div className="flex flex-col pt-16">
       {/* Player */}
       <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 sm:pt-6">
-        <Player tmdbId={movie.id} type="movie" />
+        <Player
+          tmdbId={movie.id}
+          title={movie.title}
+          year={
+            movie.release_date
+              ? new Date(movie.release_date).getFullYear()
+              : undefined
+          }
+          imdbId={movie.imdb_id}
+          type="movie"
+        />
       </div>
 
       {/* Movie info below player */}
