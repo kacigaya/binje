@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Star, Calendar, Layers, Tv } from "lucide-react";
+import { Star, Calendar, Layers, Tv } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getTVDetails, getSeasonEpisodes } from "@/lib/tmdb";
 import TVPlayer from "./TVPlayer";
@@ -31,15 +30,7 @@ export default async function WatchTVPage({
     <div className="flex flex-col pt-16">
       {/* Show info above player */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
-        <Link
-          href={`/tv/${show.id}`}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to details
-        </Link>
-
-        <div className="space-y-4">
+        <div className="space-y-4 mt-6">
             <h1
               className="text-2xl sm:text-3xl font-bold tracking-tight"
               style={{ fontFamily: "var(--font-heading)" }}
