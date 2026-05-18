@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Button } from "@base-ui/react/button";
 import { wouldTruncate } from "@/lib/pretext";
 import type { FontKey } from "@/lib/pretext";
 
@@ -39,12 +40,12 @@ export default function ExpandableOverview({
         {text}
       </p>
       {isTruncated && (
-        <button
+        <Button
           onClick={() => setExpanded(!expanded)}
           className="text-accent-red text-sm font-medium mt-1 hover:underline cursor-pointer"
         >
           {expanded ? "Show less" : "Read more"}
-        </button>
+        </Button>
       )}
     </div>
   );

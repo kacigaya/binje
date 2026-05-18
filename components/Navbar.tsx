@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Search, Film, X } from "lucide-react";
 import { useState, useRef, SyntheticEvent, useEffect, useCallback } from "react";
+import { Input } from "@base-ui/react/input";
+import { Button } from "@base-ui/react/button";
 
 export default function Navbar() {
   const router = useRouter();
@@ -58,32 +60,32 @@ export default function Navbar() {
             <form onSubmit={handleSubmit} className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <input
+                <Input
                   ref={inputRef}
                   type="text"
                   placeholder="Search movies & TV..."
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onValueChange={(value) => setQuery(value)}
                   className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition-all"
                 />
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={close}
                 className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
                 aria-label="Close search"
               >
                 <X className="h-4 w-4" />
-              </button>
+              </Button>
             </form>
           ) : (
-            <button
+            <Button
               onClick={() => setOpen(true)}
               className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
               aria-label="Open search"
             >
               <Search className="h-5 w-5" />
-            </button>
+            </Button>
           )}
         </div>
         )}
