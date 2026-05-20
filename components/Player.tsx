@@ -44,16 +44,16 @@ export default function Player({
   season?: number;
   episode?: number;
 }) {
-  const playerUrl = useMemo(
-    () => getVideasyUrl({ tmdbId, type, season, episode }),
-    [episode, season, tmdbId, type],
-  );
+  const embedUrl = useMemo(() => {
+    const playerUrl = getVideasyUrl({ tmdbId, type, season, episode });
+    return `/api/embed?url=${encodeURIComponent(playerUrl)}`;
+  }, [episode, season, tmdbId, type]);
 
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <iframe
-        key={playerUrl}
-        src={playerUrl}
+        key={embedUrl}
+        src={embedUrl}
         title="Video player"
         className="absolute inset-0 h-full w-full border-0 bg-black"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"

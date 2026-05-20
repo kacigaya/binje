@@ -40,6 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Playwright
+playwright.config.ts
+tests/
+
 # AGENTS
 AGENTS.md
 CLAUDE.md
