@@ -9,6 +9,7 @@ import {
   logoUrl,
   pickTVLogo,
 } from "@/lib/tmdb";
+import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
 import TVPlayer from "./TVPlayer";
 
 export default async function WatchTVPage({
@@ -40,6 +41,20 @@ export default async function WatchTVPage({
 
   return (
     <div className="flex flex-col pt-16">
+      <PlayHistoryRecorder
+        item={{
+          type: "tv",
+          id: show.id,
+          title: show.name,
+          poster_path: show.poster_path,
+          backdrop_path: show.backdrop_path,
+          date: show.first_air_date,
+          vote_average: show.vote_average,
+          season,
+          episode,
+        }}
+      />
+
       {/* Show info above player */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
         <div className="space-y-4 mt-6">

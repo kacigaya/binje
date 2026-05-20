@@ -7,7 +7,7 @@ import { Play, Star, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
-import { backdropUrl } from "@/lib/tmdb";
+import { backdropUrl, logoUrl } from "@/lib/tmdb";
 import ExpandableOverview from "@/components/ExpandableOverview";
 
 interface HeroProps {
@@ -38,6 +38,7 @@ export default function Hero({ items }: HeroProps) {
   if (!activeItem) return null;
 
   const backdrop = backdropUrl(activeItem.backdrop_path, "w1280");
+  const logo = logoUrl(activeItem.logo_path ?? null);
   const detailHref =
     activeItem.media_type === "tv"
       ? `/tv/${activeItem.id}`
@@ -78,12 +79,23 @@ export default function Hero({ items }: HeroProps) {
       <div className="absolute inset-0 flex items-end">
         <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16 sm:pb-24">
           <div className="max-w-2xl space-y-4">
-            <h1
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {activeItem.title}
-            </h1>
+            {logo ? (
+              <Image
+                src={logo}
+                alt={`${activeItem.title} logo`}
+                width={activeItem.logo_width ?? 500}
+                height={activeItem.logo_height ?? 200}
+                priority
+                className="h-auto max-h-28 w-auto max-w-xs object-contain sm:max-h-36 sm:max-w-lg"
+              />
+            ) : (
+              <h1
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                {activeItem.title}
+              </h1>
+            )}
 
             <div className="flex items-center gap-3">
               <Badge

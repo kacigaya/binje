@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Star, Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Player from "@/components/Player";
+import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
 import {
   getMovieDetails,
   getMovieImages,
@@ -27,6 +28,18 @@ export default async function WatchPage({
 
   return (
     <div className="flex flex-col pt-16">
+      <PlayHistoryRecorder
+        item={{
+          type: "movie",
+          id: movie.id,
+          title: movie.title,
+          poster_path: movie.poster_path,
+          backdrop_path: movie.backdrop_path,
+          date: movie.release_date,
+          vote_average: movie.vote_average,
+        }}
+      />
+
       {/* Movie info above player */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
         <div className="space-y-4 mt-6">

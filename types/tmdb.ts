@@ -179,6 +179,9 @@ export interface MediaItem {
   date: string;
   vote_average: number;
   media_type: "movie" | "tv";
+  logo_path?: string | null;
+  logo_width?: number;
+  logo_height?: number;
 }
 
 export interface MultiSearchResult {

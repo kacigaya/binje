@@ -1,6 +1,7 @@
 import Hero from "@/components/Hero";
 import Carousel from "@/components/Carousel";
 import LazyCarousel from "@/components/LazyCarousel";
+import ContinueWatching from "@/components/ContinueWatching";
 import {
   getTrending,
   getPopular,
@@ -12,7 +13,9 @@ import {
   getPopularTV,
   getTopRatedTV,
   getOnTheAirTV,
+  getMovieImages,
   movieToMedia,
+  pickMovieLogo,
   tvToMedia,
 } from "@/lib/tmdb";
 
@@ -49,13 +52,35 @@ export default async function HomePage() {
     getOnTheAirTV(),
   ]);
 
-  const featuredItems = trending.map(movieToMedia);
+  const featuredItems = await Promise.all(
+    trending.map(async (movie) => {
+      const item = movieToMedia(movie);
+
+      try {
+        const images = await getMovieImages(movie.id);
+        const logo = pickMovieLogo(images.logos);
+
+        if (!logo) return item;
+
+        return {
+          ...item,
+          logo_path: logo.file_path,
+          logo_width: logo.width,
+          logo_height: logo.height,
+        };
+      } catch {
+        return item;
+      }
+    }),
+  );
 
   return (
     <div className="flex flex-col">
       {featuredItems.length > 0 && <Hero items={featuredItems} />}
 
       <div className="-mt-12 relative z-10 flex flex-col gap-10 pb-16 max-w-7xl mx-auto w-full">
+        <ContinueWatching />
+
         {/* Above-the-fold carousels: rendered immediately with priority images */}
         <Carousel title="Trending Movies" items={trending.map(movieToMedia)} priority />
         <Carousel title="Trending TV Shows" items={trendingTV.map(tvToMedia)} />
