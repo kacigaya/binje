@@ -145,6 +145,30 @@ export interface VideoResponse {
   results: Video[];
 }
 
+export interface TMDBImageAsset {
+  aspect_ratio: number;
+  file_path: string;
+  height: number;
+  iso_639_1: string | null;
+  vote_average: number;
+  vote_count: number;
+  width: number;
+}
+
+export interface MovieImagesResponse {
+  id: number;
+  backdrops: TMDBImageAsset[];
+  logos: TMDBImageAsset[];
+  posters: TMDBImageAsset[];
+}
+
+export interface TVImagesResponse {
+  id: number;
+  backdrops: TMDBImageAsset[];
+  logos: TMDBImageAsset[];
+  posters: TMDBImageAsset[];
+}
+
 /** Unified type for carousels, cards, hero — works for both movies and TV */
 export interface MediaItem {
   id: number;

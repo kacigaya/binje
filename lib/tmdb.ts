@@ -11,6 +11,9 @@ import type {
   MultiSearchResult,
   Episode,
   SeasonDetails,
+  MovieImagesResponse,
+  TMDBImageAsset,
+  TVImagesResponse,
 } from "@/types/tmdb";
 
 const BASE_URL = "https://api.themoviedb.org/3";
@@ -47,6 +50,11 @@ export function profileUrl(path: string | null, size = "w185") {
 }
 
 export function stillUrl(path: string | null, size = "w300") {
+  if (!path) return null;
+  return `${IMAGE_BASE}/${size}${path}`;
+}
+
+export function logoUrl(path: string | null, size = "w500") {
   if (!path) return null;
   return `${IMAGE_BASE}/${size}${path}`;
 }
@@ -117,6 +125,21 @@ export async function getMovieDetails(id: number): Promise<MovieDetails> {
   return tmdbFetch<MovieDetails>(`/movie/${id}`, 86400);
 }
 
+export async function getMovieImages(id: number): Promise<MovieImagesResponse> {
+  return tmdbFetch<MovieImagesResponse>(`/movie/${id}/images`, 86400);
+}
+
+export function pickMovieLogo(
+  logos: TMDBImageAsset[],
+): TMDBImageAsset | null {
+  return (
+    logos.find((logo) => logo.iso_639_1 === "en") ??
+    logos.find((logo) => logo.iso_639_1 === null) ??
+    logos[0] ??
+    null
+  );
+}
+
 export async function getMovieCredits(id: number): Promise<Credits> {
   return tmdbFetch<Credits>(`/movie/${id}/credits`, 86400);
 }
@@ -162,6 +185,19 @@ export async function getTVByGenre(genreId: number): Promise<TVShow[]> {
 
 export async function getTVDetails(id: number): Promise<TVShowDetails> {
   return tmdbFetch<TVShowDetails>(`/tv/${id}`, 86400);
+}
+
+export async function getTVImages(id: number): Promise<TVImagesResponse> {
+  return tmdbFetch<TVImagesResponse>(`/tv/${id}/images`, 86400);
+}
+
+export function pickTVLogo(logos: TMDBImageAsset[]): TMDBImageAsset | null {
+  return (
+    logos.find((logo) => logo.iso_639_1 === "en") ??
+    logos.find((logo) => logo.iso_639_1 === null) ??
+    logos[0] ??
+    null
+  );
 }
 
 export async function getTVCredits(id: number): Promise<Credits> {
