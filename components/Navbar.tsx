@@ -1,17 +1,33 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { Search, Film, X } from "lucide-react";
 import { useState, useRef, SyntheticEvent, useEffect, useCallback } from "react";
 import { Input } from "@base-ui/react/input";
 import { Button } from "@base-ui/react/button";
 
+interface SearchSuggestion {
+  id: number;
+  media_type: "movie" | "tv";
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  release_date?: string;
+  first_air_date?: string;
+}
+
+interface SearchSuggestionsResponse {
+  results?: SearchSuggestion[];
+}
+
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -21,7 +37,44 @@ export default function Navbar() {
   const close = useCallback(() => {
     setOpen(false);
     setQuery("");
+    setSuggestions([]);
   }, []);
+
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+
+    if (!open || trimmedQuery.length < 2) {
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/search?q=${encodeURIComponent(trimmedQuery)}`,
+          { signal: controller.signal },
+        );
+
+        if (!res.ok) {
+          setSuggestions([]);
+          return;
+        }
+
+        const data: SearchSuggestionsResponse = await res.json();
+        setSuggestions((data.results ?? []).slice(0, 3));
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setSuggestions([]);
+      }
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [open, query]);
 
   // Close on Escape
   useEffect(() => {
@@ -38,6 +91,22 @@ export default function Navbar() {
       router.push(`/search?q=${encodeURIComponent(query.trim())}`);
       close();
     }
+  }
+
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    if (value.trim().length < 2) {
+      setSuggestions([]);
+    }
+  }
+
+  function openSuggestion(suggestion: SearchSuggestion) {
+    const href =
+      suggestion.media_type === "tv"
+        ? `/tv/${suggestion.id}`
+        : `/movie/${suggestion.id}`;
+    router.push(href);
+    close();
   }
 
   return (
@@ -65,9 +134,58 @@ export default function Navbar() {
                   type="text"
                   placeholder="Search movies & TV..."
                   value={query}
-                  onValueChange={(value) => setQuery(value)}
+                  onValueChange={handleQueryChange}
                   className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition-all"
                 />
+                {suggestions.length > 0 && (
+                  <div className="absolute right-0 top-12 w-72 overflow-hidden rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
+                    {suggestions.map((suggestion) => {
+                      const title =
+                        suggestion.title ?? suggestion.name ?? "Untitled";
+                      const date =
+                        suggestion.release_date ?? suggestion.first_air_date;
+                      const year = date ? new Date(date).getFullYear() : null;
+
+                      return (
+                        <button
+                          key={`${suggestion.media_type}-${suggestion.id}`}
+                          type="button"
+                          onClick={() => openSuggestion(suggestion)}
+                          className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus:bg-white/8 focus:outline-none"
+                        >
+                          <span className="relative h-12.5 w-8.5 shrink-0 overflow-hidden rounded bg-white/8">
+                            {suggestion.poster_path ? (
+                              <Image
+                                src={`https://image.tmdb.org/t/p/w92${suggestion.poster_path}`}
+                                alt={title}
+                                fill
+                                className="object-cover"
+                                sizes="34px"
+                              />
+                            ) : (
+                              <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-muted-foreground">
+                                {suggestion.media_type === "tv" ? "TV" : "M"}
+                              </span>
+                            )}
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate font-medium text-foreground">
+                              {title}
+                            </span>
+                            {year && (
+                              <span className="text-xs text-muted-foreground">
+                                {year}
+                              </span>
+                            )}
+                          </span>
+                          <span className="ml-auto shrink-0 rounded-full bg-accent-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-red">
+                            {suggestion.media_type === "tv" ? "TV" : "Movie"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
               <Button
                 type="button"
