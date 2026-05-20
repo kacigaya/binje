@@ -21,6 +21,7 @@ function guardScript(spoofedPath: string): string {
       if(value==null)return value;
       if(typeof value==="string"&&value.indexOf("/api/")===0)return location.origin+value;
       var url=new URL(value,document.baseURI||location.href);
+      if(url.hostname==="api.videasy.net")return url.href;
       if(url.protocol==="http:"||url.protocol==="https:"){
         if(url.origin===location.origin)return url.href;
         return location.origin+"/api/hls?url="+encodeURIComponent(url.href);
