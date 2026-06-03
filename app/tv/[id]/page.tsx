@@ -159,11 +159,11 @@ export default async function TVShowPage({
             </div>
 
             {/* Actions */}
-            <div className="flex flex-wrap items-center gap-3 mt-2">
-              <Link href={`/watch/tv/${show.id}`}>
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mt-2">
+              <Link href={`/watch/tv/${show.id}`} className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer"
+                  className="w-full sm:w-auto rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer"
                 >
                   <Play className="h-5 w-5 fill-white" />
                   Watch Now

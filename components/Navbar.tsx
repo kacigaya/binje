@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { Search, Film, X, Clapperboard, Tv, Bookmark } from "lucide-react";
+import { Search, Film, X, Clapperboard, Tv, Bookmark, Menu } from "lucide-react";
 import { useState, useRef, SyntheticEvent, useEffect, useCallback } from "react";
 import { Input } from "@base-ui/react/input";
 import { Button } from "@base-ui/react/button";
@@ -33,6 +33,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -85,7 +86,10 @@ export default function Navbar() {
   // Close on Escape
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape") {
+        close();
+        setMenuOpen(false);
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -120,6 +124,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 h-16">
         <Link
           href="/"
+          onClick={() => setMenuOpen(false)}
           className="flex items-center gap-2 text-xl font-bold tracking-tight"
           style={{ fontFamily: "var(--font-heading)" }}
         >
@@ -131,7 +136,7 @@ export default function Navbar() {
 
         <div className="flex items-center gap-2 sm:gap-4">
           {!open && (
-            <div className="flex items-center gap-1">
+            <div className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => {
                 const active = pathname === link.href;
                 const Icon = link.icon;
@@ -152,6 +157,17 @@ export default function Navbar() {
                 );
               })}
             </div>
+          )}
+
+          {!open && (
+            <Button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="flex md:hidden items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
           )}
 
           {!pathname.startsWith("/search") && (
@@ -229,7 +245,10 @@ export default function Navbar() {
                 </form>
               ) : (
                 <Button
-                  onClick={() => setOpen(true)}
+                  onClick={() => {
+                    setOpen(true);
+                    setMenuOpen(false);
+                  }}
                   className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
                   aria-label="Open search"
                 >
@@ -240,6 +259,33 @@ export default function Navbar() {
           )}
         </div>
       </div>
+
+      {menuOpen && (
+        <div className="md:hidden border-t border-white/5">
+          <div className="mx-auto max-w-7xl flex flex-col gap-1 px-4 py-3 sm:px-6">
+            {navLinks.map((link) => {
+              const active = pathname === link.href;
+              const Icon = link.icon;
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-white/10 text-foreground"
+                      : "text-muted-foreground hover:bg-white/8 hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

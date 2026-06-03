@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 sm:py-16">
+    <div className="mx-auto mt-16 max-w-2xl px-4 py-12 sm:mt-24 sm:px-6 sm:py-16">
       <div className="mb-8 flex items-center gap-2">
-        <Film className="h-5 w-5 text-accent-red" />
+        <Film className="h-7 w-7 text-accent-red" />
         <h1
           className="text-3xl font-bold tracking-tight"
           style={{ fontFamily: "var(--font-heading)" }}
