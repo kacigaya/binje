@@ -22,6 +22,11 @@ interface SearchSuggestionsResponse {
   results?: SearchSuggestion[];
 }
 
+const navLinks = [
+  { href: "/movies", label: "Movies" },
+  { href: "/tv-shows", label: "TV Shows" },
+];
+
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -123,90 +128,114 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {!pathname.startsWith("/search") && (
-        <div className="flex items-center">
-          {open ? (
-            <form onSubmit={handleSubmit} className="flex items-center gap-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Search movies & TV..."
-                  value={query}
-                  onValueChange={handleQueryChange}
-                  className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition-all"
-                />
-                {suggestions.length > 0 && (
-                  <div className="absolute right-0 top-12 w-72 overflow-hidden rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
-                    {suggestions.map((suggestion) => {
-                      const title =
-                        suggestion.title ?? suggestion.name ?? "Untitled";
-                      const date =
-                        suggestion.release_date ?? suggestion.first_air_date;
-                      const year = date ? new Date(date).getFullYear() : null;
+        <div className="flex items-center gap-2 sm:gap-4">
+          {!open && (
+            <div className="flex items-center gap-1">
+              {navLinks.map((link) => {
+                const active = pathname === link.href;
 
-                      return (
-                        <button
-                          key={`${suggestion.media_type}-${suggestion.id}`}
-                          type="button"
-                          onClick={() => openSuggestion(suggestion)}
-                          className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus:bg-white/8 focus:outline-none"
-                        >
-                          <span className="relative h-12.5 w-8.5 shrink-0 overflow-hidden rounded bg-white/8">
-                            {suggestion.poster_path ? (
-                              <Image
-                                src={`https://image.tmdb.org/t/p/w92${suggestion.poster_path}`}
-                                alt={title}
-                                fill
-                                className="object-cover"
-                                sizes="34px"
-                              />
-                            ) : (
-                              <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-muted-foreground">
-                                {suggestion.media_type === "tv" ? "TV" : "M"}
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`rounded-full px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
+                      active
+                        ? "bg-white/10 text-foreground"
+                        : "text-muted-foreground hover:bg-white/8 hover:text-foreground"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {!pathname.startsWith("/search") && (
+            <div className="flex items-center">
+              {open ? (
+                <form onSubmit={handleSubmit} className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      ref={inputRef}
+                      type="text"
+                      placeholder="Search movies & TV..."
+                      value={query}
+                      onValueChange={handleQueryChange}
+                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition-all"
+                    />
+                    {suggestions.length > 0 && (
+                      <div className="absolute right-0 top-12 w-72 overflow-hidden rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
+                        {suggestions.map((suggestion) => {
+                          const title =
+                            suggestion.title ?? suggestion.name ?? "Untitled";
+                          const date =
+                            suggestion.release_date ?? suggestion.first_air_date;
+                          const year = date ? new Date(date).getFullYear() : null;
+
+                          return (
+                            <button
+                              key={`${suggestion.media_type}-${suggestion.id}`}
+                              type="button"
+                              onClick={() => openSuggestion(suggestion)}
+                              className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus:bg-white/8 focus:outline-none"
+                            >
+                              <span className="relative h-12.5 w-8.5 shrink-0 overflow-hidden rounded bg-white/8">
+                                {suggestion.poster_path ? (
+                                  <Image
+                                    src={`https://image.tmdb.org/t/p/w92${suggestion.poster_path}`}
+                                    alt={title}
+                                    fill
+                                    className="object-cover"
+                                    sizes="34px"
+                                  />
+                                ) : (
+                                  <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-muted-foreground">
+                                    {suggestion.media_type === "tv" ? "TV" : "M"}
+                                  </span>
+                                )}
                               </span>
-                            )}
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block truncate font-medium text-foreground">
-                              {title}
-                            </span>
-                            {year && (
-                              <span className="text-xs text-muted-foreground">
-                                {year}
+                              <span className="min-w-0">
+                                <span className="block truncate font-medium text-foreground">
+                                  {title}
+                                </span>
+                                {year && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {year}
+                                  </span>
+                                )}
                               </span>
-                            )}
-                          </span>
-                          <span className="ml-auto shrink-0 rounded-full bg-accent-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-red">
-                            {suggestion.media_type === "tv" ? "TV" : "Movie"}
-                          </span>
-                        </button>
-                      );
-                    })}
+                              <span className="ml-auto shrink-0 rounded-full bg-accent-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-red">
+                                {suggestion.media_type === "tv" ? "TV" : "Movie"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <Button
-                type="button"
-                onClick={close}
-                className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
-                aria-label="Close search"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </form>
-          ) : (
-            <Button
-              onClick={() => setOpen(true)}
-              className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
-              aria-label="Open search"
-            >
-              <Search className="h-5 w-5" />
-            </Button>
+                  <Button
+                    type="button"
+                    onClick={close}
+                    className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
+                    aria-label="Close search"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </form>
+              ) : (
+                <Button
+                  onClick={() => setOpen(true)}
+                  className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
+                  aria-label="Open search"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
           )}
         </div>
-        )}
       </div>
     </nav>
   );
