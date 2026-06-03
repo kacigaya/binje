@@ -8,10 +8,7 @@ export default function MoviesLoading() {
       <div className="px-4 sm:px-6">
         <div className="flex items-center gap-3">
           <Skeleton className="h-9 w-9 rounded-lg sm:h-11 sm:w-11" />
-          <div className="space-y-2">
-            <Skeleton className="h-9 w-36" />
-            <Skeleton className="h-4 w-56" />
-          </div>
+          <Skeleton className="h-9 w-36" />
         </div>
         <Skeleton className="mt-5 h-px w-full" />
       </div>
