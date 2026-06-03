@@ -1,10 +1,9 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Space_Grotesk, Outfit } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CookiesBanner from "@/components/CookiesBanner";
-import InstallPrompt from "@/components/InstallPrompt";
 
 const heading = Space_Grotesk({
   variable: "--font-heading",
@@ -22,19 +21,6 @@ export const metadata: Metadata = {
   title: "b!nje — Stream Movies",
   description:
     "Discover and stream thousands of movies. Your cinematic journey starts here.",
-  appleWebApp: {
-    capable: true,
-    title: "b!nje",
-    statusBarStyle: "black-translucent",
-  },
-  icons: {
-    icon: "/icon.svg",
-    apple: "/icon-192.png",
-  },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#050506",
 };
 
 export default function RootLayout({
@@ -53,7 +39,6 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
         <Footer />
         <CookiesBanner />
-        <InstallPrompt />
       </body>
     </html>
   );
