@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Play, Clock } from "lucide-react";
@@ -63,6 +63,55 @@ export default function TVPlayer({
       cancelled = true;
     };
   }, [season, showId, episodesSeason]);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
+  }, []);
+
+  // Throttle scroll checks to one per animation frame to keep the main thread free.
+  const handleScroll = useCallback(() => {
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      checkScroll();
+      rafRef.current = null;
+    });
+  }, [checkScroll]);
+
+  useEffect(() => {
+    checkScroll();
+  }, [episodes, loading, checkScroll]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [handleScroll]);
+
+  function scrollEpisodes(direction: "left" | "right") {
+    const el = scrollRef.current;
+    if (!el) return;
+    const amount = el.clientWidth * 0.75;
+    el.scrollBy({
+      left: direction === "left" ? -amount : amount,
+      behavior: "smooth",
+    });
+    setTimeout(checkScroll, 400);
+  }
 
   function navigate(s: number, e: number) {
     setSeason(s);
@@ -177,8 +226,39 @@ export default function TVPlayer({
             No episode previews available.
           </p>
         ) : (
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2">
-            {episodes.map((ep) => {
+          <div className="group/episodes relative">
+            {canScrollLeft && (
+              <>
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-12 bg-linear-to-r from-background to-transparent" />
+                <button
+                  type="button"
+                  onClick={() => scrollEpisodes("left")}
+                  aria-label="Scroll left"
+                  className="absolute left-0 top-0 bottom-0 z-20 flex w-12 items-center justify-center opacity-0 group-hover/episodes:opacity-100 transition-opacity cursor-pointer"
+                >
+                  <ChevronLeft className="h-8 w-8 text-foreground" />
+                </button>
+              </>
+            )}
+            {canScrollRight && (
+              <>
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-12 bg-linear-to-l from-background to-transparent" />
+                <button
+                  type="button"
+                  onClick={() => scrollEpisodes("right")}
+                  aria-label="Scroll right"
+                  className="absolute right-0 top-0 bottom-0 z-20 flex w-12 items-center justify-center opacity-0 group-hover/episodes:opacity-100 transition-opacity cursor-pointer"
+                >
+                  <ChevronRight className="h-8 w-8 text-foreground" />
+                </button>
+              </>
+            )}
+
+            <div
+              ref={scrollRef}
+              className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2"
+            >
+              {episodes.map((ep) => {
               const still = stillUrl(ep.still_path, "w300");
               const isActive = ep.episode_number === episode;
               return (
@@ -243,7 +323,8 @@ export default function TVPlayer({
                   )}
                 </button>
               );
-            })}
+              })}
+            </div>
           </div>
         )}
       </div>
