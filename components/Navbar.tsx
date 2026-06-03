@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { Search, Film, X } from "lucide-react";
+import { Search, Film, X, Clapperboard, Tv } from "lucide-react";
 import { useState, useRef, SyntheticEvent, useEffect, useCallback } from "react";
 import { Input } from "@base-ui/react/input";
 import { Button } from "@base-ui/react/button";
@@ -23,8 +23,8 @@ interface SearchSuggestionsResponse {
 }
 
 const navLinks = [
-  { href: "/movies", label: "Movies" },
-  { href: "/tv-shows", label: "TV Shows" },
+  { href: "/movies", label: "Movies", icon: Clapperboard },
+  { href: "/tv-shows", label: "TV Shows", icon: Tv },
 ];
 
 export default function Navbar() {
@@ -133,17 +133,19 @@ export default function Navbar() {
             <div className="flex items-center gap-1">
               {navLinks.map((link) => {
                 const active = pathname === link.href;
+                const Icon = link.icon;
 
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`rounded-full px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
+                    className={`flex items-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
                       active
                         ? "bg-white/10 text-foreground"
                         : "text-muted-foreground hover:bg-white/8 hover:text-foreground"
                     }`}
                   >
+                    <Icon className="h-4 w-4" />
                     {link.label}
                   </Link>
                 );

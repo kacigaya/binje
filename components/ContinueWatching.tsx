@@ -4,7 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { Star, X } from "lucide-react";
 import type { MouseEvent } from "react";
-import { useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import {
   getPlayHistory,
   getPlayHistoryHref,
@@ -28,6 +34,44 @@ export default function ContinueWatching() {
     () => EMPTY_HISTORY,
   );
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
+  }, []);
+
+  // Throttle scroll checks to one per animation frame to keep the main thread free.
+  const handleScroll = useCallback(() => {
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      checkScroll();
+      rafRef.current = null;
+    });
+  }, [checkScroll]);
+
+  useEffect(() => {
+    checkScroll();
+  }, [items, checkScroll]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [handleScroll]);
+
   function removeItem(event: MouseEvent<HTMLButtonElement>, item: PlayHistoryItem) {
     event.preventDefault();
     event.stopPropagation();
@@ -45,8 +89,19 @@ export default function ContinueWatching() {
         Continue Watching
       </h2>
 
-      <div className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 py-2">
-        {items.map((item) => {
+      <div className="relative">
+        {canScrollLeft && (
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-12 bg-linear-to-r from-background to-transparent" />
+        )}
+        {canScrollRight && (
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-12 bg-linear-to-l from-background to-transparent" />
+        )}
+
+        <div
+          ref={scrollRef}
+          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 py-2"
+        >
+          {items.map((item) => {
           const poster = posterUrl(item.poster_path, "w342");
           const rating = Number.isFinite(item.vote_average)
             ? item.vote_average.toFixed(1)
@@ -104,7 +159,8 @@ export default function ContinueWatching() {
               </div>
             </Link>
           );
-        })}
+          })}
+        </div>
       </div>
     </section>
   );

@@ -6,7 +6,14 @@ export default function MoviesLoading() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 pb-16 pt-24 sm:pt-28">
       <div className="px-4 sm:px-6">
-        <Skeleton className="h-10 w-36" />
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-9 w-9 rounded-lg sm:h-11 sm:w-11" />
+          <div className="space-y-2">
+            <Skeleton className="h-9 w-36" />
+            <Skeleton className="h-4 w-56" />
+          </div>
+        </div>
+        <Skeleton className="mt-5 h-px w-full" />
       </div>
 
       {Array.from({ length: SECTION_COUNT }).map((_, i) => (
