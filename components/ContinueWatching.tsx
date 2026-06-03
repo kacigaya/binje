@@ -18,14 +18,9 @@ import {
   subscribeToPlayHistory,
   type PlayHistoryItem,
 } from "@/lib/play-history";
+import { posterUrl } from "@/lib/tmdb";
 
-const IMAGE_BASE = "https://image.tmdb.org/t/p";
 const EMPTY_HISTORY: PlayHistoryItem[] = [];
-
-function posterUrl(path: string | null, size = "w342") {
-  if (!path) return "/no-poster.svg";
-  return `${IMAGE_BASE}/${size}${path}`;
-}
 
 export default function ContinueWatching() {
   const items = useSyncExternalStore(

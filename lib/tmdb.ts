@@ -39,7 +39,7 @@ export function posterUrl(path: string | null, size = "w500") {
   return `${IMAGE_BASE}/${size}${path}`;
 }
 
-export function backdropUrl(path: string | null, size = "original") {
+export function backdropUrl(path: string | null, size = "w1280") {
   if (!path) return null;
   return `${IMAGE_BASE}/${size}${path}`;
 }

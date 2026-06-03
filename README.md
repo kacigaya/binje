@@ -12,19 +12,28 @@
 ## Features
 
 - Browse trending and popular movies & TV shows
-- Search functionality for finding content
-- Detailed movie and TV show pages
-- Hero section with featured content
-- Carousel components for browsing media
-- Responsive design with Tailwind CSS
+- Dedicated `/movies` and `/tv-shows` browse pages
+- Detailed movie and TV show pages (cast, seasons, similar, recommendations)
+- Search with fuzzy matching, year-aware ranking, and live navbar suggestions
+- Watch pages for movies and TV episodes with embedded player
+- TV episode scroller with edge fade and arrow controls, episode overlay preview cards
+- "Continue Watching" row backed by local play history
+- Hero with auto-rotating featured titles and expandable overview
+- Lazy-loaded carousels and loading skeletons
+- Cookie consent banner that gates play-history writes, with a `/privacy` policy page
+- Per-page SEO metadata via `generateMetadata`
+- Image optimization (AVIF/WebP, TMDB-aligned responsive sizes, 30-day cache TTL)
+- TMDB logos on watch pages
+- Responsive dark theme (Tailwind v4, shadcn tokens, red accent)
 
 ## Tech Stack
 
-- **Framework:** Next.js 16
-- **UI:** React 19, Tailwind CSS 4
-- **Components:** shadcn/ui, base-ui, Lucide icons
+- **Framework:** Next.js 16 (Turbopack, App Router)
+- **UI:** React 19, Tailwind CSS 4, Base UI primitives, shadcn/ui, Lucide icons
 - **Styling:** class-variance-authority, clsx, tailwind-merge
+- **Player proxying:** HLS stream proxy (`/api/hls`), embed proxy (`/api/embed`)
 - **Language:** TypeScript
+- **Testing:** Playwright
 
 ## Getting Started
 
@@ -55,8 +64,28 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ```
 app/            # Next.js App Router pages and layouts
-components/     # Reusable UI components
+  api/          # Server routes (search, hls, player, embed, episodes)
+  movie/[id]/   # Movie detail page
+  movies/       # Browse all movies
+  search/       # Search results
+  tv/[id]/      # TV show detail page
+  tv-shows/     # Browse all TV shows
+  watch/[id]/   # Movie watch page
+  watch/tv/[id] # TV episode watch page
+  privacy/      # Privacy policy
+components/     # Reusable UI components (Hero, Carousel, Player, etc.)
 lib/            # Utilities and TMDB API client
 types/          # TypeScript type definitions
 public/         # Static assets
+tests/          # Playwright tests
 ```
+
+## Privacy
+
+b!nje uses your browser's `localStorage` to remember your watch history. No tracking, no
+analytics, no third-party cookies. You can re-open the consent banner at any time from
+the "Cookies" link in the footer. See [`/privacy`](./app/privacy/page.tsx) for details.
+
+## License
+
+MIT
