@@ -1,4 +1,5 @@
 import { Tv } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import LazyCarousel from "@/components/LazyCarousel";
 import {
@@ -40,20 +41,17 @@ export default async function TVShowsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 pb-16 pt-24 sm:pt-28">
-      <header className="relative px-4 sm:px-6">
-        <div className="pointer-events-none absolute -left-2 -top-12 h-44 w-44 rounded-full bg-accent-red/20 blur-3xl" />
-        <div className="relative flex items-center gap-3">
-          <Tv className="h-9 w-9 shrink-0 text-accent-red drop-shadow-[0_0_12px_rgba(225,29,72,0.5)] sm:h-11 sm:w-11" />
-          <div>
-            <h1
-              className="text-3xl font-bold tracking-tight sm:text-4xl"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              TV Shows
-            </h1>
-          </div>
+      <header className="px-4 sm:px-6">
+        <div className="flex items-center gap-3">
+          <Tv className="h-7 w-7 text-accent-red sm:h-8 sm:w-8" />
+          <h1
+            className="text-2xl font-bold tracking-tight sm:text-3xl"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            TV Shows
+          </h1>
         </div>
-        <div className="mt-5 h-px w-full bg-linear-to-r from-accent-red/70 via-accent-red/15 to-transparent" />
+        <Separator className="mt-5 bg-white/10" />
       </header>
 
       <Carousel

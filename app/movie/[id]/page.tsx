@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
+import WatchlistButton from "@/components/WatchlistButton";
 import {
   getMovieDetails,
   getMovieCredits,
@@ -141,16 +142,29 @@ export default async function MoviePage({
               )}
             </div>
 
-            {/* Watch button */}
-            <Link href={`/watch/${movie.id}`}>
-              <Button
-                size="lg"
-                className="rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base mt-2 cursor-pointer"
-              >
-                <Play className="h-5 w-5 fill-white" />
-                Watch Now
-              </Button>
-            </Link>
+            {/* Actions */}
+            <div className="flex flex-wrap items-center gap-3 mt-2">
+              <Link href={`/watch/${movie.id}`}>
+                <Button
+                  size="lg"
+                  className="rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer"
+                >
+                  <Play className="h-5 w-5 fill-white" />
+                  Watch Now
+                </Button>
+              </Link>
+              <WatchlistButton
+                item={{
+                  type: "movie",
+                  id: movie.id,
+                  title: movie.title,
+                  poster_path: movie.poster_path,
+                  backdrop_path: movie.backdrop_path,
+                  date: movie.release_date,
+                  vote_average: movie.vote_average,
+                }}
+              />
+            </div>
 
             <div className="mt-6">
               <Separator className="bg-white/10" />
