@@ -164,11 +164,11 @@ export default function TVPlayer({
         </h3>
 
         {loading ? (
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
-                className="w-44 sm:w-52 shrink-0 aspect-video rounded-lg bg-white/5 animate-pulse"
+                className="w-72 sm:w-80 shrink-0 aspect-video rounded-2xl bg-white/5 animate-pulse"
               />
             ))}
           </div>
@@ -177,7 +177,7 @@ export default function TVPlayer({
             No episode previews available.
           </p>
         ) : (
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2">
             {episodes.map((ep) => {
               const still = stillUrl(ep.still_path, "w300");
               const isActive = ep.episode_number === episode;
@@ -185,47 +185,62 @@ export default function TVPlayer({
                 <button
                   key={ep.id}
                   onClick={() => navigate(season, ep.episode_number)}
-                  className={`group w-44 sm:w-52 shrink-0 text-left rounded-lg overflow-hidden border transition-colors cursor-pointer ${
+                  className={`group relative w-72 sm:w-80 shrink-0 text-left aspect-video rounded-2xl overflow-hidden ring-1 transition-all cursor-pointer ${
                     isActive
-                      ? "border-accent-red bg-accent-red/10"
-                      : "border-white/10 bg-white/5 hover:bg-white/10"
+                      ? "ring-2 ring-white shadow-[0_0_0_4px_rgba(255,255,255,0.08)]"
+                      : "ring-white/10 hover:ring-white/30"
                   }`}
                 >
-                  <div className="relative aspect-video bg-card overflow-hidden">
-                    {still ? (
-                      <Image
-                        src={still}
-                        alt={ep.name}
-                        fill
-                        loading="lazy"
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="208px"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-muted-foreground text-xs">
-                        No preview
-                      </div>
-                    )}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Play className="h-8 w-8 text-white fill-white" />
+                  {still ? (
+                    <Image
+                      src={still}
+                      alt={ep.name}
+                      fill
+                      loading="lazy"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="320px"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-card text-muted-foreground text-xs">
+                      No preview
                     </div>
-                    {isActive && (
-                      <span className="absolute top-1.5 left-1.5 rounded-full bg-accent-red px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
-                        Playing
-                      </span>
-                    )}
+                  )}
+
+                  {/* Bottom gradient scrim */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+
+                  {/* Hover play overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Play className="h-9 w-9 text-white fill-white" />
                   </div>
-                  <div className="p-2.5 space-y-1">
-                    <p className="text-xs font-semibold line-clamp-1">
-                      E{ep.episode_number} · {ep.name}
+
+                  {/* Overlaid content */}
+                  <div className="absolute inset-x-0 bottom-0 p-3.5 space-y-1">
+                    <p className="text-sm font-semibold leading-snug text-white line-clamp-2">
+                      {isActive && (
+                        <span className="mr-1.5 inline-block translate-y-[-1px] rounded bg-accent-red px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider align-middle">
+                          Watching
+                        </span>
+                      )}
+                      {ep.episode_number}. {ep.name}
                     </p>
                     {ep.runtime ? (
-                      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1 text-[11px] text-white/60">
                         <Clock className="h-3 w-3" />
                         {ep.runtime}m
                       </span>
                     ) : null}
+                    {ep.overview ? (
+                      <p className="text-[11px] leading-snug text-white/50 line-clamp-2">
+                        {ep.overview}
+                      </p>
+                    ) : null}
                   </div>
+
+                  {/* Active progress accent */}
+                  {isActive && (
+                    <span className="absolute inset-x-0 bottom-0 h-1 bg-accent-red" />
+                  )}
                 </button>
               );
             })}
