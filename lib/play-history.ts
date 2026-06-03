@@ -1,5 +1,7 @@
 "use client";
 
+import { getConsent } from "@/lib/consent";
+
 export const PLAY_HISTORY_STORAGE_KEY = "binje:play-history:v1";
 export const PLAY_HISTORY_LIMIT = 20;
 export const PLAY_HISTORY_EVENT = "binje:play-history";
@@ -79,6 +81,7 @@ export function getPlayHistory(): PlayHistoryItem[] {
 
 export function savePlayHistory(items: PlayHistoryItem[]) {
   if (typeof window === "undefined") return;
+  if (getConsent() !== "accepted") return;
   window.localStorage.setItem(
     PLAY_HISTORY_STORAGE_KEY,
     JSON.stringify(items.slice(0, PLAY_HISTORY_LIMIT)),
