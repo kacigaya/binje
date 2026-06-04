@@ -3,32 +3,76 @@
 import { useEffect, useMemo, useRef } from "react";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
 
-function getVideasyUrl({
-  tmdbId,
+const PLAYER_ORIGIN = "https://vidlink.pro";
+const ACCENT = "e11d48";
+
+export type PlayerMediaType = "movie" | "tv" | "anime";
+
+function getVidlinkUrl({
+  id,
   type,
   season,
   episode,
+  dub,
 }: {
-  tmdbId: number;
-  type: "movie" | "tv";
+  id: number;
+  type: PlayerMediaType;
   season?: number;
   episode?: number;
+  dub?: boolean;
 }) {
-  const path =
-    type === "tv"
-      ? `/tv/${tmdbId}/${season ?? 1}/${episode ?? 1}`
-      : `/movie/${tmdbId}`;
-  const url = new URL(path, "https://player.videasy.net");
-
-  url.searchParams.set("color", "e11d48");
-  url.searchParams.set("overlay", "true");
-
+  let path: string;
   if (type === "tv") {
-    url.searchParams.set("nextEpisode", "true");
-    url.searchParams.set("episodeSelector", "true");
+    path = `/tv/${id}/${season ?? 1}/${episode ?? 1}`;
+  } else if (type === "anime") {
+    path = `/anime/${id}/${episode ?? 1}/${dub ? "dub" : "sub"}`;
+  } else {
+    path = `/movie/${id}`;
   }
 
+  const url = new URL(path, PLAYER_ORIGIN);
+  url.searchParams.set("primaryColor", ACCENT);
+  url.searchParams.set("secondaryColor", "ffffff");
+  url.searchParams.set("iconColor", "ffffff");
+  url.searchParams.set("title", "true");
+  url.searchParams.set("poster", "true");
+  url.searchParams.set("autoplay", "false");
+  if (type !== "anime") url.searchParams.set("nextbutton", "true");
+
   return url.toString();
+}
+
+type VidlinkProgress = { watched?: unknown; duration?: unknown };
+type VidlinkEntry = {
+  progress?: VidlinkProgress;
+  show_progress?: Record<string, { progress?: VidlinkProgress }>;
+};
+
+function readProgress(
+  entry: VidlinkEntry,
+  type: PlayerMediaType,
+  season?: number,
+  episode?: number,
+): { watched: number; duration: number } | null {
+  let raw: VidlinkProgress | undefined;
+  if (type === "movie") {
+    raw = entry.progress;
+  } else {
+    const key = `s${season ?? 1}e${episode ?? 1}`;
+    raw = entry.show_progress?.[key]?.progress ?? entry.progress;
+  }
+  if (!raw) return null;
+
+  const watched = Number(raw.watched);
+  const duration = Number(raw.duration);
+  if (
+    !Number.isFinite(watched) ||
+    !Number.isFinite(duration) ||
+    duration <= 0
+  ) {
+    return null;
+  }
+  return { watched, duration };
 }
 
 export default function Player({
@@ -36,19 +80,23 @@ export default function Player({
   type = "movie",
   season,
   episode,
+  dub,
 }: {
   tmdbId: number;
   title: string;
   year?: number;
   imdbId?: string;
-  type?: "movie" | "tv";
+  type?: PlayerMediaType;
   season?: number;
   episode?: number;
+  dub?: boolean;
 }) {
-  const embedUrl = useMemo(() => {
-    const playerUrl = getVideasyUrl({ tmdbId, type, season, episode });
-    return `/api/embed?url=${encodeURIComponent(playerUrl)}`;
-  }, [episode, season, tmdbId, type]);
+  // Streams are embedded directly from vidlink.pro: like most free providers it
+  // refuses to run inside a sandboxed iframe, so the player lives on its origin.
+  const embedUrl = useMemo(
+    () => getVidlinkUrl({ id: tmdbId, type, season, episode, dub }),
+    [dub, episode, season, tmdbId, type],
+  );
   const lastSavedAtRef = useRef(0);
 
   useEffect(() => {
@@ -57,33 +105,18 @@ export default function Player({
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
-      if (event.origin !== window.location.origin) return;
-      if (!event.data || typeof event.data !== "object") return;
+      if (event.origin !== PLAYER_ORIGIN) return;
 
-      const data = event.data as {
-        source?: unknown;
-        event?: unknown;
-        type?: unknown;
-        id?: unknown;
-        season?: unknown;
-        episode?: unknown;
-        positionSeconds?: unknown;
-        durationSeconds?: unknown;
-      };
+      // vidlink posts its whole progress map: {type:"MEDIA_DATA",data:{[id]:{...}}}
+      const message = event.data as { type?: unknown; data?: unknown };
+      if (message?.type !== "MEDIA_DATA" || !message.data) return;
 
-      if (data.source !== "binje-player" || data.event !== "progress") return;
-      if (data.type !== type || data.id !== tmdbId) return;
-      if (type === "tv") {
-        if (data.season !== (season ?? 1) || data.episode !== (episode ?? 1)) {
-          return;
-        }
-      }
-      if (
-        typeof data.positionSeconds !== "number" ||
-        typeof data.durationSeconds !== "number"
-      ) {
-        return;
-      }
+      const map = message.data as Record<string, VidlinkEntry>;
+      const entry = map[String(tmdbId)];
+      if (!entry || typeof entry !== "object") return;
+
+      const progress = readProgress(entry, type, season, episode);
+      if (!progress) return;
 
       const now = Date.now();
       if (now - lastSavedAtRef.current < 5000) return;
@@ -94,8 +127,8 @@ export default function Player({
         id: tmdbId,
         season,
         episode,
-        positionSeconds: data.positionSeconds,
-        durationSeconds: data.durationSeconds,
+        positionSeconds: progress.watched,
+        durationSeconds: progress.duration,
       });
     }
 

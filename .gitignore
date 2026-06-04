@@ -43,6 +43,7 @@ next-env.d.ts
 # Playwright
 playwright.config.ts
 tests/
+.playwright-mcp/
 
 # AGENTS
 AGENTS.md
