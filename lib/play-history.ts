@@ -20,9 +20,19 @@ export interface PlayHistoryItem {
   watchedAt: number;
   season?: number;
   episode?: number;
+  progress?: number;
+  positionSeconds?: number;
+  durationSeconds?: number;
 }
 
 export type PlayHistoryInput = Omit<PlayHistoryItem, "watchedAt">;
+export type PlayHistoryProgressInput = Pick<
+  PlayHistoryItem,
+  "type" | "id" | "season" | "episode"
+> & {
+  positionSeconds: number;
+  durationSeconds: number;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -46,6 +56,15 @@ function isValidHistoryItem(value: unknown): value is PlayHistoryItem {
 
 function getHistoryKey(item: Pick<PlayHistoryItem, "type" | "id">) {
   return `${item.type}:${item.id}`;
+}
+
+function getEpisodeKey(item: Pick<PlayHistoryItem, "type" | "id" | "season" | "episode">) {
+  if (item.type === "movie") return getHistoryKey(item);
+  return `${getHistoryKey(item)}:${item.season ?? 1}:${item.episode ?? 1}`;
+}
+
+function clampProgress(value: number) {
+  return Math.min(Math.max(value, 0), 1);
 }
 
 export function getPlayHistory(): PlayHistoryItem[] {
@@ -91,16 +110,53 @@ export function savePlayHistory(items: PlayHistoryItem[]) {
 
 export function upsertPlayHistory(input: PlayHistoryInput) {
   const now = Date.now();
+  const existingItems = getPlayHistory();
+  const existingProgress = existingItems.find(
+    (item) => getEpisodeKey(item) === getEpisodeKey(input),
+  );
   const nextItem: PlayHistoryItem = {
+    progress: existingProgress?.progress,
+    positionSeconds: existingProgress?.positionSeconds,
+    durationSeconds: existingProgress?.durationSeconds,
     ...input,
     watchedAt: now,
   };
   const nextKey = getHistoryKey(nextItem);
-  const existing = getPlayHistory().filter(
+  const existing = existingItems.filter(
     (item) => getHistoryKey(item) !== nextKey,
   );
 
   savePlayHistory([nextItem, ...existing]);
+}
+
+export function updatePlayHistoryProgress(input: PlayHistoryProgressInput) {
+  const positionSeconds = input.positionSeconds;
+  const durationSeconds = input.durationSeconds;
+
+  if (
+    !Number.isFinite(positionSeconds) ||
+    !Number.isFinite(durationSeconds) ||
+    positionSeconds < 0 ||
+    durationSeconds <= 0
+  ) {
+    return;
+  }
+
+  const targetKey = getEpisodeKey(input);
+  let didUpdate = false;
+  const nextItems = getPlayHistory().map((item) => {
+    if (getEpisodeKey(item) !== targetKey) return item;
+
+    didUpdate = true;
+    return {
+      ...item,
+      progress: clampProgress(positionSeconds / durationSeconds),
+      positionSeconds,
+      durationSeconds,
+    };
+  });
+
+  if (didUpdate) savePlayHistory(nextItems);
 }
 
 export function removePlayHistoryItem(itemToRemove: Pick<PlayHistoryItem, "type" | "id">) {

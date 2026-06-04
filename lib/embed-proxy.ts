@@ -1,6 +1,60 @@
 export const ALLOWED_PLAYER_HOST = "player.videasy.net";
 export const PLAYER_BASE = "https://player.videasy.net/";
 
+function progressScript(): string {
+  return `(function(){
+  var lastSentAt=0;
+  function parsePositiveInt(value){
+    var parsed=Number(value);
+    return Number.isFinite(parsed)&&parsed>0?Math.floor(parsed):undefined;
+  }
+  function metadata(){
+    try{
+      var parts=location.pathname.split("/").filter(Boolean);
+      var type=parts[0]==="tv"?"tv":"movie";
+      return {
+        source:"binje-player",
+        type:type,
+        id:parsePositiveInt(parts[1]),
+        season:type==="tv"?parsePositiveInt(parts[2]):undefined,
+        episode:type==="tv"?parsePositiveInt(parts[3]):undefined
+      };
+    }catch(e){
+      return {source:"binje-player"};
+    }
+  }
+  function report(video,force){
+    try{
+      var now=Date.now();
+      if(!force&&now-lastSentAt<5000)return;
+      if(!video||!Number.isFinite(video.currentTime)||!Number.isFinite(video.duration)||video.duration<=0)return;
+      lastSentAt=now;
+      parent.postMessage(Object.assign(metadata(),{
+        event:"progress",
+        positionSeconds:video.currentTime,
+        durationSeconds:video.duration
+      }),location.origin);
+    }catch(e){}
+  }
+  function bind(video){
+    if(!video||video.__binjeProgressBound)return;
+    video.__binjeProgressBound=true;
+    video.addEventListener("timeupdate",function(){report(video,false);},{passive:true});
+    video.addEventListener("loadedmetadata",function(){report(video,true);},{passive:true});
+    video.addEventListener("pause",function(){report(video,true);},{passive:true});
+    video.addEventListener("ended",function(){report(video,true);},{passive:true});
+    report(video,true);
+  }
+  function scan(){
+    try{document.querySelectorAll("video").forEach(bind);}catch(e){}
+  }
+  scan();
+  try{
+    new MutationObserver(scan).observe(document,{childList:true,subtree:true});
+  }catch(e){}
+})();`;
+}
+
 function guardScript(spoofedPath: string): string {
   return `(function(){
   var PLAYER_HOST=${JSON.stringify(ALLOWED_PLAYER_HOST)};
@@ -146,7 +200,7 @@ export function rewriteEmbedHtml(
     )
     .replace(/\btarget\s*=\s*["']?_(blank|new)["']?/gi, 'target="_self"');
 
-  const injection = `<base href="${base}"><script>${guardScript(spoofedPath)}</script>`;
+  const injection = `<base href="${base}"><script>${guardScript(spoofedPath)}</script><script>${progressScript()}</script>`;
   return /<head[^>]*>/i.test(out)
     ? out.replace(/<head[^>]*>/i, (match) => match + injection)
     : injection + out;
