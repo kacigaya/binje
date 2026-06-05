@@ -5,7 +5,7 @@
 <h1 align="center">b!nje</h1>
 
 <p align="center">
-   <strong>A modern movie and TV show discovery web application built with Next.js.</strong><br>
+   <strong>A movie and TV discovery app built with Next.js.</strong><br>
    <em>Powered by TMDB API.</em>
 </p>
 
@@ -26,17 +26,17 @@
 - TMDB logos on watch pages
 - Responsive dark theme (Tailwind v4, shadcn tokens, red accent)
 
-## Tech Stack
+## Tech stack
 
-- **Framework:** Next.js 16 (Turbopack, App Router)
-- **UI:** React 19, Tailwind CSS 4, Base UI primitives, shadcn/ui, Lucide icons
-- **Styling:** class-variance-authority, clsx, tailwind-merge
-- **Data:** TMDB (movies/TV)
-- **Player:** vidlink.pro embedded player (movie / tv)
-- **Language:** TypeScript
-- **Testing:** Playwright
+- Framework: Next.js 16 (Turbopack, App Router)
+- UI: React 19, Tailwind CSS 4, Base UI primitives, shadcn/ui, Lucide icons
+- Styling: class-variance-authority, clsx, tailwind-merge
+- Data: TMDB (movies/TV)
+- Player: vidlink.pro embedded player (movie / tv)
+- Language: TypeScript
+- Testing: Playwright
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
@@ -61,7 +61,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-### Project Structure
+### Project structure
 
 ```
 app/            # Next.js App Router pages and layouts
