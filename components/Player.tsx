@@ -6,29 +6,21 @@ import { updatePlayHistoryProgress } from "@/lib/play-history";
 const PLAYER_ORIGIN = "https://vidlink.pro";
 const ACCENT = "e11d48";
 
-export type PlayerMediaType = "movie" | "tv" | "anime";
+export type PlayerMediaType = "movie" | "tv";
 
 function getVidlinkUrl({
   id,
   type,
   season,
   episode,
-  dub,
 }: {
   id: number;
   type: PlayerMediaType;
   season?: number;
   episode?: number;
-  dub?: boolean;
 }) {
-  let path: string;
-  if (type === "tv") {
-    path = `/tv/${id}/${season ?? 1}/${episode ?? 1}`;
-  } else if (type === "anime") {
-    path = `/anime/${id}/${episode ?? 1}/${dub ? "dub" : "sub"}`;
-  } else {
-    path = `/movie/${id}`;
-  }
+  const path =
+    type === "tv" ? `/tv/${id}/${season ?? 1}/${episode ?? 1}` : `/movie/${id}`;
 
   const url = new URL(path, PLAYER_ORIGIN);
   url.searchParams.set("primaryColor", ACCENT);
@@ -37,7 +29,7 @@ function getVidlinkUrl({
   url.searchParams.set("title", "true");
   url.searchParams.set("poster", "true");
   url.searchParams.set("autoplay", "false");
-  if (type !== "anime") url.searchParams.set("nextbutton", "true");
+  url.searchParams.set("nextbutton", "true");
 
   return url.toString();
 }
@@ -80,22 +72,17 @@ export default function Player({
   type = "movie",
   season,
   episode,
-  dub,
 }: {
   tmdbId: number;
-  title: string;
-  year?: number;
-  imdbId?: string;
   type?: PlayerMediaType;
   season?: number;
   episode?: number;
-  dub?: boolean;
 }) {
   // Streams are embedded directly from vidlink.pro: like most free providers it
   // refuses to run inside a sandboxed iframe, so the player lives on its origin.
   const embedUrl = useMemo(
-    () => getVidlinkUrl({ id: tmdbId, type, season, episode, dub }),
-    [dub, episode, season, tmdbId, type],
+    () => getVidlinkUrl({ id: tmdbId, type, season, episode }),
+    [episode, season, tmdbId, type],
   );
   const lastSavedAtRef = useRef(0);
 

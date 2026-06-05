@@ -74,11 +74,7 @@ export default function Watchlist() {
                 </div>
 
                 <div className="absolute top-2 left-2 rounded-full bg-accent-red/90 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
-                  {item.type === "tv"
-                    ? "TV"
-                    : item.type === "anime"
-                      ? "Anime"
-                      : "Movie"}
+                  {item.type === "tv" ? "TV" : "Movie"}
                 </div>
 
                 <button

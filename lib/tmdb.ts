@@ -36,8 +36,6 @@ export const IMAGE_BASE = "https://image.tmdb.org/t/p";
 
 export function posterUrl(path: string | null, size = "w500") {
   if (!path) return "/no-poster.svg";
-  // Anime posters come from MyAnimeList as absolute URLs; pass them through.
-  if (path.startsWith("http")) return path;
   return `${IMAGE_BASE}/${size}${path}`;
 }
 

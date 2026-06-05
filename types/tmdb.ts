@@ -178,7 +178,7 @@ export interface MediaItem {
   backdrop_path: string | null;
   date: string;
   vote_average: number;
-  media_type: "movie" | "tv" | "anime";
+  media_type: "movie" | "tv";
   logo_path?: string | null;
   logo_width?: number;
   logo_height?: number;

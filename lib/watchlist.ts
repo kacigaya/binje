@@ -10,7 +10,7 @@ let lastRawWatchlist: string | null = null;
 let lastWatchlistSnapshot: WatchlistItem[] = [];
 
 export interface WatchlistItem {
-  type: "movie" | "tv" | "anime";
+  type: "movie" | "tv";
   id: number;
   title: string;
   poster_path: string | null;
@@ -34,7 +34,7 @@ function isValidWatchlistItem(value: unknown): value is WatchlistItem {
   const title = value.title;
   const addedAt = value.addedAt;
 
-  if (type !== "movie" && type !== "tv" && type !== "anime") return false;
+  if (type !== "movie" && type !== "tv") return false;
   if (typeof id !== "number" || !Number.isFinite(id) || id <= 0) return false;
   if (typeof title !== "string" || !title.trim()) return false;
   if (typeof addedAt !== "number" || !Number.isFinite(addedAt)) return false;
@@ -125,9 +125,7 @@ export function toggleWatchlist(input: WatchlistInput) {
 }
 
 export function getWatchlistHref(item: Pick<WatchlistItem, "type" | "id">) {
-  if (item.type === "tv") return `/tv/${item.id}`;
-  if (item.type === "anime") return `/anime/${item.id}`;
-  return `/movie/${item.id}`;
+  return item.type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
 }
 
 export function subscribeToWatchlist(onStoreChange: () => void) {

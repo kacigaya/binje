@@ -3,16 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import {
-  Search,
-  Film,
-  X,
-  Clapperboard,
-  Tv,
-  Sparkles,
-  Bookmark,
-  Menu,
-} from "lucide-react";
+import { Search, Film, X, Clapperboard, Tv, Bookmark, Menu } from "lucide-react";
 import { useState, useRef, SyntheticEvent, useEffect, useCallback } from "react";
 import { Input } from "@base-ui/react/input";
 import { Button } from "@base-ui/react/button";
@@ -34,7 +25,6 @@ interface SearchSuggestionsResponse {
 const navLinks = [
   { href: "/movies", label: "Movies", icon: Clapperboard },
   { href: "/tv-shows", label: "TV Shows", icon: Tv },
-  { href: "/anime", label: "Anime", icon: Sparkles },
   { href: "/watchlist", label: "Watchlist", icon: Bookmark },
 ];
 

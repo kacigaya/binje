@@ -13,11 +13,7 @@ export default function MediaCard({
 }) {
   const poster = posterUrl(item.poster_path, "w342");
   const href =
-    item.media_type === "tv"
-      ? `/tv/${item.id}`
-      : item.media_type === "anime"
-        ? `/anime/${item.id}`
-        : `/movie/${item.id}`;
+    item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
   const rating = Number.isFinite(item.vote_average)
     ? item.vote_average.toFixed(1)
     : "N/A";
@@ -42,9 +38,9 @@ export default function MediaCard({
             {rating}
           </div>
 
-          {item.media_type !== "movie" && (
+          {item.media_type === "tv" && (
             <div className="absolute top-2 left-2 rounded-full bg-accent-red/90 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
-              {item.media_type === "anime" ? "Anime" : "TV"}
+              TV
             </div>
           )}
 

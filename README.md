@@ -11,12 +11,11 @@
 
 ## Features
 
-- Browse trending and popular movies, TV shows & anime
-- Dedicated `/movies`, `/tv-shows` and `/anime` browse pages
-- Detailed movie, TV and anime pages (cast, seasons, episodes, similar, recommendations)
-- Anime powered by MyAnimeList (via the Jikan API) with sub/dub selection
+- Browse trending and popular movies & TV shows
+- Dedicated `/movies` and `/tv-shows` browse pages
+- Detailed movie and TV show pages (cast, seasons, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
-- Watch pages for movies, TV episodes and anime with embedded player (vidlink.pro)
+- Watch pages for movies and TV episodes with embedded player (vidlink.pro)
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
 - "Continue Watching" row backed by local play history
 - Hero with auto-rotating featured titles and expandable overview
@@ -32,8 +31,8 @@
 - **Framework:** Next.js 16 (Turbopack, App Router)
 - **UI:** React 19, Tailwind CSS 4, Base UI primitives, shadcn/ui, Lucide icons
 - **Styling:** class-variance-authority, clsx, tailwind-merge
-- **Data:** TMDB (movies/TV), MyAnimeList via Jikan (anime)
-- **Player:** vidlink.pro embedded player (movie / tv / anime)
+- **Data:** TMDB (movies/TV)
+- **Player:** vidlink.pro embedded player (movie / tv)
 - **Language:** TypeScript
 - **Testing:** Playwright
 
@@ -69,8 +68,6 @@ app/            # Next.js App Router pages and layouts
   api/          # Server routes (search, episodes)
   movie/[id]/   # Movie detail page
   movies/       # Browse all movies
-  anime/[id]/   # Anime detail page (MyAnimeList)
-  anime/        # Browse all anime
   search/       # Search results
   tv/[id]/      # TV show detail page
   tv-shows/     # Browse all TV shows

@@ -123,12 +123,6 @@ export default async function WatchTVPage({
       <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8">
         <TVPlayer
           showId={show.id}
-          title={show.name}
-          year={
-            show.first_air_date
-              ? new Date(show.first_air_date).getFullYear()
-              : undefined
-          }
           season={season}
           episode={episode}
           seasons={seasons.map((ss) => ({

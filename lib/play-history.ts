@@ -10,7 +10,7 @@ let lastRawHistory: string | null = null;
 let lastHistorySnapshot: PlayHistoryItem[] = [];
 
 export interface PlayHistoryItem {
-  type: "movie" | "tv" | "anime";
+  type: "movie" | "tv";
   id: number;
   title: string;
   poster_path: string | null;
@@ -20,7 +20,6 @@ export interface PlayHistoryItem {
   watchedAt: number;
   season?: number;
   episode?: number;
-  dub?: boolean;
   progress?: number;
   positionSeconds?: number;
   durationSeconds?: number;
@@ -47,7 +46,7 @@ function isValidHistoryItem(value: unknown): value is PlayHistoryItem {
   const title = value.title;
   const watchedAt = value.watchedAt;
 
-  if (type !== "movie" && type !== "tv" && type !== "anime") return false;
+  if (type !== "movie" && type !== "tv") return false;
   if (typeof id !== "number" || !Number.isFinite(id) || id <= 0) return false;
   if (typeof title !== "string" || !title.trim()) return false;
   if (typeof watchedAt !== "number" || !Number.isFinite(watchedAt)) return false;
@@ -172,13 +171,8 @@ export function removePlayHistoryItem(itemToRemove: Pick<PlayHistoryItem, "type"
 export function getPlayHistoryHref(item: PlayHistoryItem) {
   if (item.type === "movie") return `/watch/${item.id}`;
 
-  const episode = item.episode ?? 1;
-  if (item.type === "anime") {
-    const dub = item.dub ? "&dub=1" : "";
-    return `/watch/anime/${item.id}?e=${episode}${dub}`;
-  }
-
   const season = item.season ?? 1;
+  const episode = item.episode ?? 1;
   return `/watch/tv/${item.id}?s=${season}&e=${episode}`;
 }
 
