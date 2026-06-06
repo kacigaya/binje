@@ -40,23 +40,19 @@
 
 ### Prerequisites
 
-- Node.js 20+ or Bun
+- Node.js 20+ and pnpm
 - A TMDB API key (set in `.env.local`)
 
 ### Installation
 
 ```bash
-bun install
-# or
-npm install
+pnpm install
 ```
 
 ### Development
 
 ```bash
-bun dev
-# or
-npm run dev
+pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.

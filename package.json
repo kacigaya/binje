@@ -2,6 +2,7 @@
   "name": "binje",
   "version": "0.4.2",
   "private": true,
+  "packageManager": "pnpm@11.5.2",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -34,13 +35,5 @@
   },
   "overrides": {
     "postcss": "^8.5.10"
-  },
-  "ignoreScripts": [
-    "sharp",
-    "unrs-resolver"
-  ],
-  "trustedDependencies": [
-    "sharp",
-    "unrs-resolver"
-  ]
+  }
 }
