@@ -2,9 +2,9 @@
 
 import { getConsent } from "@/lib/consent";
 
-export const PLAY_HISTORY_STORAGE_KEY = "binje:play-history:v1";
-export const PLAY_HISTORY_LIMIT = 20;
-export const PLAY_HISTORY_EVENT = "binje:play-history";
+const PLAY_HISTORY_STORAGE_KEY = "binje:play-history:v1";
+const PLAY_HISTORY_LIMIT = 20;
+const PLAY_HISTORY_EVENT = "binje:play-history";
 
 let lastRawHistory: string | null = null;
 let lastHistorySnapshot: PlayHistoryItem[] = [];
@@ -26,7 +26,7 @@ export interface PlayHistoryItem {
 }
 
 export type PlayHistoryInput = Omit<PlayHistoryItem, "watchedAt">;
-export type PlayHistoryProgressInput = Pick<
+type PlayHistoryProgressInput = Pick<
   PlayHistoryItem,
   "type" | "id" | "season" | "episode"
 > & {
@@ -98,7 +98,7 @@ export function getPlayHistory(): PlayHistoryItem[] {
   }
 }
 
-export function savePlayHistory(items: PlayHistoryItem[]) {
+function savePlayHistory(items: PlayHistoryItem[]) {
   if (typeof window === "undefined") return;
   if (getConsent() !== "accepted") return;
   window.localStorage.setItem(

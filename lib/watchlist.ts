@@ -2,9 +2,9 @@
 
 import { getConsent } from "@/lib/consent";
 
-export const WATCHLIST_STORAGE_KEY = "binje:watchlist:v1";
-export const WATCHLIST_LIMIT = 100;
-export const WATCHLIST_EVENT = "binje:watchlist";
+const WATCHLIST_STORAGE_KEY = "binje:watchlist:v1";
+const WATCHLIST_LIMIT = 100;
+const WATCHLIST_EVENT = "binje:watchlist";
 
 let lastRawWatchlist: string | null = null;
 let lastWatchlistSnapshot: WatchlistItem[] = [];
@@ -77,7 +77,7 @@ export function getWatchlist(): WatchlistItem[] {
   }
 }
 
-export function saveWatchlist(items: WatchlistItem[]) {
+function saveWatchlist(items: WatchlistItem[]) {
   if (typeof window === "undefined") return;
   if (getConsent() !== "accepted") return;
   window.localStorage.setItem(
@@ -92,7 +92,7 @@ export function isInWatchlist(item: Pick<WatchlistItem, "type" | "id">) {
   return getWatchlist().some((entry) => getWatchlistKey(entry) === key);
 }
 
-export function addToWatchlist(input: WatchlistInput) {
+function addToWatchlist(input: WatchlistInput) {
   const nextItem: WatchlistItem = {
     ...input,
     addedAt: Date.now(),

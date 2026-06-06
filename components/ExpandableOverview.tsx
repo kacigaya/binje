@@ -11,7 +11,6 @@ interface Props {
   fontSize: number;
   containerWidth: number;
   lineHeight: number;
-  maxLines: number;
   className?: string;
 }
 

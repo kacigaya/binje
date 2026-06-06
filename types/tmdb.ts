@@ -57,7 +57,7 @@ export interface TVShowDetails extends TVShow {
   production_companies: ProductionCompany[];
 }
 
-export interface Season {
+interface Season {
   id: number;
   name: string;
   overview: string;
@@ -86,19 +86,19 @@ export interface SeasonDetails {
   episodes: Episode[];
 }
 
-export interface Genre {
+interface Genre {
   id: number;
   name: string;
 }
 
-export interface ProductionCompany {
+interface ProductionCompany {
   id: number;
   logo_path: string | null;
   name: string;
   origin_country: string;
 }
 
-export interface CastMember {
+interface CastMember {
   id: number;
   name: string;
   character: string;
@@ -106,7 +106,7 @@ export interface CastMember {
   order: number;
 }
 
-export interface CrewMember {
+interface CrewMember {
   id: number;
   name: string;
   job: string;
@@ -131,18 +131,6 @@ export interface TVShowResponse {
   results: TVShow[];
   total_pages: number;
   total_results: number;
-}
-
-export interface Video {
-  id: string;
-  key: string;
-  name: string;
-  site: string;
-  type: string;
-}
-
-export interface VideoResponse {
-  results: Video[];
 }
 
 export interface TMDBImageAsset {

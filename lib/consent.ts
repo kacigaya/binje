@@ -1,6 +1,6 @@
 export const CONSENT_STORAGE_KEY = "binje:cookie-consent";
 
-export type ConsentValue = "accepted" | "dismissed";
+type ConsentValue = "accepted" | "dismissed";
 
 export function getConsent(): ConsentValue | null {
   if (typeof window === "undefined") return null;
@@ -19,14 +19,5 @@ export function setConsent(value: ConsentValue): void {
     window.localStorage.setItem(CONSENT_STORAGE_KEY, value);
   } catch {
     // ignore quota / private-mode failures
-  }
-}
-
-export function clearConsent(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(CONSENT_STORAGE_KEY);
-  } catch {
-    // ignore
   }
 }

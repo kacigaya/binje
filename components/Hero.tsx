@@ -126,7 +126,6 @@ export default function Hero({ items }: HeroProps) {
               fontSize={16}
               containerWidth={576}
               lineHeight={26}
-              maxLines={3}
               className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-xl"
             />
 

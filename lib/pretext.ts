@@ -1,11 +1,11 @@
 import { prepare, layout, type PreparedText } from "@chenglou/pretext";
 
-export const FONTS = {
+export type FontKey = "body" | "heading";
+
+const FONTS: Record<FontKey, string> = {
   body: "Outfit, sans-serif",
   heading: "Space Grotesk, sans-serif",
 } as const;
-
-export type FontKey = keyof typeof FONTS;
 
 const cache = new Map<string, PreparedText>();
 
@@ -13,7 +13,7 @@ function cacheKey(text: string, font: string, fontSize: number): string {
   return `${font}::${fontSize}::${text}`;
 }
 
-export function prepareText(
+function prepareText(
   text: string,
   fontKey: FontKey,
   fontSize: number,
@@ -28,7 +28,7 @@ export function prepareText(
   return prepared;
 }
 
-export function measureLines(
+function measureLines(
   text: string,
   fontKey: FontKey,
   fontSize: number,
