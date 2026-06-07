@@ -30,6 +30,7 @@ function getVidlinkUrl({
   url.searchParams.set("poster", "true");
   url.searchParams.set("autoplay", "false");
   url.searchParams.set("nextbutton", "true");
+  url.searchParams.set("player", "jw");
 
   return url.toString();
 }
