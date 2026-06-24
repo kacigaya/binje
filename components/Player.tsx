@@ -7,6 +7,11 @@ const PLAYER_ORIGIN = "https://vidlink.pro";
 const ACCENT = "e11d48";
 
 export type PlayerMediaType = "movie" | "tv";
+type VidlinkProgress = { watched?: unknown; duration?: unknown };
+type VidlinkEntry = {
+  progress?: VidlinkProgress;
+  show_progress?: Record<string, { progress?: VidlinkProgress }>;
+};
 
 function getVidlinkUrl({
   id,
@@ -34,12 +39,6 @@ function getVidlinkUrl({
 
   return url.toString();
 }
-
-type VidlinkProgress = { watched?: unknown; duration?: unknown };
-type VidlinkEntry = {
-  progress?: VidlinkProgress;
-  show_progress?: Record<string, { progress?: VidlinkProgress }>;
-};
 
 function readProgress(
   entry: VidlinkEntry,
@@ -79,12 +78,14 @@ export default function Player({
   season?: number;
   episode?: number;
 }) {
-  // Streams are embedded directly from vidlink.pro: like most free providers it
-  // refuses to run inside a sandboxed iframe, so the player lives on its origin.
   const embedUrl = useMemo(
-    () => getVidlinkUrl({ id: tmdbId, type, season, episode }),
+    () =>
+      `/api/vidlink?url=${encodeURIComponent(
+        getVidlinkUrl({ id: tmdbId, type, season, episode }),
+      )}`,
     [episode, season, tmdbId, type],
   );
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const lastSavedAtRef = useRef(0);
 
   useEffect(() => {
@@ -93,11 +94,16 @@ export default function Player({
 
   useEffect(() => {
     function onMessage(event: MessageEvent) {
-      if (event.origin !== PLAYER_ORIGIN) return;
+      if (
+        event.origin !== PLAYER_ORIGIN &&
+        event.source !== iframeRef.current?.contentWindow
+      ) {
+        return;
+      }
+      if (!event.data || typeof event.data !== "object") return;
 
-      // vidlink posts its whole progress map: {type:"MEDIA_DATA",data:{[id]:{...}}}
       const message = event.data as { type?: unknown; data?: unknown };
-      if (message?.type !== "MEDIA_DATA" || !message.data) return;
+      if (message.type !== "MEDIA_DATA" || !message.data) return;
 
       const map = message.data as Record<string, VidlinkEntry>;
       const entry = map[String(tmdbId)];
@@ -127,11 +133,12 @@ export default function Player({
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <iframe
+        ref={iframeRef}
         key={embedUrl}
         src={embedUrl}
         title="Video player"
         className="absolute inset-0 h-full w-full border-0 bg-black"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"
         allowFullScreen
         referrerPolicy="origin"
       />

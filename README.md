@@ -29,10 +29,10 @@
 ## Tech stack
 
 - Framework: Next.js 16 (Turbopack, App Router)
-- UI: React 19, Tailwind CSS 4, Base UI primitives, shadcn/ui, Lucide icons
-- Styling: class-variance-authority, clsx, tailwind-merge
+- UI: React 19, Tailwind CSS 4, shadcn tokens, Lucide icons
+- Styling: clsx, tailwind-merge
 - Data: TMDB (movies/TV)
-- Player: vidlink.pro embedded player (movie / tv)
+- Player: VidLink proxy (`/api/vidlink`) and HLS stream proxy (`/api/hls`)
 - Language: TypeScript
 - Testing: Playwright
 
@@ -40,19 +40,19 @@
 
 ### Prerequisites
 
-- Node.js 20+ and pnpm
+- Bun
 - A TMDB API key (set in `.env.local`)
 
 ### Installation
 
 ```bash
-pnpm install
+bun install
 ```
 
 ### Development
 
 ```bash
-pnpm dev
+bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
@@ -61,7 +61,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ```
 app/            # Next.js App Router pages and layouts
-  api/          # Server routes (search, episodes)
+  api/          # Server routes (search, hls, vidlink, episodes)
   movie/[id]/   # Movie detail page
   movies/       # Browse all movies
   search/       # Search results

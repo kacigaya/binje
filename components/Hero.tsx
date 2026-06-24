@@ -122,10 +122,6 @@ export default function Hero({ items }: HeroProps) {
 
             <ExpandableOverview
               text={activeItem.overview}
-              fontKey="body"
-              fontSize={16}
-              containerWidth={576}
-              lineHeight={26}
               className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-xl"
             />
 

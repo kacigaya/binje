@@ -1,13 +1,11 @@
 "use client";
 
 import { getConsent } from "@/lib/consent";
+import { createLocalArrayStore } from "@/lib/local-array-store";
 
 const WATCHLIST_STORAGE_KEY = "binje:watchlist:v1";
 const WATCHLIST_LIMIT = 100;
 const WATCHLIST_EVENT = "binje:watchlist";
-
-let lastRawWatchlist: string | null = null;
-let lastWatchlistSnapshot: WatchlistItem[] = [];
 
 export interface WatchlistItem {
   type: "movie" | "tv";
@@ -46,46 +44,17 @@ function getWatchlistKey(item: Pick<WatchlistItem, "type" | "id">) {
   return `${item.type}:${item.id}`;
 }
 
-export function getWatchlist(): WatchlistItem[] {
-  if (typeof window === "undefined") return [];
+const watchlistStore = createLocalArrayStore<WatchlistItem>({
+  key: WATCHLIST_STORAGE_KEY,
+  eventName: WATCHLIST_EVENT,
+  limit: WATCHLIST_LIMIT,
+  isValid: isValidWatchlistItem,
+  sort: (a, b) => b.addedAt - a.addedAt,
+  canSave: () => getConsent() === "accepted",
+});
 
-  try {
-    const raw = window.localStorage.getItem(WATCHLIST_STORAGE_KEY);
-    if (raw === lastRawWatchlist) return lastWatchlistSnapshot;
-    lastRawWatchlist = raw;
-
-    if (!raw) {
-      lastWatchlistSnapshot = [];
-      return lastWatchlistSnapshot;
-    }
-
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      lastWatchlistSnapshot = [];
-      return lastWatchlistSnapshot;
-    }
-
-    lastWatchlistSnapshot = parsed
-      .filter(isValidWatchlistItem)
-      .sort((a, b) => b.addedAt - a.addedAt)
-      .slice(0, WATCHLIST_LIMIT);
-
-    return lastWatchlistSnapshot;
-  } catch {
-    lastWatchlistSnapshot = [];
-    return lastWatchlistSnapshot;
-  }
-}
-
-function saveWatchlist(items: WatchlistItem[]) {
-  if (typeof window === "undefined") return;
-  if (getConsent() !== "accepted") return;
-  window.localStorage.setItem(
-    WATCHLIST_STORAGE_KEY,
-    JSON.stringify(items.slice(0, WATCHLIST_LIMIT)),
-  );
-  window.dispatchEvent(new Event(WATCHLIST_EVENT));
-}
+export const getWatchlist = watchlistStore.get;
+export const saveWatchlist = watchlistStore.save;
 
 export function isInWatchlist(item: Pick<WatchlistItem, "type" | "id">) {
   const key = getWatchlistKey(item);
@@ -105,7 +74,9 @@ function addToWatchlist(input: WatchlistInput) {
   saveWatchlist([nextItem, ...existing]);
 }
 
-export function removeFromWatchlist(itemToRemove: Pick<WatchlistItem, "type" | "id">) {
+export function removeFromWatchlist(
+  itemToRemove: Pick<WatchlistItem, "type" | "id">,
+) {
   const keyToRemove = getWatchlistKey(itemToRemove);
   const nextItems = getWatchlist().filter(
     (item) => getWatchlistKey(item) !== keyToRemove,
@@ -128,18 +99,4 @@ export function getWatchlistHref(item: Pick<WatchlistItem, "type" | "id">) {
   return item.type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
 }
 
-export function subscribeToWatchlist(onStoreChange: () => void) {
-  if (typeof window === "undefined") return () => {};
-
-  const onStorage = (event: StorageEvent) => {
-    if (event.key === WATCHLIST_STORAGE_KEY) onStoreChange();
-  };
-
-  window.addEventListener(WATCHLIST_EVENT, onStoreChange);
-  window.addEventListener("storage", onStorage);
-
-  return () => {
-    window.removeEventListener(WATCHLIST_EVENT, onStoreChange);
-    window.removeEventListener("storage", onStorage);
-  };
-}
+export const subscribeToWatchlist = watchlistStore.subscribe;

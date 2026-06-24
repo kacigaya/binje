@@ -1,13 +1,11 @@
 "use client";
 
 import { getConsent } from "@/lib/consent";
+import { createLocalArrayStore } from "@/lib/local-array-store";
 
 const PLAY_HISTORY_STORAGE_KEY = "binje:play-history:v1";
 const PLAY_HISTORY_LIMIT = 20;
 const PLAY_HISTORY_EVENT = "binje:play-history";
-
-let lastRawHistory: string | null = null;
-let lastHistorySnapshot: PlayHistoryItem[] = [];
 
 export interface PlayHistoryItem {
   type: "movie" | "tv";
@@ -58,7 +56,9 @@ function getHistoryKey(item: Pick<PlayHistoryItem, "type" | "id">) {
   return `${item.type}:${item.id}`;
 }
 
-function getEpisodeKey(item: Pick<PlayHistoryItem, "type" | "id" | "season" | "episode">) {
+function getEpisodeKey(
+  item: Pick<PlayHistoryItem, "type" | "id" | "season" | "episode">,
+) {
   if (item.type === "movie") return getHistoryKey(item);
   return `${getHistoryKey(item)}:${item.season ?? 1}:${item.episode ?? 1}`;
 }
@@ -67,46 +67,17 @@ function clampProgress(value: number) {
   return Math.min(Math.max(value, 0), 1);
 }
 
-export function getPlayHistory(): PlayHistoryItem[] {
-  if (typeof window === "undefined") return [];
+const playHistoryStore = createLocalArrayStore<PlayHistoryItem>({
+  key: PLAY_HISTORY_STORAGE_KEY,
+  eventName: PLAY_HISTORY_EVENT,
+  limit: PLAY_HISTORY_LIMIT,
+  isValid: isValidHistoryItem,
+  sort: (a, b) => b.watchedAt - a.watchedAt,
+  canSave: () => getConsent() === "accepted",
+});
 
-  try {
-    const raw = window.localStorage.getItem(PLAY_HISTORY_STORAGE_KEY);
-    if (raw === lastRawHistory) return lastHistorySnapshot;
-    lastRawHistory = raw;
-
-    if (!raw) {
-      lastHistorySnapshot = [];
-      return lastHistorySnapshot;
-    }
-
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      lastHistorySnapshot = [];
-      return lastHistorySnapshot;
-    }
-
-    lastHistorySnapshot = parsed
-      .filter(isValidHistoryItem)
-      .sort((a, b) => b.watchedAt - a.watchedAt)
-      .slice(0, PLAY_HISTORY_LIMIT);
-
-    return lastHistorySnapshot;
-  } catch {
-    lastHistorySnapshot = [];
-    return lastHistorySnapshot;
-  }
-}
-
-function savePlayHistory(items: PlayHistoryItem[]) {
-  if (typeof window === "undefined") return;
-  if (getConsent() !== "accepted") return;
-  window.localStorage.setItem(
-    PLAY_HISTORY_STORAGE_KEY,
-    JSON.stringify(items.slice(0, PLAY_HISTORY_LIMIT)),
-  );
-  window.dispatchEvent(new Event(PLAY_HISTORY_EVENT));
-}
+export const getPlayHistory = playHistoryStore.get;
+export const savePlayHistory = playHistoryStore.save;
 
 export function upsertPlayHistory(input: PlayHistoryInput) {
   const now = Date.now();
@@ -159,7 +130,9 @@ export function updatePlayHistoryProgress(input: PlayHistoryProgressInput) {
   if (didUpdate) savePlayHistory(nextItems);
 }
 
-export function removePlayHistoryItem(itemToRemove: Pick<PlayHistoryItem, "type" | "id">) {
+export function removePlayHistoryItem(
+  itemToRemove: Pick<PlayHistoryItem, "type" | "id">,
+) {
   const keyToRemove = getHistoryKey(itemToRemove);
   const nextItems = getPlayHistory().filter(
     (item) => getHistoryKey(item) !== keyToRemove,
@@ -176,18 +149,4 @@ export function getPlayHistoryHref(item: PlayHistoryItem) {
   return `/watch/tv/${item.id}?s=${season}&e=${episode}`;
 }
 
-export function subscribeToPlayHistory(onStoreChange: () => void) {
-  if (typeof window === "undefined") return () => {};
-
-  const onStorage = (event: StorageEvent) => {
-    if (event.key === PLAY_HISTORY_STORAGE_KEY) onStoreChange();
-  };
-
-  window.addEventListener(PLAY_HISTORY_EVENT, onStoreChange);
-  window.addEventListener("storage", onStorage);
-
-  return () => {
-    window.removeEventListener(PLAY_HISTORY_EVENT, onStoreChange);
-    window.removeEventListener("storage", onStorage);
-  };
-}
+export const subscribeToPlayHistory = playHistoryStore.subscribe;

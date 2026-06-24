@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Play, Clock } from "lucide-react";
 import Player from "@/components/Player";
+import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { stillUrl } from "@/lib/tmdb";
 import type { Episode } from "@/types/tmdb";
 
@@ -60,54 +61,12 @@ export default function TVPlayer({
     };
   }, [season, showId, episodesSeason]);
 
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const checkScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
-  }, []);
-
-  // Throttle scroll checks to one per animation frame to keep the main thread free.
-  const handleScroll = useCallback(() => {
-    if (rafRef.current !== null) return;
-    rafRef.current = requestAnimationFrame(() => {
-      checkScroll();
-      rafRef.current = null;
-    });
-  }, [checkScroll]);
-
-  useEffect(() => {
-    checkScroll();
-  }, [episodes, loading, checkScroll]);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      el.removeEventListener("scroll", handleScroll);
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-    };
-  }, [handleScroll]);
-
-  function scrollEpisodes(direction: "left" | "right") {
-    const el = scrollRef.current;
-    if (!el) return;
-    const amount = el.clientWidth * 0.75;
-    el.scrollBy({
-      left: direction === "left" ? -amount : amount,
-      behavior: "smooth",
-    });
-    setTimeout(checkScroll, 400);
-  }
+  const {
+    scrollRef,
+    canScrollLeft,
+    canScrollRight,
+    scroll: scrollEpisodes,
+  } = useHorizontalScroll(`${episodesSeason}:${episodes.length}:${loading}`);
 
   function navigate(s: number, e: number) {
     setSeason(s);

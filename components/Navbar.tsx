@@ -5,8 +5,6 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { Search, Film, X, Clapperboard, Tv, Bookmark, Menu } from "lucide-react";
 import { useState, useRef, SyntheticEvent, useEffect, useCallback } from "react";
-import { Input } from "@base-ui/react/input";
-import { Button } from "@base-ui/react/button";
 
 interface SearchSuggestion {
   id: number;
@@ -160,14 +158,15 @@ export default function Navbar() {
           )}
 
           {!open && (
-            <Button
+            <button
+              type="button"
               onClick={() => setMenuOpen((v) => !v)}
               className="flex md:hidden items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
               aria-label={menuOpen ? "Close menu" : "Open menu"}
               aria-expanded={menuOpen}
             >
               {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
+            </button>
           )}
 
           {!pathname.startsWith("/search") && (
@@ -176,12 +175,12 @@ export default function Navbar() {
                 <form onSubmit={handleSubmit} className="flex items-center gap-2">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input
+                    <input
                       ref={inputRef}
                       type="text"
                       placeholder="Search movies & TV..."
                       value={query}
-                      onValueChange={handleQueryChange}
+                      onChange={(event) => handleQueryChange(event.target.value)}
                       className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition-all"
                     />
                     {suggestions.length > 0 && (
@@ -234,17 +233,18 @@ export default function Navbar() {
                       </div>
                     )}
                   </div>
-                  <Button
+                  <button
                     type="button"
                     onClick={close}
                     className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
                     aria-label="Close search"
                   >
                     <X className="h-4 w-4" />
-                  </Button>
+                  </button>
                 </form>
               ) : (
-                <Button
+                <button
+                  type="button"
                   onClick={() => {
                     setOpen(true);
                     setMenuOpen(false);
@@ -253,7 +253,7 @@ export default function Navbar() {
                   aria-label="Open search"
                 >
                   <Search className="h-5 w-5" />
-                </Button>
+                </button>
               )}
             </div>
           )}

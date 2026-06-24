@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@base-ui/react/button";
 import MediaCard from "@/components/MediaCard";
+import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import type { MediaItem } from "@/types/tmdb";
 
 export default function Carousel({
@@ -15,55 +14,8 @@ export default function Carousel({
   items: MediaItem[];
   priority?: boolean;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const rafRef = useRef<number | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-
-  const checkScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 0);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
-  }, []);
-
-  // Throttle scroll checks to one per animation frame to keep the main thread free.
-  const handleScroll = useCallback(() => {
-    if (rafRef.current !== null) return;
-    rafRef.current = requestAnimationFrame(() => {
-      checkScroll();
-      rafRef.current = null;
-    });
-  }, [checkScroll]);
-
-  useEffect(() => {
-    checkScroll();
-  }, [items, checkScroll]);
-
-  // Attach a passive scroll listener so the browser can optimise scroll compositing.
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      el.removeEventListener("scroll", handleScroll);
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-    };
-  }, [handleScroll]);
-
-  function scroll(direction: "left" | "right") {
-    const el = scrollRef.current;
-    if (!el) return;
-    const scrollAmount = el.clientWidth * 0.75;
-    el.scrollBy({
-      left: direction === "left" ? -scrollAmount : scrollAmount,
-      behavior: "smooth",
-    });
-    setTimeout(checkScroll, 400);
-  }
+  const { scrollRef, canScrollLeft, canScrollRight, scroll } =
+    useHorizontalScroll(items);
 
   return (
     <section className="relative">
@@ -78,13 +30,14 @@ export default function Carousel({
         {canScrollLeft && (
           <>
             <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-12 bg-linear-to-r from-background to-transparent" />
-            <Button
+            <button
+              type="button"
               onClick={() => scroll("left")}
               className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
               aria-label="Scroll left"
             >
               <ChevronLeft className="h-8 w-8 text-foreground" />
-            </Button>
+            </button>
           </>
         )}
 
@@ -104,13 +57,14 @@ export default function Carousel({
         {canScrollRight && (
           <>
             <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-12 bg-linear-to-l from-background to-transparent" />
-            <Button
+            <button
+              type="button"
               onClick={() => scroll("right")}
               className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
               aria-label="Scroll right"
             >
               <ChevronRight className="h-8 w-8 text-foreground" />
-            </Button>
+            </button>
           </>
         )}
       </div>
