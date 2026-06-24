@@ -1,70 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import Hls from "hls.js";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
 
-const PLAYER_ORIGIN = "https://vidlink.pro";
-const ACCENT = "e11d48";
-
 export type PlayerMediaType = "movie" | "tv";
-type VidlinkProgress = { watched?: unknown; duration?: unknown };
-type VidlinkEntry = {
-  progress?: VidlinkProgress;
-  show_progress?: Record<string, { progress?: VidlinkProgress }>;
-};
+type Track = { file: string; label?: string };
 
-function getVidlinkUrl({
-  id,
-  type,
-  season,
-  episode,
-}: {
-  id: number;
-  type: PlayerMediaType;
-  season?: number;
-  episode?: number;
-}) {
-  const path =
-    type === "tv" ? `/tv/${id}/${season ?? 1}/${episode ?? 1}` : `/movie/${id}`;
-
-  const url = new URL(path, PLAYER_ORIGIN);
-  url.searchParams.set("primaryColor", ACCENT);
-  url.searchParams.set("secondaryColor", "ffffff");
-  url.searchParams.set("iconColor", "ffffff");
-  url.searchParams.set("title", "true");
-  url.searchParams.set("poster", "true");
-  url.searchParams.set("autoplay", "false");
-  url.searchParams.set("nextbutton", "true");
-  url.searchParams.set("player", "jw");
-
-  return url.toString();
-}
-
-function readProgress(
-  entry: VidlinkEntry,
-  type: PlayerMediaType,
-  season?: number,
-  episode?: number,
-): { watched: number; duration: number } | null {
-  let raw: VidlinkProgress | undefined;
-  if (type === "movie") {
-    raw = entry.progress;
-  } else {
-    const key = `s${season ?? 1}e${episode ?? 1}`;
-    raw = entry.show_progress?.[key]?.progress ?? entry.progress;
-  }
-  if (!raw) return null;
-
-  const watched = Number(raw.watched);
-  const duration = Number(raw.duration);
-  if (
-    !Number.isFinite(watched) ||
-    !Number.isFinite(duration) ||
-    duration <= 0
-  ) {
-    return null;
-  }
-  return { watched, duration };
+function proxied(url: string) {
+  return `/api/hls?url=${encodeURIComponent(url)}`;
 }
 
 export default function Player({
@@ -78,70 +22,112 @@ export default function Player({
   season?: number;
   episode?: number;
 }) {
-  const embedUrl = useMemo(
-    () =>
-      `/api/vidlink?url=${encodeURIComponent(
-        getVidlinkUrl({ id: tmdbId, type, season, episode }),
-      )}`,
-    [episode, season, tmdbId, type],
-  );
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const lastSavedAtRef = useRef(0);
-
-  useEffect(() => {
-    lastSavedAtRef.current = 0;
-  }, [embedUrl]);
-
-  useEffect(() => {
-    function onMessage(event: MessageEvent) {
-      if (
-        event.origin !== PLAYER_ORIGIN &&
-        event.source !== iframeRef.current?.contentWindow
-      ) {
-        return;
-      }
-      if (!event.data || typeof event.data !== "object") return;
-
-      const message = event.data as { type?: unknown; data?: unknown };
-      if (message.type !== "MEDIA_DATA" || !message.data) return;
-
-      const map = message.data as Record<string, VidlinkEntry>;
-      const entry = map[String(tmdbId)];
-      if (!entry || typeof entry !== "object") return;
-
-      const progress = readProgress(entry, type, season, episode);
-      if (!progress) return;
-
-      const now = Date.now();
-      if (now - lastSavedAtRef.current < 5000) return;
-      lastSavedAtRef.current = now;
-
-      updatePlayHistoryProgress({
-        type,
-        id: tmdbId,
-        season,
-        episode,
-        positionSeconds: progress.watched,
-        durationSeconds: progress.duration,
-      });
+  const sourceUrl = useMemo(() => {
+    const params = new URLSearchParams({ type, id: String(tmdbId) });
+    if (type === "tv") {
+      params.set("season", String(season ?? 1));
+      params.set("episode", String(episode ?? 1));
     }
-
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
+    return `/api/vidfast?${params.toString()}`;
   }, [episode, season, tmdbId, type]);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const lastSavedAtRef = useRef(0);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const video = videoRef.current;
+    if (!video) return;
+
+    setError(false);
+    setLoading(true);
+    setTracks([]);
+    lastSavedAtRef.current = 0;
+
+    let hls: Hls | null = null;
+
+    (async () => {
+      try {
+        const res = await fetch(sourceUrl);
+        if (!res.ok) throw new Error("resolve failed");
+        const data = (await res.json()) as { url: string; tracks?: Track[] };
+        if (cancelled) return;
+
+        setTracks((data.tracks ?? []).filter((t) => t.file));
+        const src = proxied(data.url);
+
+        if (Hls.isSupported()) {
+          hls = new Hls({ enableWorker: true });
+          hls.loadSource(src);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.ERROR, (_e, payload) => {
+            if (payload.fatal) setError(true);
+          });
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = src; // Safari native HLS
+        } else {
+          throw new Error("HLS unsupported");
+        }
+        setLoading(false);
+      } catch {
+        if (!cancelled) {
+          setError(true);
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      hls?.destroy();
+    };
+  }, [sourceUrl]);
+
+  function onTimeUpdate() {
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+    const now = Date.now();
+    if (now - lastSavedAtRef.current < 5000) return;
+    lastSavedAtRef.current = now;
+
+    updatePlayHistoryProgress({
+      type,
+      id: tmdbId,
+      season,
+      episode,
+      positionSeconds: video.currentTime,
+      durationSeconds: video.duration,
+    });
+  }
 
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
-      <iframe
-        ref={iframeRef}
-        key={embedUrl}
-        src={embedUrl}
-        title="Video player"
-        className="absolute inset-0 h-full w-full border-0 bg-black"
-        allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-        allowFullScreen
-        referrerPolicy="origin"
-      />
+      <video
+        ref={videoRef}
+        controls
+        playsInline
+        onTimeUpdate={onTimeUpdate}
+        className="absolute inset-0 h-full w-full bg-black"
+        crossOrigin="anonymous"
+      >
+        {tracks.map((track, i) => (
+          <track
+            key={track.file}
+            kind="subtitles"
+            label={track.label ?? `Track ${i + 1}`}
+            src={proxied(track.file)}
+            default={i === 0}
+          />
+        ))}
+      </video>
+      {(loading || error) && (
+        <div className="absolute inset-0 flex items-center justify-center text-sm text-white/70 pointer-events-none">
+          {error ? "Stream unavailable. Try again later." : "Loading…"}
+        </div>
+      )}
     </div>
   );
 }
