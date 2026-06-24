@@ -7,6 +7,12 @@ import { updatePlayHistoryProgress } from "@/lib/play-history";
 export type PlayerMediaType = "movie" | "tv";
 type Track = { file: string; label?: string };
 
+// Resolve runs on the Cloudflare Worker in prod (its egress gets past
+// vidfast.pro's Cloudflare; Netlify's IP is blocked there). Defaults to local
+// /api for dev. Segment proxy always stays on /api/hls — the stream CDN serves
+// Netlify's server-side fetch but blocks the Worker's IP.
+const RESOLVE_BASE = process.env.NEXT_PUBLIC_RESOLVE_BASE || "/api";
+
 function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
 }
@@ -28,7 +34,7 @@ export default function Player({
       params.set("season", String(season ?? 1));
       params.set("episode", String(episode ?? 1));
     }
-    return `/api/vidfast?${params.toString()}`;
+    return `${RESOLVE_BASE}/vidfast?${params.toString()}`;
   }, [episode, season, tmdbId, type]);
 
   const videoRef = useRef<HTMLVideoElement>(null);

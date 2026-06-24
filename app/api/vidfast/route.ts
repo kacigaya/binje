@@ -19,17 +19,13 @@ const BASE_HEADERS = {
 type Track = { file: string; label?: string; kind?: string };
 
 async function extract(path: string) {
-  const pageRes = await fetch(`${PLAYER_ORIGIN}${path}`, {
+  const page = await fetch(`${PLAYER_ORIGIN}${path}`, {
     headers: BASE_HEADERS,
     cache: "no-store",
-  });
-  const page = await pageRes.text();
+  }).then((r) => r.text());
 
   const text = page.match(/\\"en\\":\\"(.*?)\\"/)?.[1];
-  if (!text)
-    throw new Error(
-      `No player token. status=${pageRes.status} len=${page.length} snippet=${page.slice(0, 120).replace(/\s+/g, " ")}`,
-    );
+  if (!text) throw new Error("No player token in page.");
 
   const enc = await fetch(`${ENC_API}/enc-vidfast?text=${text}`).then((r) =>
     r.json(),
@@ -94,9 +90,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result, {
       headers: { "cache-control": "no-store" },
     });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
-      { error: "Failed to resolve stream.", debug: String(err) },
+      { error: "Failed to resolve stream." },
       { status: 502 },
     );
   }
