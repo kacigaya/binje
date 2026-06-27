@@ -11,7 +11,7 @@ type Track = { file: string; label?: string };
 // vidfast.pro's Cloudflare; Netlify's IP is blocked there). Defaults to local
 // /api for dev. Segment proxy always stays on /api/hls — the stream CDN serves
 // Netlify's server-side fetch but blocks the Worker's IP.
-const RESOLVE_BASE = process.env.NEXT_PUBLIC_RESOLVE_BASE || "/api";
+const RESOLVE_BASE = (process.env.NEXT_PUBLIC_RESOLVE_BASE || "/api").replace(/\/+$/, "");
 
 function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
