@@ -52,7 +52,12 @@ export async function GET(request: NextRequest) {
       { results, page: data.page, totalPages: data.total_pages },
       {
         headers: {
+          // Vary the CDN cache on the query string — without this Netlify's
+          // durable cache keys only on Next internals and serves one cached
+          // response for every q. Upstream TMDB calls stay cached via the
+          // Next data cache (revalidate in tmdbFetch).
           "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          "Netlify-Vary": "query",
         },
       },
     );
