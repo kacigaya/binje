@@ -40,7 +40,7 @@ export default async function WatchTVPage({
   );
 
   return (
-    <div className="flex flex-col pt-16">
+    <div className="flex flex-col pt-20">
       <PlayHistoryRecorder
         item={{
           type: "tv",

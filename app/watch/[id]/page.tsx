@@ -27,7 +27,7 @@ export default async function WatchPage({
   const movieLogoUrl = logoUrl(logo?.file_path ?? null);
 
   return (
-    <div className="flex flex-col pt-16">
+    <div className="flex flex-col pt-20">
       <PlayHistoryRecorder
         item={{
           type: "movie",

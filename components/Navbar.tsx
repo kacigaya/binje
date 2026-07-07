@@ -118,8 +118,9 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/50 backdrop-blur-xl border-b border-white/5">
-      <div className="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 h-16">
+    <nav className="fixed top-3 left-3 right-3 z-50">
+      <div className="mx-auto max-w-7xl rounded-2xl bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30">
+        <div className="flex items-center justify-between px-4 sm:px-6 h-16">
         <Link
           href="/"
           onClick={() => setMenuOpen(false)}
@@ -258,11 +259,11 @@ export default function Navbar() {
             </div>
           )}
         </div>
-      </div>
+        </div>
 
-      {menuOpen && (
-        <div className="md:hidden border-t border-white/5">
-          <div className="mx-auto max-w-7xl flex flex-col gap-1 px-4 py-3 sm:px-6">
+        {menuOpen && (
+          <div className="md:hidden border-t border-white/5">
+            <div className="flex flex-col gap-1 px-4 py-3 sm:px-6">
             {navLinks.map((link) => {
               const active = pathname === link.href;
               const Icon = link.icon;
@@ -284,8 +285,9 @@ export default function Navbar() {
               );
             })}
           </div>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </nav>
   );
 }
