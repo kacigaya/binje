@@ -119,11 +119,7 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-3 left-3 right-3 z-50">
-      <div
-        className={`mx-auto max-w-7xl bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30 transition-[border-radius,background-color,box-shadow] duration-300 ease-out motion-reduce:transition-none ${
-          menuOpen ? "rounded-3xl" : "rounded-full"
-        }`}
-      >
+      <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30 transition-[background-color,box-shadow] duration-300 ease-out motion-reduce:transition-none">
         <div className="flex items-center justify-between px-4 sm:px-6 h-16">
         <Link
           href="/"
