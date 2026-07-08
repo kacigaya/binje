@@ -120,7 +120,7 @@ export default function Navbar() {
   return (
     <nav className="fixed top-3 left-3 right-3 z-50">
       <div
-        className={`mx-auto max-w-7xl bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30 ${
+        className={`mx-auto max-w-7xl bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30 transition-[border-radius,background-color,box-shadow] duration-300 ease-out motion-reduce:transition-none ${
           menuOpen ? "rounded-3xl" : "rounded-full"
         }`}
       >
@@ -166,11 +166,20 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
-              className="flex md:hidden items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
+              className="relative flex md:hidden items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
               aria-label={menuOpen ? "Close menu" : "Open menu"}
               aria-expanded={menuOpen}
             >
-              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <Menu
+                className={`absolute h-5 w-5 transition-all duration-300 ease-out motion-reduce:transition-none ${
+                  menuOpen ? "rotate-90 scale-75 opacity-0" : "rotate-0 scale-100 opacity-100"
+                }`}
+              />
+              <X
+                className={`absolute h-5 w-5 transition-all duration-300 ease-out motion-reduce:transition-none ${
+                  menuOpen ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-75 opacity-0"
+                }`}
+              />
             </button>
           )}
 
@@ -265,32 +274,42 @@ export default function Navbar() {
         </div>
         </div>
 
-        {menuOpen && (
-          <div className="md:hidden border-t border-white/5">
+        <div
+          className={`grid md:hidden overflow-hidden transition-[grid-template-rows,opacity,transform] duration-300 ease-out motion-reduce:transition-none ${
+            menuOpen
+              ? "grid-rows-[1fr] opacity-100 translate-y-0"
+              : "grid-rows-[0fr] -translate-y-2 opacity-0 pointer-events-none"
+          }`}
+          aria-hidden={!menuOpen}
+        >
+          <div className="min-h-0 overflow-hidden border-t border-white/5">
             <div className="flex flex-col gap-1 px-4 py-3 sm:px-6">
-            {navLinks.map((link) => {
-              const active = pathname === link.href;
-              const Icon = link.icon;
+              {navLinks.map((link) => {
+                const active = pathname === link.href;
+                const Icon = link.icon;
 
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                    active
-                      ? "bg-white/10 text-foreground"
-                      : "text-muted-foreground hover:bg-white/8 hover:text-foreground"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  {link.label}
-                </Link>
-              );
-            })}
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMenuOpen(false)}
+                    tabIndex={menuOpen ? 0 : -1}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                      active
+                        ? "bg-white/10 text-foreground"
+                        : "text-muted-foreground hover:bg-white/8 hover:text-foreground"
+                    } ${
+                      menuOpen ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {link.label}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-          </div>
-        )}
+        </div>
       </div>
     </nav>
   );
