@@ -75,12 +75,14 @@ async function resolveStream(type, id, season, episode) {
   throw new Error("no server returned a stream");
 }
 
+// Stream CDNs block the Worker's IP, so probe through Netlify's /api/hls —
+// the same proxy the player fetches through, so the probe tests the real path.
 async function isPlayable(url) {
   try {
-    const res = await fetch(url, {
-      headers: { "user-agent": UA, referer: `${PLAYER_ORIGIN}/` },
-      signal: AbortSignal.timeout(4000),
-    });
+    const res = await fetch(
+      `${ALLOWED_ORIGINS[0]}/api/hls?url=${encodeURIComponent(url)}`,
+      { signal: AbortSignal.timeout(8000) },
+    );
     if (!res.ok) return false;
     const head = (await res.text()).slice(0, 16);
     return head.trimStart().startsWith("#EXTM3U");
