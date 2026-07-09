@@ -64,15 +64,6 @@ export default function Hero({ items }: HeroProps) {
         />
       )}
 
-      {/* Blurred strip behind the navbar, fades out toward the bottom */}
-      <div
-        className="absolute inset-x-0 top-0 h-24 sm:h-28 z-10 backdrop-blur-xl"
-        style={{
-          maskImage: "linear-gradient(to bottom, black 55%, transparent)",
-          WebkitMaskImage: "linear-gradient(to bottom, black 55%, transparent)",
-        }}
-      />
-
       <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
       <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
 
@@ -100,7 +91,7 @@ export default function Hero({ items }: HeroProps) {
             <div className="flex items-center gap-3">
               <Badge
                 variant="outline"
-                className="border-accent-red/40 text-accent-red bg-accent-red/10 text-xs uppercase tracking-wider"
+                className="border-accent-red/40 text-accent-red bg-accent-red/10 text-xs font-bold uppercase tracking-wider"
               >
                 Trending
               </Badge>

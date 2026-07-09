@@ -144,18 +144,6 @@ export default async function TVShowPage({
                   })}
                 </div>
               )}
-              {show.status && (
-                <Badge
-                  variant="outline"
-                  className={`text-xs ${
-                    show.status === "Returning Series"
-                      ? "border-green-500/40 text-green-400"
-                      : "border-white/15 text-foreground/60"
-                  }`}
-                >
-                  {show.status}
-                </Badge>
-              )}
             </div>
 
             {/* Actions */}
