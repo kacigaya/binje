@@ -1,10 +1,11 @@
 # binje stream resolver (Cloudflare Worker)
 
-vidfast.pro sits behind Cloudflare, which **403s Netlify/AWS server IPs**. A
-Cloudflare Worker's egress gets through. This Worker does only the resolve step
-(page scrape + enc-dec.app chain → m3u8 url). Segment proxying stays on Netlify
-`/api/hls` because the stream CDN blocks the Worker's IP but serves Netlify's
-server-side fetch.
+Stream providers often sit behind Cloudflare, which **403s Netlify/AWS server
+IPs**. A Cloudflare Worker's egress gets through. This Worker does only the
+resolve step (page scrape + enc-dec.app chain → m3u8 url) against the current
+provider (vidcore.net). Segment proxying stays on Netlify `/api/hls` because
+stream CDNs tend to block the Worker's IP but serve Netlify's server-side
+fetch.
 
 ## Deploy
 
@@ -25,6 +26,6 @@ NEXT_PUBLIC_RESOLVE_BASE = https://binje-stream.<subdomain>.workers.dev
 ```
 
 Then redeploy binje (push to `main`). Local dev needs nothing — it defaults to
-`/api`, which reaches vidfast.pro fine from a residential IP.
+`/api`, which reaches the provider fine from a residential IP.
 
-If binje's domain changes, update `ALLOWED_ORIGINS` in `vidfast-worker.js`.
+If binje's domain changes, update `ALLOWED_ORIGINS` in `resolve-worker.js`.
