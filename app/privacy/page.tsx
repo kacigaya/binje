@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Film } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — b!nje",
@@ -11,15 +10,12 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="mx-auto mt-16 max-w-2xl px-4 py-12 sm:mt-24 sm:px-6 sm:py-16">
-      <div className="mb-8 flex items-center gap-2">
-        <Film className="h-7 w-7 text-accent-red" />
-        <h1
-          className="text-3xl font-bold tracking-tight"
-          style={{ fontFamily: "var(--font-heading)" }}
-        >
-          Privacy Policy
-        </h1>
-      </div>
+      <h1
+        className="mb-8 text-3xl font-bold tracking-tight"
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
+        Privacy Policy
+      </h1>
 
       <div className="space-y-8 text-sm leading-relaxed text-muted-foreground">
         <Section title="What we store">
@@ -52,10 +48,10 @@ export default function PrivacyPage() {
 
         <Section title="Managing your data">
           <p>
-            You can clear your watch history at any time from your browser&apos;s
-            site settings (this wipes the local storage key). To stop history
-            from being recorded going forward, simply don&apos;t accept the
-            cookie notice — writes are gated behind your consent.
+            You can clear your watch history from your browser&apos;s site
+            settings; that wipes the local storage key. If you decline the
+            cookie notice, nothing gets recorded in the first place: writes
+            only happen after you consent.
           </p>
         </Section>
 
@@ -70,14 +66,6 @@ export default function PrivacyPage() {
         </Section>
       </div>
 
-      <div className="mt-12 border-t border-white/10 pt-6 text-xs text-muted-foreground">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
-        >
-          ← Back home
-        </Link>
-      </div>
     </div>
   );
 }
