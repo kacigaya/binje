@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Tv } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
@@ -13,6 +14,10 @@ import {
 } from "@/lib/tmdb";
 
 export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: "TV Shows",
+};
 
 export default async function TVShowsPage() {
   const [

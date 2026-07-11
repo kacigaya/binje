@@ -9,7 +9,7 @@ type Track = { file: string; label?: string };
 
 // Resolve runs on the Cloudflare Worker in prod (its egress gets past
 // provider-side Cloudflare blocks; Netlify's IP is often blocked). Defaults to
-// local /api for dev. Segment proxy always stays on /api/hls — the stream CDN
+// local /api for dev. Segment proxy always stays on /api/hls; the stream CDN
 // serves Netlify's server-side fetch but blocks the Worker's IP.
 const RESOLVE_BASE = (process.env.NEXT_PUBLIC_RESOLVE_BASE || "/api").replace(/\/+$/, "");
 

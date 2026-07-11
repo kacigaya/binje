@@ -4,7 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import Watchlist from "@/components/Watchlist";
 
 export const metadata: Metadata = {
-  title: "My Watchlist — b!nje",
+  title: "My Watchlist",
   description: "Movies and TV shows you saved to watch later.",
 };
 

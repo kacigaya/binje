@@ -28,7 +28,7 @@ export async function generateMetadata({
   if (!Number.isFinite(showId) || showId <= 0) return {};
   const show = await getTVDetails(showId);
   return {
-    title: `${show.name} — b!nje`,
+    title: show.name,
     description: show.overview,
   };
 }

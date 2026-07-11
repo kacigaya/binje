@@ -18,7 +18,10 @@ const body = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "b!nje — Stream Movies",
+  title: {
+    default: "b!nje",
+    template: "%s | b!nje",
+  },
   description:
     "Discover and stream thousands of movies. Your cinematic journey starts here.",
 };

@@ -11,6 +11,7 @@ import {
   Clock,
 } from "lucide-react";
 import Player from "@/components/Player";
+import { Button } from "@/components/ui/button";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { stillUrl } from "@/lib/tmdb";
 import type { Episode } from "@/types/tmdb";
@@ -38,7 +39,7 @@ export default function TVPlayer({
   const [season, setSeason] = useState(initialSeason);
   const [episode, setEpisode] = useState(initialEpisode);
   const [episodes, setEpisodes] = useState<Episode[]>(initialEpisodes);
-  // Season the cached `episodes` belong to — drives the loading state.
+  // Season the cached `episodes` belong to; drives the loading state.
   const [episodesSeason, setEpisodesSeason] = useState(initialSeason);
 
   const currentSeason = seasons.find((s) => s.season_number === season);
@@ -113,14 +114,20 @@ export default function TVPlayer({
       <Player tmdbId={showId} type="tv" season={season} episode={episode} />
 
       {/* Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-4 sm:px-0">
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-muted-foreground">Season</label>
+      <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">
+        <div className="flex items-center justify-between gap-3 sm:justify-start">
+          <label
+            htmlFor="season-select"
+            className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+          >
+            Season
+          </label>
           <div className="relative">
             <select
+              id="season-select"
               value={season}
               onChange={(e) => navigate(Number(e.target.value), 1)}
-              className="h-9 appearance-none rounded-lg bg-white/5 border border-white/10 pl-3 pr-10 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 cursor-pointer"
+              className="h-10 appearance-none rounded-full border border-white/15 bg-white/5 pl-4 pr-10 text-sm font-medium text-foreground outline-none transition-colors hover:bg-white/10 focus-visible:border-accent-red/50 focus-visible:ring-2 focus-visible:ring-accent-red/30 cursor-pointer"
             >
               {seasons.map((s) => (
                 <option key={s.season_number} value={s.season_number}>
@@ -132,31 +139,44 @@ export default function TVPlayer({
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          Now playing:{" "}
-          <span className="text-foreground font-medium">
-            {currentSeason?.name ?? `Season ${season}`} — Episode {episode}
-          </span>
-        </p>
+        <div className="flex min-w-0 items-center sm:border-l sm:border-white/10 sm:pl-4">
+          <p className="min-w-0">
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Now playing
+            </span>
+            <span
+              className="block truncate text-sm font-semibold text-foreground"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {currentSeason?.name ?? `Season ${season}`}, Episode {episode}
+            </span>
+          </p>
+        </div>
 
         {/* Prev/Next buttons */}
-        <div className="flex items-center gap-2 sm:ml-auto">
-          <button
+        <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex">
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
             onClick={prevEpisode}
             disabled={!hasPrev}
-            className="flex items-center gap-1 h-9 px-4 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            className="h-10 rounded-full px-4 cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" />
             Previous
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
             onClick={nextEpisode}
             disabled={!hasNext}
-            className="flex items-center gap-1 h-9 px-4 rounded-lg bg-white/5 border border-white/10 text-sm text-foreground hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            className="h-10 rounded-full px-4 cursor-pointer"
           >
             Next
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 

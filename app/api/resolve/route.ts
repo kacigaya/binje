@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // ponytail: stream extraction depends on enc-dec.app (third-party, closed-source,
-// 40 req/s). If it breaks, swap providers — no fallback hosted here.
+// 40 req/s). If it breaks, swap providers; no fallback hosted here.
 // Provider history: videasy → vidlink → vidfast (died 2026-07) → vidcore.
 const PLAYER_ORIGIN = "https://vidcore.net";
 const ENC_API = "https://enc-dec.app/api";

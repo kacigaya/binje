@@ -1,7 +1,7 @@
 // Cloudflare Worker: stream resolver (current provider: vidcore.net).
 // Only job: hit the provider + enc-dec.app to get the m3u8 url. The Worker's
 // Cloudflare egress gets past provider-side Cloudflare blocks (Netlify/AWS IPs
-// are often blocked). Segment proxying stays on Netlify /api/hls — stream
+// are often blocked). Segment proxying stays on Netlify /api/hls; stream
 // CDNs tend to block the Worker's IP but allow Netlify's server-side fetch.
 
 const PLAYER_ORIGIN = "https://vidcore.net";
@@ -56,7 +56,7 @@ async function resolveStream(type, id, season, episode) {
   }).then((r) => r.json());
   if (serversDec.status !== 200) throw new Error("dec servers failed");
 
-  // Some servers resolve to dead CDNs or serve DASH under an .m3u8 name —
+  // Some servers resolve to dead CDNs or serve DASH under an .m3u8 name;
   // probe the playlist and require actual HLS before accepting.
   for (const server of serversDec.result ?? []) {
     const streamEnc = await fetch(`${stream}/${server.data}`, {
@@ -75,7 +75,7 @@ async function resolveStream(type, id, season, episode) {
   throw new Error("no server returned a stream");
 }
 
-// Stream CDNs block the Worker's IP, so probe through Netlify's /api/hls —
+// Stream CDNs block the Worker's IP, so probe through Netlify's /api/hls;
 // the same proxy the player fetches through, so the probe tests the real path.
 async function isPlayable(url) {
   try {

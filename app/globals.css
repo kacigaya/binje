@@ -54,7 +54,7 @@
     --accent-red: #e11d48;
 }
 
-/* Always dark — cinematic */
+/* Always dark and cinematic */
 .dark,
 :root {
     --background: #050506;

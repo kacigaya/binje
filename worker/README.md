@@ -25,7 +25,7 @@ Set in Netlify → Site settings → Environment variables (build-time):
 NEXT_PUBLIC_RESOLVE_BASE = https://binje-stream.<subdomain>.workers.dev
 ```
 
-Then redeploy binje (push to `main`). Local dev needs nothing — it defaults to
+Then redeploy binje (push to `main`). Local dev needs nothing; it defaults to
 `/api`, which reaches the provider fine from a residential IP.
 
 If binje's domain changes, update `ALLOWED_ORIGINS` in `resolve-worker.js`.

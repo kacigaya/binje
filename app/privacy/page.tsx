@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — b!nje",
+  title: "Privacy Policy",
   description:
     "How b!nje handles your data: local watch history, no tracking, no third-party cookies.",
 };

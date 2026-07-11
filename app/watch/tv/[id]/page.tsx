@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { Star, Calendar, Layers, Tv } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,26 @@ import {
 } from "@/lib/tmdb";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
 import TVPlayer from "./TVPlayer";
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ s?: string; e?: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const { s, e } = await searchParams;
+  const showId = parseInt(id, 10);
+  if (!Number.isFinite(showId) || showId <= 0) return {};
+  const show = await getTVDetails(showId);
+  const season = s ? parseInt(s, 10) : 1;
+  const episode = e ? parseInt(e, 10) : 1;
+  return {
+    title: `${show.name}: Season ${season}, Episode ${episode}`,
+    description: show.overview,
+  };
+}
 
 export default async function WatchTVPage({
   params,

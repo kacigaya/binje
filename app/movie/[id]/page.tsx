@@ -28,7 +28,7 @@ export async function generateMetadata({
   if (!Number.isFinite(movieId) || movieId <= 0) return {};
   const movie = await getMovieDetails(movieId);
   return {
-    title: `${movie.title} — b!nje`,
+    title: movie.title,
     description: movie.overview,
   };
 }

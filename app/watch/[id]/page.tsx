@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { Star, Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,18 @@ import {
   logoUrl,
   pickMovieLogo,
 } from "@/lib/tmdb";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const movieId = parseInt(id, 10);
+  if (!Number.isFinite(movieId) || movieId <= 0) return {};
+  const movie = await getMovieDetails(movieId);
+  return { title: movie.title, description: movie.overview };
+}
 
 export default async function WatchPage({
   params,

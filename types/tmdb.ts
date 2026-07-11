@@ -157,7 +157,7 @@ export interface TVImagesResponse {
   posters: TMDBImageAsset[];
 }
 
-/** Unified type for carousels, cards, hero — works for both movies and TV */
+/** Unified type for carousels, cards, and hero; works for both movies and TV. */
 export interface MediaItem {
   id: number;
   title: string;
