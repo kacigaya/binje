@@ -160,7 +160,11 @@ export default function Player({
       </video>
       {(loading || error) && (
         <div className="absolute inset-0 flex items-center justify-center text-sm text-white/70 pointer-events-none">
-          {error ? "Stream unavailable. Try again later." : "Loading…"}
+          {error
+            ? lang === "vf"
+              ? "No VF stream for this title."
+              : "Stream unavailable. Try again later."
+            : "Loading…"}
         </div>
       )}
     </div>

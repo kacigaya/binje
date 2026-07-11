@@ -103,10 +103,22 @@ function unpackPacked(source) {
   return payload;
 }
 
-function extractM3u8(embedHtml) {
+// Generic: unpack any packer, then grab the first in-page HLS url. Caller must
+// probe it. In practice only uqload resolves; other hosters (netu IP-locked,
+// playmogo JS-gated) yield nothing and fall through to a 502 + UI note.
+function scrapeM3u8(embedHtml) {
   const unpacked = unpackPacked(embedHtml) ?? embedHtml;
-  const m = unpacked.match(/file\s*:\s*"([^"]+\.m3u8[^"]*)"/);
-  return m ? m[1] : null;
+  const m = unpacked.match(/https?:\/\/[^"'\s\\)]+\.m3u8[^"'\s\\)]*/);
+  return m ? m[0] : null;
+}
+
+async function extractFromHoster(embedUrl) {
+  const origin = new URL(embedUrl).origin;
+  const html = await fetch(embedUrl, {
+    headers: { ...FR_HEADERS, referer: `${origin}/` },
+  }).then((r) => r.text());
+  const m3u8 = scrapeM3u8(html);
+  return m3u8 && (await isPlayable(m3u8)) ? m3u8 : null;
 }
 
 async function resolveVf(type, id, season, episode) {
@@ -116,7 +128,7 @@ async function resolveVf(type, id, season, episode) {
       : `${FREMBED_ORIGIN}/api/films?id=${id}&idType=tmdb`;
   const meta = await fetch(listUrl, { headers: FR_HEADERS }).then((r) => r.json());
 
-  // link1..link7 are the VF servers; probe in order for a uqload one.
+  // link1..link7 are the VF servers; try each, first playable wins.
   const paths = [];
   for (let i = 1; i <= 7; i++) if (meta[`link${i}`]) paths.push(meta[`link${i}`]);
   if (!paths.length) throw new Error("no vf servers");
@@ -128,12 +140,11 @@ async function resolveVf(type, id, season, episode) {
         redirect: "manual",
       })
     ).headers.get("location");
-    if (!loc || !/uqload\.\w+\/embed-/.test(loc)) continue;
-    const html = await fetch(loc, { headers: FR_HEADERS }).then((r) => r.text());
-    const m3u8 = extractM3u8(html);
-    if (m3u8 && (await isPlayable(m3u8))) return { url: m3u8, tracks: [] };
+    if (!loc) continue;
+    const url = await extractFromHoster(loc).catch(() => null);
+    if (url) return { url, tracks: [] };
   }
-  throw new Error("no uqload stream");
+  throw new Error("no vf stream");
 }
 
 // Stream CDNs block the Worker's IP, so probe through Netlify's /api/hls;

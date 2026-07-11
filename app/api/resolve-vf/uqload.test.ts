@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { extractM3u8, unpackPacked } from "./uqload";
+import { extractM3u8, scrapeM3u8, unpackPacked } from "./uqload";
 
 // A real-shaped uqload embed: jwplayer setup wrapped in a Dean Edwards packer.
 const PACKED =
@@ -21,4 +21,16 @@ test("extractM3u8 pulls the signed HLS url", () => {
 test("returns null when there is no packer / no m3u8", () => {
   expect(unpackPacked("<html>no packer here</html>")).toBeNull();
   expect(extractM3u8("<html>no packer here</html>")).toBeNull();
+  expect(scrapeM3u8("<html>no stream here</html>")).toBeNull();
+});
+
+test("scrapeM3u8 grabs a plain in-page m3u8 (non-uqload hoster)", () => {
+  const html = `<video><source src="https://cdn.example.net/vod/abc/master.m3u8?t=xyz"></video>`;
+  expect(scrapeM3u8(html)).toBe(
+    "https://cdn.example.net/vod/abc/master.m3u8?t=xyz",
+  );
+  // still unpacks a packer when present
+  expect(scrapeM3u8(PACKED)).toBe(
+    "https://strm1.uqload.is/hls2/master.m3u8?t=abc&e=43200",
+  );
 });

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractM3u8 } from "./uqload";
+import { scrapeM3u8 } from "./uqload";
 
 // French (VF) stream resolver via frembed. Unlike vidcore, frembed does not
 // serve HLS directly: its /api/stream endpoints 302 to third-party file
-// hosters. This only handles uqload, which exposes a clean signed HLS
-// master.m3u8 that binje's native player consumes. Other hosters
-// (playmogo, netu, direct-mp4 frvod) are skipped.
-// ponytail: uqload-only. Add playmogo/netu/mp4 extractors if uqload coverage
-// proves too thin — each needs its own scraper, so add on demand, not upfront.
+// hosters. uqload is the reliable one (signed HLS via a packed jwplayer setup);
+// every hoster is tried and the first that yields a probe-able m3u8 wins.
+// extraction is a generic in-page m3u8 scrape (scrapeM3u8), not a
+// bespoke extractor per host. In practice only uqload resolves — netu is
+// IP-locked/expired, playmogo is JS/Turnstile-gated — so a title with a deleted
+// uqload copy has no VF source and returns 502 (the UI shows a VF-specific note).
 const FREMBED_ORIGIN = "https://frembed.hair";
 const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
@@ -30,20 +31,21 @@ async function resolveHoster(streamPath: string): Promise<string | null> {
   return res.headers.get("location");
 }
 
-async function extractFromUqload(embedUrl: string): Promise<string | null> {
+async function extractFromHoster(embedUrl: string): Promise<string | null> {
+  const origin = new URL(embedUrl).origin;
   const html = await fetch(embedUrl, {
-    headers: BASE_HEADERS,
+    headers: { ...BASE_HEADERS, referer: `${origin}/` },
     cache: "no-store",
     signal: AbortSignal.timeout(10000),
   }).then((r) => r.text());
-  const url = extractM3u8(html);
-  return url && (await isPlayable(url)) ? url : null;
+  const url = scrapeM3u8(html);
+  return url && (await isPlayable(url, origin)) ? url : null;
 }
 
-async function isPlayable(url: string) {
+async function isPlayable(url: string, referer: string) {
   try {
     const res = await fetch(url, {
-      headers: { "user-agent": BROWSER_USER_AGENT, referer: "https://uqload.is/" },
+      headers: { "user-agent": BROWSER_USER_AGENT, referer: `${referer}/` },
       signal: AbortSignal.timeout(6000),
       cache: "no-store",
     });
@@ -70,18 +72,18 @@ async function extract(
     signal: AbortSignal.timeout(10000),
   }).then((r) => r.json())) as Record<string, string | null>;
 
-  // link1..link7 are the VF servers. Probe in order.
+  // link1..link7 are the VF servers. Try each in order; first playable wins.
   const paths = Array.from({ length: 7 }, (_, i) => meta[`link${i + 1}`])
     .filter((p): p is string => Boolean(p));
   if (!paths.length) throw new Error("No VF servers available.");
 
   for (const path of paths) {
     const hoster = await resolveHoster(path);
-    if (!hoster || !/uqload\.\w+\/embed-/.test(hoster)) continue;
-    const url = await extractFromUqload(hoster);
+    if (!hoster) continue;
+    const url = await extractFromHoster(hoster).catch(() => null);
     if (url) return { url, tracks: [] as [] };
   }
-  throw new Error("No uqload server returned a stream.");
+  throw new Error("No VF server returned a stream.");
 }
 
 export async function GET(request: NextRequest) {

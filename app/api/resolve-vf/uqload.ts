@@ -27,3 +27,15 @@ export function extractM3u8(embedHtml: string): string | null {
   const m = unpacked.match(/file\s*:\s*"([^"]+\.m3u8[^"]*)"/);
   return m ? m[1] : null;
 }
+
+// Generic fallback for non-uqload hosters: unpack any packer, then grab the
+// first in-page HLS url. Caller MUST probe it (isPlayable) — this only finds a
+// candidate, it can't tell a live stream from a dead/placeholder one.
+// ponytail: best-effort scrape. Recovers a title only when a hoster embeds a
+// plain, non-IP-locked m3u8 in its HTML; netu (IP-locked/expired) and JS-gated
+// hosters (playmogo) yield nothing here and fall through to the UI message.
+export function scrapeM3u8(embedHtml: string): string | null {
+  const unpacked = unpackPacked(embedHtml) ?? embedHtml;
+  const m = unpacked.match(/https?:\/\/[^"'\s\\)]+\.m3u8[^"'\s\\)]*/);
+  return m ? m[0] : null;
+}
