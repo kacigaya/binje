@@ -90,8 +90,7 @@ export default function Hero({ items }: HeroProps) {
 
             <div className="flex items-center gap-3">
               <Badge
-                variant="outline"
-                className="border-accent-red/40 text-accent-red bg-accent-red/10 text-xs font-bold uppercase tracking-wider"
+                className="bg-accent-red text-white text-xs font-bold uppercase tracking-wider hover:bg-accent-red/90 border-transparent"
               >
                 Trending
               </Badge>
