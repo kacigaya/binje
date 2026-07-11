@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, Play, Clock } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Play,
+  Clock,
+} from "lucide-react";
 import Player from "@/components/Player";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { stillUrl } from "@/lib/tmdb";
@@ -110,17 +116,20 @@ export default function TVPlayer({
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-4 sm:px-0">
         <div className="flex items-center gap-2">
           <label className="text-sm text-muted-foreground">Season</label>
-          <select
-            value={season}
-            onChange={(e) => navigate(Number(e.target.value), 1)}
-            className="h-9 rounded-lg bg-white/5 border border-white/10 px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 cursor-pointer"
-          >
-            {seasons.map((s) => (
-              <option key={s.season_number} value={s.season_number}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={season}
+              onChange={(e) => navigate(Number(e.target.value), 1)}
+              className="h-9 appearance-none rounded-lg bg-white/5 border border-white/10 pl-3 pr-10 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 cursor-pointer"
+            >
+              {seasons.map((s) => (
+                <option key={s.season_number} value={s.season_number}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
+          </div>
         </div>
 
         <p className="text-sm text-muted-foreground">
@@ -235,15 +244,15 @@ export default function TVPlayer({
                   )}
 
                   {/* Bottom gradient scrim */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent transition-opacity group-hover:opacity-0" />
 
                   {/* Hover play overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Play className="h-9 w-9 text-white fill-white" />
                   </div>
 
                   {/* Overlaid content */}
-                  <div className="absolute inset-x-0 bottom-0 p-3.5 space-y-1">
+                  <div className="absolute inset-x-0 bottom-0 p-3.5 space-y-1 transition-opacity group-hover:opacity-0">
                     <p className="text-sm font-semibold leading-snug text-white line-clamp-2">
                       {isActive && (
                         <span className="mr-1.5 inline-block translate-y-[-1px] rounded bg-accent-red px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider align-middle">
@@ -267,7 +276,7 @@ export default function TVPlayer({
 
                   {/* Active progress accent */}
                   {isActive && (
-                    <span className="absolute inset-x-0 bottom-0 h-1 bg-accent-red" />
+                    <span className="absolute inset-x-0 bottom-0 h-1 bg-accent-red transition-opacity group-hover:opacity-0" />
                   )}
                 </button>
               );
