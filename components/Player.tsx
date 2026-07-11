@@ -3,9 +3,18 @@
 import Hls from "hls.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
+import { cn } from "@/lib/utils";
 
 export type PlayerMediaType = "movie" | "tv";
 type Track = { file: string; label?: string };
+
+// "en" = default vidcore (original audio) via /api/resolve.
+// "vf" = French via /api/resolve-vf (frembed → uqload HLS).
+type Lang = "en" | "vf";
+const LANGS: { id: Lang; label: string }[] = [
+  { id: "en", label: "VO" },
+  { id: "vf", label: "VF" },
+];
 
 // Resolve runs on the Cloudflare Worker in prod (its egress gets past
 // provider-side Cloudflare blocks; Netlify's IP is often blocked). Defaults to
@@ -28,14 +37,17 @@ export default function Player({
   season?: number;
   episode?: number;
 }) {
+  const [lang, setLang] = useState<Lang>("en");
+
   const sourceUrl = useMemo(() => {
     const params = new URLSearchParams({ type, id: String(tmdbId) });
     if (type === "tv") {
       params.set("season", String(season ?? 1));
       params.set("episode", String(episode ?? 1));
     }
-    return `${RESOLVE_BASE}/resolve?${params.toString()}`;
-  }, [episode, season, tmdbId, type]);
+    const endpoint = lang === "vf" ? "resolve-vf" : "resolve";
+    return `${RESOLVE_BASE}/${endpoint}?${params.toString()}`;
+  }, [episode, lang, season, tmdbId, type]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastSavedAtRef = useRef(0);
@@ -111,6 +123,23 @@ export default function Player({
 
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+      <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/50 p-1 backdrop-blur">
+        {LANGS.map((l) => (
+          <button
+            key={l.id}
+            type="button"
+            onClick={() => setLang(l.id)}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent-red/60",
+              lang === l.id
+                ? "bg-accent-red text-white"
+                : "text-white/70 hover:text-white hover:bg-white/10",
+            )}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
       <video
         ref={videoRef}
         controls

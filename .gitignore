@@ -45,6 +45,10 @@ playwright.config.ts
 tests/
 .playwright-mcp/
 
+# wrangler local cache/state
+worker/.wrangler/
+worker/README.md
+
 # AGENTS
 AGENTS.md
 CLAUDE.md
