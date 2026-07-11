@@ -116,7 +116,7 @@ export default function Player({
         controls
         playsInline
         onTimeUpdate={onTimeUpdate}
-        className="absolute inset-0 h-full w-full bg-black"
+        className="absolute inset-0 h-full w-full rounded-xl bg-black"
         crossOrigin="anonymous"
       >
         {tracks.map((track, i) => (
