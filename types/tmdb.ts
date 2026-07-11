@@ -46,6 +46,7 @@ export interface TVShow {
 export interface TVShowDetails extends TVShow {
   genres: Genre[];
   homepage: string;
+  external_ids: { imdb_id: string | null };
   number_of_episodes: number;
   number_of_seasons: number;
   seasons: Season[];

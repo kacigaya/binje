@@ -2,12 +2,13 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Star, Clock, Calendar } from "lucide-react";
+import { Play, Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import WatchlistButton from "@/components/WatchlistButton";
+import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 import {
   getMovieDetails,
   getMovieCredits,
@@ -42,10 +43,12 @@ export default async function MoviePage({
   const movieId = parseInt(id, 10);
   if (!Number.isFinite(movieId) || movieId <= 0) notFound();
 
-  const [movie, credits, similar] = await Promise.all([
-    getMovieDetails(movieId),
+  const moviePromise = getMovieDetails(movieId);
+  const [movie, credits, similar, rottenTomatoesScore] = await Promise.all([
+    moviePromise,
     getMovieCredits(movieId),
     getSimilarMovies(movieId),
+    moviePromise.then(({ imdb_id }) => getRottenTomatoesScore(imdb_id)),
   ]);
 
   const backdrop = backdropUrl(movie.backdrop_path, "w1280");
@@ -117,13 +120,33 @@ export default async function MoviePage({
 
             {/* Meta row */}
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1 text-accent-red font-semibold">
-                <Star className="h-4 w-4 fill-accent-red" />
+              <div className="flex items-center gap-1.5 text-accent-red font-semibold">
+                <Image
+                  src="/tmdb.svg"
+                  alt=""
+                  width={37}
+                  height={16}
+                  aria-hidden="true"
+                  className="h-4 w-auto shrink-0"
+                />
                 {movie.vote_average.toFixed(1)}
                 <span className="text-muted-foreground font-normal ml-1">
                   ({movie.vote_count.toLocaleString()} votes)
                 </span>
               </div>
+              {rottenTomatoesScore !== null && (
+                <div className="flex items-center gap-1.5 font-semibold text-accent-red">
+                  <Image
+                    src="/rotten-tomatoes.svg"
+                    alt=""
+                    width={16}
+                    height={16}
+                    aria-hidden="true"
+                    className="h-4 w-4 shrink-0"
+                  />
+                  {rottenTomatoesScore}%
+                </div>
+              )}
               {movie.runtime > 0 && (
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
