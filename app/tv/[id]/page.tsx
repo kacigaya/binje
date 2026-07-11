@@ -133,9 +133,6 @@ export default async function TVShowPage({
                   className="h-4 w-auto shrink-0"
                 />
                 {show.vote_average.toFixed(1)}
-                <span className="text-muted-foreground font-normal ml-1">
-                  ({show.vote_count.toLocaleString()} votes)
-                </span>
               </div>
               {rottenTomatoesScore !== null && (
                 <div className="flex items-center gap-1.5 font-semibold text-accent-red">
