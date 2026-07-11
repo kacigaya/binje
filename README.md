@@ -6,14 +6,14 @@
 
 <p align="center">
    <strong>A movie and TV discovery app built with Next.js.</strong><br>
-   <em>Powered by TMDB API.</em>
+   <em>Powered by TMDB API with optional Rotten Tomatoes scores via OMDb.</em>
 </p>
 
 ## Features
 
 - Browse trending and popular movies & TV shows
 - Dedicated `/movies` and `/tv-shows` browse pages
-- Detailed movie and TV show pages (cast, seasons, similar, recommendations)
+- Detailed movie and TV show pages (ratings, cast, seasons, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
 - Watch pages for movies and TV episodes with embedded player (vidlink.pro)
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
@@ -31,10 +31,10 @@
 - Framework: Next.js 16 (Turbopack, App Router)
 - UI: React 19, Tailwind CSS 4, shadcn tokens, Lucide icons
 - Styling: clsx, tailwind-merge
-- Data: TMDB (movies/TV)
+- Data: TMDB (movies/TV), OMDb (optional Rotten Tomatoes scores)
 - Player: VidLink proxy (`/api/vidlink`) and HLS stream proxy (`/api/hls`)
 - Language: TypeScript
-- Testing: Playwright
+- Testing: Bun test, Playwright
 
 ## Getting started
 
@@ -42,6 +42,11 @@
 
 - Bun
 - A TMDB API key (set in `.env.local`)
+- An optional OMDb API key (`OMDB_API_KEY`) for Rotten Tomatoes scores
+
+Without `OMDB_API_KEY`, detail pages continue showing TMDB ratings only. OMDb content is
+licensed for non-commercial use; commercial deployments should use a licensed ratings
+provider.
 
 ### Installation
 

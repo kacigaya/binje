@@ -2,12 +2,13 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Star, Calendar, Tv, Layers } from "lucide-react";
+import { Play, Calendar, Tv, Layers } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import WatchlistButton from "@/components/WatchlistButton";
+import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 import {
   getTVDetails,
   getTVCredits,
@@ -42,10 +43,14 @@ export default async function TVShowPage({
   const showId = parseInt(id, 10);
   if (!Number.isFinite(showId) || showId <= 0) notFound();
 
-  const [show, credits, similar] = await Promise.all([
-    getTVDetails(showId),
+  const showPromise = getTVDetails(showId);
+  const [show, credits, similar, rottenTomatoesScore] = await Promise.all([
+    showPromise,
     getTVCredits(showId),
     getSimilarTV(showId),
+    showPromise.then(({ external_ids }) =>
+      getRottenTomatoesScore(external_ids.imdb_id),
+    ),
   ]);
 
   const backdrop = backdropUrl(show.backdrop_path, "w1280");
@@ -118,13 +123,33 @@ export default async function TVShowPage({
 
             {/* Meta row */}
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1 text-accent-red font-semibold">
-                <Star className="h-4 w-4 fill-accent-red" />
+              <div className="flex items-center gap-1.5 text-accent-red font-semibold">
+                <Image
+                  src="/tmdb.svg"
+                  alt=""
+                  width={37}
+                  height={16}
+                  aria-hidden="true"
+                  className="h-4 w-auto shrink-0"
+                />
                 {show.vote_average.toFixed(1)}
                 <span className="text-muted-foreground font-normal ml-1">
                   ({show.vote_count.toLocaleString()} votes)
                 </span>
               </div>
+              {rottenTomatoesScore !== null && (
+                <div className="flex items-center gap-1.5 font-semibold text-accent-red">
+                  <Image
+                    src="/rotten-tomatoes.svg"
+                    alt=""
+                    width={16}
+                    height={16}
+                    aria-hidden="true"
+                    className="h-4 w-4 shrink-0"
+                  />
+                  {rottenTomatoesScore}%
+                </div>
+              )}
               <div className="flex items-center gap-1">
                 <Layers className="h-4 w-4" />
                 {show.number_of_seasons} Season

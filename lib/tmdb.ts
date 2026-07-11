@@ -184,7 +184,10 @@ export async function getTVByGenre(genreId: number): Promise<TVShow[]> {
 }
 
 export async function getTVDetails(id: number): Promise<TVShowDetails> {
-  return tmdbFetch<TVShowDetails>(`/tv/${id}`, 86400);
+  return tmdbFetch<TVShowDetails>(
+    `/tv/${id}?append_to_response=external_ids`,
+    86400,
+  );
 }
 
 export async function getTVImages(id: number): Promise<TVImagesResponse> {
