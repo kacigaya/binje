@@ -8,8 +8,10 @@ import {
   toggleWatchlist,
   type WatchlistInput,
 } from "@/lib/watchlist";
+import { useTranslations } from "@/lib/use-locale";
 
 export default function WatchlistButton({ item }: { item: WatchlistInput }) {
+  const { t } = useTranslations();
   const getSnapshot = useCallback(
     () => isInWatchlist(item),
     [item],
@@ -33,7 +35,7 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
       }`}
     >
       {added ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-      {added ? "In Watchlist" : "Add to Watchlist"}
+      {t(added ? "In Watchlist" : "Add to Watchlist")}
     </button>
   );
 }

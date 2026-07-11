@@ -13,10 +13,13 @@ import {
   type WatchlistItem,
 } from "@/lib/watchlist";
 import { posterUrl } from "@/lib/tmdb";
+import { localizedHref } from "@/lib/i18n";
+import { useTranslations } from "@/lib/use-locale";
 
 const EMPTY_WATCHLIST: WatchlistItem[] = [];
 
 export default function Watchlist() {
+  const { locale, t } = useTranslations();
   const items = useSyncExternalStore(
     subscribeToWatchlist,
     getWatchlist,
@@ -33,11 +36,11 @@ export default function Watchlist() {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-card/40 px-6 py-20 text-center">
         <Bookmark className="h-10 w-10 text-muted-foreground" />
-        <p className="text-lg font-semibold">Your watchlist is empty</p>
+        <p className="text-lg font-semibold">{t("Your watchlist is empty")}</p>
         <p className="max-w-md text-sm text-muted-foreground">
-          Browse movies and TV shows, then tap{" "}
-          <span className="font-medium text-foreground">Add to Watchlist</span>{" "}
-          to save them here for later.
+          {t("Browse movies and TV shows, then tap")}{" "}
+          <span className="font-medium text-foreground">{t("Add to Watchlist")}</span>{" "}
+          {t("to save them here for later.")}
         </p>
       </div>
     );
@@ -49,12 +52,12 @@ export default function Watchlist() {
         const poster = posterUrl(item.poster_path, "w342");
         const rating = Number.isFinite(item.vote_average)
           ? item.vote_average.toFixed(1)
-          : "N/A";
+          : t("N/A");
 
         return (
           <Link
             key={`${item.type}-${item.id}`}
-            href={getWatchlistHref(item)}
+            href={localizedHref(locale, getWatchlistHref(item))}
             className="group block"
           >
             <div className="relative overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
@@ -74,13 +77,13 @@ export default function Watchlist() {
                 </div>
 
                 <div className="absolute top-2 left-2 rounded-full bg-accent-red/90 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
-                  {item.type === "tv" ? "TV" : "Movie"}
+                  {t(item.type === "tv" ? "TV" : "Movie")}
                 </div>
 
                 <button
                   type="button"
                   onClick={(event) => removeItem(event, item)}
-                  aria-label={`Remove ${item.title} from watchlist`}
+                  aria-label={`${t("Remove from watchlist")}: ${item.title}`}
                   className="absolute right-2 bottom-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white/85 backdrop-blur-sm transition-colors hover:bg-accent-red hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-red/70"
                 >
                   <X className="h-4 w-4" />

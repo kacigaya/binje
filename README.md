@@ -12,6 +12,7 @@
 ## Features
 
 - Browse trending and popular movies & TV shows
+- English and French interfaces at `/en` and `/fr`, with localized TMDB metadata
 - Dedicated `/movies` and `/tv-shows` browse pages
 - Detailed movie and TV show pages (ratings, cast, seasons, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
@@ -61,11 +62,14 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
+Unprefixed URLs redirect to `/en` or `/fr` from the browser language; use the
+navbar language switch to change locale while keeping the current page.
 
 ### Project structure
 
 ```
 app/            # Next.js App Router pages and layouts
+  [locale]/     # English/French pages
   api/          # Server routes (search, hls, vidlink, episodes)
   movie/[id]/   # Movie detail page
   movies/       # Browse all movies

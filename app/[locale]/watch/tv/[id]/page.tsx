@@ -12,23 +12,24 @@ import {
 } from "@/lib/tmdb";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
 import TVPlayer from "./TVPlayer";
+import { translate, type Locale } from "@/lib/i18n";
 
 export async function generateMetadata({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: Locale; id: string }>;
   searchParams: Promise<{ s?: string; e?: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { locale, id } = await params;
   const { s, e } = await searchParams;
   const showId = parseInt(id, 10);
   if (!Number.isFinite(showId) || showId <= 0) return {};
-  const show = await getTVDetails(showId);
+  const show = await getTVDetails(showId, locale);
   const season = s ? parseInt(s, 10) : 1;
   const episode = e ? parseInt(e, 10) : 1;
   return {
-    title: `${show.name}: Season ${season}, Episode ${episode}`,
+    title: `${show.name}: ${translate(locale, "Season")} ${season}, ${translate(locale, "Episode")} ${episode}`,
     description: show.overview,
   };
 }
@@ -37,18 +38,18 @@ export default async function WatchTVPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: Locale; id: string }>;
   searchParams: Promise<{ s?: string; e?: string }>;
 }) {
-  const { id } = await params;
+  const { locale, id } = await params;
   const { s, e } = await searchParams;
   const showId = parseInt(id, 10);
   if (!Number.isFinite(showId) || showId <= 0) notFound();
   const [show, images] = await Promise.all([
-    getTVDetails(showId),
-    getTVImages(showId),
+    getTVDetails(showId, locale),
+    getTVImages(showId, locale),
   ]);
-  const logo = pickTVLogo(images.logos);
+  const logo = pickTVLogo(images.logos, locale);
   const showLogoUrl = logoUrl(logo?.file_path ?? null);
 
   const season = s ? parseInt(s, 10) : 1;
@@ -56,7 +57,7 @@ export default async function WatchTVPage({
 
   const seasons = show.seasons.filter((ss) => ss.season_number > 0);
 
-  const initialEpisodes = await getSeasonEpisodes(showId, season).catch(
+  const initialEpisodes = await getSeasonEpisodes(showId, season, locale).catch(
     () => [],
   );
 
@@ -101,7 +102,7 @@ export default async function WatchTVPage({
 
           <div className="flex flex-wrap gap-2">
             <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
-              TV Series
+              {translate(locale, "TV Series")}
             </Badge>
             {show.genres.map((g) => (
               <Badge
@@ -121,12 +122,11 @@ export default async function WatchTVPage({
             </div>
             <div className="flex items-center gap-1">
               <Layers className="h-4 w-4" />
-              {show.number_of_seasons} Season
-              {show.number_of_seasons !== 1 ? "s" : ""}
+              {show.number_of_seasons} {show.number_of_seasons === 1 ? translate(locale, "Season") : translate(locale, "Seasons")}
             </div>
             <div className="flex items-center gap-1">
               <Tv className="h-4 w-4" />
-              {show.number_of_episodes} Episodes
+              {show.number_of_episodes} {show.number_of_episodes === 1 ? translate(locale, "Episode") : translate(locale, "Episodes")}
             </div>
             {show.first_air_date && (
               <div className="flex items-center gap-1">

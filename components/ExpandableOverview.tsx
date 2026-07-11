@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useTranslations } from "@/lib/use-locale";
 
 interface Props {
   text: string;
@@ -11,6 +12,7 @@ export default function ExpandableOverview({
   text,
   className,
 }: Props) {
+  const { t } = useTranslations();
   const textRef = useRef<HTMLParagraphElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [isTruncated, setIsTruncated] = useState(false);
@@ -35,7 +37,7 @@ export default function ExpandableOverview({
           onClick={() => setExpanded(!expanded)}
           className="text-accent-red text-sm font-medium mt-1 hover:underline cursor-pointer"
         >
-          {expanded ? "Show less" : "Read more"}
+          {t(expanded ? "Show less" : "Read more")}
         </button>
       )}
     </div>

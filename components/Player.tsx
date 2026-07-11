@@ -4,6 +4,7 @@ import Hls from "hls.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/lib/use-locale";
 
 export type PlayerMediaType = "movie" | "tv";
 type Track = { file: string; label?: string };
@@ -37,6 +38,7 @@ export default function Player({
   season?: number;
   episode?: number;
 }) {
+  const { t } = useTranslations();
   const [lang, setLang] = useState<Lang>("en");
 
   const sourceUrl = useMemo(() => {
@@ -162,9 +164,9 @@ export default function Player({
         <div className="absolute inset-0 flex items-center justify-center text-sm text-white/70 pointer-events-none">
           {error
             ? lang === "vf"
-              ? "No VF stream for this title."
-              : "Stream unavailable. Try again later."
-            : "Loading…"}
+              ? t("No VF stream for this title.")
+              : t("Stream unavailable. Try again later.")
+            : t("Loading…")}
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Calendar, Tv, Layers } from "lucide-react";
+import { Play, Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -10,51 +10,51 @@ import Carousel from "@/components/Carousel";
 import WatchlistButton from "@/components/WatchlistButton";
 import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 import {
-  getTVDetails,
-  getTVCredits,
-  getSimilarTV,
-  tvToMedia,
+  getMovieDetails,
+  getMovieCredits,
+  getSimilarMovies,
+  movieToMedia,
   posterUrl,
   backdropUrl,
   profileUrl,
 } from "@/lib/tmdb";
+import { localizedHref, translate, type Locale } from "@/lib/i18n";
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: Locale; id: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
-  const showId = parseInt(id, 10);
-  if (!Number.isFinite(showId) || showId <= 0) return {};
-  const show = await getTVDetails(showId);
+  const { locale, id } = await params;
+  const movieId = parseInt(id, 10);
+  if (!Number.isFinite(movieId) || movieId <= 0) return {};
+  const movie = await getMovieDetails(movieId, locale);
   return {
-    title: show.name,
-    description: show.overview,
+    title: movie.title,
+    description: movie.overview,
   };
 }
 
-export default async function TVShowPage({
+export default async function MoviePage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: Locale; id: string }>;
 }) {
-  const { id } = await params;
-  const showId = parseInt(id, 10);
-  if (!Number.isFinite(showId) || showId <= 0) notFound();
+  const { locale, id } = await params;
+  const movieId = parseInt(id, 10);
+  if (!Number.isFinite(movieId) || movieId <= 0) notFound();
 
-  const showPromise = getTVDetails(showId);
-  const [show, credits, similar, rottenTomatoesScore] = await Promise.all([
-    showPromise,
-    getTVCredits(showId),
-    getSimilarTV(showId),
-    showPromise.then(({ external_ids }) =>
-      getRottenTomatoesScore(external_ids.imdb_id),
-    ),
+  const moviePromise = getMovieDetails(movieId, locale);
+  const [movie, credits, similar, rottenTomatoesScore] = await Promise.all([
+    moviePromise,
+    getMovieCredits(movieId, locale),
+    getSimilarMovies(movieId, locale),
+    moviePromise.then(({ imdb_id }) => getRottenTomatoesScore(imdb_id)),
   ]);
 
-  const backdrop = backdropUrl(show.backdrop_path, "w1280");
-  const poster = posterUrl(show.poster_path, "w500");
+  const backdrop = backdropUrl(movie.backdrop_path, "w1280");
+  const poster = posterUrl(movie.poster_path, "w500");
+  const director = credits.crew.find((c) => c.job === "Director");
   const topCast = credits.cast.slice(0, 12);
 
   return (
@@ -64,7 +64,7 @@ export default async function TVShowPage({
         {backdrop && (
           <Image
             src={backdrop}
-            alt={show.name}
+            alt={movie.title}
             fill
             priority
             className="object-cover object-top"
@@ -82,7 +82,7 @@ export default async function TVShowPage({
             <div className="relative w-50 sm:w-65 aspect-2/3 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10">
               <Image
                 src={poster}
-                alt={show.name}
+                alt={movie.title}
                 fill
                 priority
                 className="object-cover"
@@ -97,20 +97,18 @@ export default async function TVShowPage({
               className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              {show.name}
+              {movie.title}
             </h1>
 
-            {show.tagline && (
+            {movie.tagline && (
               <p className="text-lg text-accent-red/80 italic">
-                {show.tagline}
+                {movie.tagline}
               </p>
             )}
 
+            {/* Genres */}
             <div className="flex flex-wrap gap-2">
-              <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
-                TV Series
-              </Badge>
-              {show.genres.map((g) => (
+              {movie.genres.map((g) => (
                 <Badge
                   key={g.id}
                   variant="outline"
@@ -132,7 +130,7 @@ export default async function TVShowPage({
                   aria-hidden="true"
                   className="h-4 w-auto shrink-0"
                 />
-                {show.vote_average.toFixed(1)}
+                {movie.vote_average.toFixed(1)}
               </div>
               {rottenTomatoesScore !== null && (
                 <div className="flex items-center gap-1.5 font-semibold text-accent-red">
@@ -147,19 +145,16 @@ export default async function TVShowPage({
                   {rottenTomatoesScore}%
                 </div>
               )}
-              <div className="flex items-center gap-1">
-                <Layers className="h-4 w-4" />
-                {show.number_of_seasons} Season
-                {show.number_of_seasons !== 1 ? "s" : ""}
-              </div>
-              <div className="flex items-center gap-1">
-                <Tv className="h-4 w-4" />
-                {show.number_of_episodes} Episodes
-              </div>
-              {show.first_air_date && (
+              {movie.runtime > 0 && (
+                <div className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
+                </div>
+              )}
+              {movie.release_date && (
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  {new Date(show.first_air_date).toLocaleDateString("en-US", {
+                  {new Date(movie.release_date).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
@@ -170,24 +165,24 @@ export default async function TVShowPage({
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mt-2">
-              <Link href={`/watch/tv/${show.id}`} className="w-full sm:w-auto">
+              <Link href={localizedHref(locale, `/watch/${movie.id}`)} className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   className="w-full sm:w-auto rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer"
                 >
                   <Play className="h-5 w-5 fill-white" />
-                  Watch Now
+                  {translate(locale, "Watch Now")}
                 </Button>
               </Link>
               <WatchlistButton
                 item={{
-                  type: "tv",
-                  id: show.id,
-                  title: show.name,
-                  poster_path: show.poster_path,
-                  backdrop_path: show.backdrop_path,
-                  date: show.first_air_date,
-                  vote_average: show.vote_average,
+                  type: "movie",
+                  id: movie.id,
+                  title: movie.title,
+                  poster_path: movie.poster_path,
+                  backdrop_path: movie.backdrop_path,
+                  date: movie.release_date,
+                  vote_average: movie.vote_average,
                 }}
               />
             </div>
@@ -202,84 +197,22 @@ export default async function TVShowPage({
                 className="text-lg font-semibold mb-2"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
-                Overview
+                {translate(locale, "Overview")}
               </h3>
               <p className="text-foreground/70 leading-relaxed">
-                {show.overview}
+                {movie.overview}
               </p>
             </div>
 
-            {/* Created by */}
-            {show.created_by.length > 0 && (
+            {/* Director */}
+            {director && (
               <div>
-                <span className="text-sm text-muted-foreground">
-                  Created by
-                </span>
-                <p className="font-medium">
-                  {show.created_by.map((c) => c.name).join(", ")}
-                </p>
-              </div>
-            )}
-
-            {/* Networks */}
-            {show.networks.length > 0 && (
-              <div>
-                <span className="text-sm text-muted-foreground">Network</span>
-                <p className="font-medium">
-                  {show.networks.map((n) => n.name).join(", ")}
-                </p>
+                <span className="text-sm text-muted-foreground">{translate(locale, "Director")}</span>
+                <p className="font-medium">{director.name}</p>
               </div>
             )}
           </div>
         </div>
-
-        {/* Seasons */}
-        {show.seasons.length > 0 && (
-          <div className="mt-12">
-            <h3
-              className="text-xl font-bold mb-6"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              Seasons
-            </h3>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-              {show.seasons
-                .filter((s) => s.season_number > 0)
-                .map((season) => {
-                  const sPoster = posterUrl(season.poster_path, "w300");
-                  return (
-                    <Link
-                      key={season.id}
-                      href={`/watch/tv/${show.id}?s=${season.season_number}&e=1`}
-                      className="group shrink-0"
-                    >
-                      <div className="relative w-35 sm:w-40 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_20px_rgba(225,29,72,0.12)]">
-                        <div className="relative aspect-2/3 overflow-hidden rounded-xl">
-                          <Image
-                            src={sPoster}
-                            alt={season.name}
-                            fill
-                            loading="lazy"
-                            className="object-cover"
-                            sizes="160px"
-                          />
-                          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent" />
-                          <div className="absolute bottom-0 left-0 right-0 p-3">
-                            <p className="text-sm font-semibold text-white leading-tight">
-                              {season.name}
-                            </p>
-                            <p className="text-xs text-white/60 mt-0.5">
-                              {season.episode_count} episodes
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-            </div>
-          </div>
-        )}
 
         {/* Cast */}
         {topCast.length > 0 && (
@@ -288,7 +221,7 @@ export default async function TVShowPage({
               className="text-xl font-bold mb-6 px-0"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              Cast
+              {translate(locale, "Cast")}
             </h3>
             <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
               {topCast.map((person, i) => {
@@ -327,10 +260,13 @@ export default async function TVShowPage({
           </div>
         )}
 
-        {/* Similar TV */}
+        {/* Similar movies */}
         {similar.length > 0 && (
           <div className="mt-12">
-            <Carousel title="Similar Shows" items={similar.map(tvToMedia)} />
+            <Carousel
+              title={translate(locale, "Similar Movies")}
+              items={similar.map(movieToMedia)}
+            />
           </div>
         )}
       </div>

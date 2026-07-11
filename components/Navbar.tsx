@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { Search, Film, X, Clapperboard, Tv, Bookmark, Menu } from "lucide-react";
 import { useState, useRef, SyntheticEvent, useEffect, useCallback } from "react";
+import { localizedHref } from "@/lib/i18n";
+import { useTranslations } from "@/lib/use-locale";
 
 interface SearchSuggestion {
   id: number;
@@ -24,9 +26,10 @@ const navLinks = [
   { href: "/movies", label: "Movies", icon: Clapperboard },
   { href: "/tv-shows", label: "TV Shows", icon: Tv },
   { href: "/watchlist", label: "Watchlist", icon: Bookmark },
-];
+] as const;
 
 export default function Navbar() {
+  const { locale, t } = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
   const [query, setQuery] = useState("");
@@ -56,7 +59,7 @@ export default function Navbar() {
     const timer = window.setTimeout(async () => {
       try {
         const res = await fetch(
-          `/api/search?q=${encodeURIComponent(trimmedQuery)}`,
+          `/api/search?q=${encodeURIComponent(trimmedQuery)}&lang=${locale}`,
           { signal: controller.signal },
         );
 
@@ -79,7 +82,7 @@ export default function Navbar() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [open, query]);
+  }, [locale, open, query]);
 
   // Close on Escape
   useEffect(() => {
@@ -96,7 +99,7 @@ export default function Navbar() {
   function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     if (query.trim()) {
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      router.push(localizedHref(locale, `/search?q=${encodeURIComponent(query.trim())}`));
       close();
     }
   }
@@ -113,7 +116,7 @@ export default function Navbar() {
       suggestion.media_type === "tv"
         ? `/tv/${suggestion.id}`
         : `/movie/${suggestion.id}`;
-    router.push(href);
+    router.push(localizedHref(locale, href));
     close();
   }
 
@@ -122,7 +125,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl rounded-[2rem] bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30 transition-[background-color,box-shadow] duration-300 ease-out motion-reduce:transition-none">
         <div className="flex items-center justify-between px-4 sm:px-6 h-16">
         <Link
-          href="/"
+          href={localizedHref(locale, "/")}
           onClick={() => setMenuOpen(false)}
           className="flex items-center gap-2 text-xl font-bold tracking-tight"
           style={{ fontFamily: "var(--font-heading)" }}
@@ -137,13 +140,14 @@ export default function Navbar() {
           {!open && (
             <div className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => {
-                const active = pathname === link.href;
+                const href = localizedHref(locale, link.href);
+                const active = pathname === href;
                 const Icon = link.icon;
 
                 return (
                   <Link
                     key={link.href}
-                    href={link.href}
+                    href={href}
                     className={`flex items-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
                       active
                         ? "bg-white/10 text-foreground"
@@ -151,7 +155,7 @@ export default function Navbar() {
                     }`}
                   >
                     <Icon className="h-4 w-4" />
-                    {link.label}
+                    {t(link.label)}
                   </Link>
                 );
               })}
@@ -163,7 +167,7 @@ export default function Navbar() {
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
               className="relative flex md:hidden items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
+              aria-label={menuOpen ? t("Close menu") : t("Open menu")}
               aria-expanded={menuOpen}
             >
               <Menu
@@ -179,7 +183,7 @@ export default function Navbar() {
             </button>
           )}
 
-          {!pathname.startsWith("/search") && (
+          {!pathname.startsWith(`/${locale}/search`) && (
             <div className="flex items-center">
               {open ? (
                 <form onSubmit={handleSubmit} className="flex items-center gap-2">
@@ -188,7 +192,7 @@ export default function Navbar() {
                     <input
                       ref={inputRef}
                       type="text"
-                      placeholder="Search movies & TV..."
+                      placeholder={t("Search movies & TV...")}
                       value={query}
                       onChange={(event) => handleQueryChange(event.target.value)}
                       className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition-all"
@@ -197,7 +201,7 @@ export default function Navbar() {
                       <div className="absolute right-0 top-12 w-72 overflow-hidden rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
                         {suggestions.map((suggestion) => {
                           const title =
-                            suggestion.title ?? suggestion.name ?? "Untitled";
+                            suggestion.title ?? suggestion.name ?? t("Untitled");
                           const date =
                             suggestion.release_date ?? suggestion.first_air_date;
                           const year = date ? new Date(date).getFullYear() : null;
@@ -235,7 +239,7 @@ export default function Navbar() {
                                 )}
                               </span>
                               <span className="ml-auto shrink-0 rounded-full bg-accent-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-red">
-                                {suggestion.media_type === "tv" ? "TV" : "Movie"}
+                                {t(suggestion.media_type === "tv" ? "TV" : "Movie")}
                               </span>
                             </button>
                           );
@@ -247,7 +251,7 @@ export default function Navbar() {
                     type="button"
                     onClick={close}
                     className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
-                    aria-label="Close search"
+                    aria-label={t("Close search")}
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -260,11 +264,33 @@ export default function Navbar() {
                     setMenuOpen(false);
                   }}
                   className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
-                  aria-label="Open search"
+                  aria-label={t("Open search")}
                 >
                   <Search className="h-5 w-5" />
                 </button>
               )}
+            </div>
+          )}
+          {!open && (
+            <div className="flex items-center rounded-full border border-white/10 bg-white/5 p-0.5 text-xs font-semibold">
+              {(["en", "fr"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-current={locale === value ? "page" : undefined}
+                  onClick={() => {
+                    const nextPath = pathname.replace(/^\/(en|fr)(?=\/|$)/, `/${value}`);
+                    router.push(`${nextPath}${window.location.search}`);
+                  }}
+                  className={`rounded-full px-2 py-1 uppercase transition-colors cursor-pointer ${
+                    locale === value
+                      ? "bg-accent-red text-white"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {value}
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -281,13 +307,14 @@ export default function Navbar() {
           <div className="min-h-0 overflow-hidden border-t border-white/5">
             <div className="flex flex-col gap-1 px-4 py-3 sm:px-6">
               {navLinks.map((link) => {
-                const active = pathname === link.href;
+                const href = localizedHref(locale, link.href);
+                const active = pathname === href;
                 const Icon = link.icon;
 
                 return (
                   <Link
                     key={link.href}
-                    href={link.href}
+                    href={href}
                     onClick={() => setMenuOpen(false)}
                     tabIndex={menuOpen ? 0 : -1}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
@@ -299,7 +326,7 @@ export default function Navbar() {
                     }`}
                   >
                     <Icon className="h-5 w-5" />
-                    {link.label}
+                    {t(link.label)}
                   </Link>
                 );
               })}

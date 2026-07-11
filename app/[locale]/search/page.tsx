@@ -6,6 +6,8 @@ import { Search, X, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { localizedHref } from "@/lib/i18n";
+import { useTranslations } from "@/lib/use-locale";
 
 interface SearchResult {
   id: number;
@@ -50,6 +52,7 @@ export default function SearchPage() {
 }
 
 function SearchContent() {
+  const { locale, t } = useTranslations();
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQuery = searchParams.get("q") || "";
@@ -70,7 +73,7 @@ function SearchContent() {
     setLoading(true);
     setSearched(true);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&lang=${locale}`);
       const data: SearchApiResponse = await res.json();
       setResults(data.results ?? []);
     } catch {
@@ -78,7 +81,7 @@ function SearchContent() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -87,10 +90,10 @@ function SearchContent() {
       if (query.trim()) params.set("q", query.trim());
       if (filter !== "all") params.set("type", filter);
       const qs = params.toString();
-      router.replace(`/search${qs ? `?${qs}` : ""}`, { scroll: false });
+      router.replace(localizedHref(locale, `/search${qs ? `?${qs}` : ""}`), { scroll: false });
     }, 400);
     return () => clearTimeout(timer);
-  }, [query, filter, doSearch, router]);
+  }, [query, filter, doSearch, locale, router]);
 
   useEffect(() => {
     if (initialQuery) {
@@ -111,13 +114,15 @@ function SearchContent() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search movies & TV shows..."
+          placeholder={t("Search movies & TV shows...")}
           autoFocus
           className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-13 pr-12 text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition-all"
         />
         {query && (
           <button
+            type="button"
             onClick={() => setQuery("")}
+            aria-label={t("Close search")}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
@@ -137,7 +142,7 @@ function SearchContent() {
                 : "bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
             }`}
           >
-            {type === "all" ? "All" : type === "movie" ? "Movies" : "TV Shows"}
+            {t(type === "all" ? "All" : type === "movie" ? "Movies" : "TV Shows")}
           </button>
         ))}
       </div>
@@ -155,14 +160,14 @@ function SearchContent() {
       {!loading && filtered.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
           {filtered.map((item, index) => {
-            const title = item.title || item.name || "Untitled";
+            const title = item.title || item.name || t("Untitled");
             const date = item.release_date || item.first_air_date;
             const href =
               item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
             return (
               <Link
                 key={`${item.media_type}-${item.id}`}
-                href={href}
+                href={localizedHref(locale, href)}
                 className="group block"
               >
                 <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.03] group-hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
@@ -178,7 +183,7 @@ function SearchContent() {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                      No Poster
+                      {t("No Poster")}
                     </div>
                   )}
                   <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -224,10 +229,10 @@ function SearchContent() {
             className="text-xl font-semibold mb-2"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            No results found
+            {t("No results found")}
           </h3>
           <p className="text-muted-foreground">
-            Try a different search term or check the spelling.
+            {t("Try a different search term or check the spelling.")}
           </p>
         </div>
       )}
@@ -240,10 +245,10 @@ function SearchContent() {
             className="text-xl font-semibold mb-2"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            Discover movies & TV shows
+            {t("Discover movies & TV shows")}
           </h3>
           <p className="text-muted-foreground">
-            Start typing to search thousands of titles.
+            {t("Start typing to search thousands of titles.")}
           </p>
         </div>
       )}

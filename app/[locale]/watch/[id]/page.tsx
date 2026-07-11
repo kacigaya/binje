@@ -11,32 +11,33 @@ import {
   logoUrl,
   pickMovieLogo,
 } from "@/lib/tmdb";
+import type { Locale } from "@/lib/i18n";
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: Locale; id: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { locale, id } = await params;
   const movieId = parseInt(id, 10);
   if (!Number.isFinite(movieId) || movieId <= 0) return {};
-  const movie = await getMovieDetails(movieId);
+  const movie = await getMovieDetails(movieId, locale);
   return { title: movie.title, description: movie.overview };
 }
 
 export default async function WatchPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ locale: Locale; id: string }>;
 }) {
-  const { id } = await params;
+  const { locale, id } = await params;
   const movieId = parseInt(id, 10);
   if (!Number.isFinite(movieId) || movieId <= 0) notFound();
   const [movie, images] = await Promise.all([
-    getMovieDetails(movieId),
-    getMovieImages(movieId),
+    getMovieDetails(movieId, locale),
+    getMovieImages(movieId, locale),
   ]);
-  const logo = pickMovieLogo(images.logos);
+  const logo = pickMovieLogo(images.logos, locale);
   const movieLogoUrl = logoUrl(logo?.file_path ?? null);
 
   return (

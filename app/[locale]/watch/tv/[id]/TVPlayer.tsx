@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { stillUrl } from "@/lib/tmdb";
 import type { Episode } from "@/types/tmdb";
+import { localizedHref } from "@/lib/i18n";
+import { useTranslations } from "@/lib/use-locale";
 
 interface SeasonInfo {
   season_number: number;
@@ -35,6 +37,7 @@ export default function TVPlayer({
   seasons: SeasonInfo[];
   initialEpisodes: Episode[];
 }) {
+  const { locale, t } = useTranslations();
   const router = useRouter();
   const [season, setSeason] = useState(initialSeason);
   const [episode, setEpisode] = useState(initialEpisode);
@@ -50,7 +53,7 @@ export default function TVPlayer({
     if (episodesSeason === season) return;
 
     let cancelled = false;
-    fetch(`/api/episodes?showId=${showId}&season=${season}`)
+    fetch(`/api/episodes?showId=${showId}&season=${season}&lang=${locale}`)
       .then((res) => (res.ok ? res.json() : { episodes: [] }))
       .then((data) => {
         if (cancelled) return;
@@ -66,7 +69,7 @@ export default function TVPlayer({
     return () => {
       cancelled = true;
     };
-  }, [season, showId, episodesSeason]);
+  }, [episodesSeason, locale, season, showId]);
 
   const {
     scrollRef,
@@ -78,7 +81,7 @@ export default function TVPlayer({
   function navigate(s: number, e: number) {
     setSeason(s);
     setEpisode(e);
-    router.replace(`/watch/tv/${showId}?s=${s}&e=${e}`, { scroll: false });
+    router.replace(localizedHref(locale, `/watch/tv/${showId}?s=${s}&e=${e}`), { scroll: false });
   }
 
   function prevEpisode() {
@@ -120,7 +123,7 @@ export default function TVPlayer({
             htmlFor="season-select"
             className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
           >
-            Season
+            {t("Season")}
           </label>
           <div className="relative">
             <select
@@ -142,13 +145,13 @@ export default function TVPlayer({
         <div className="flex min-w-0 items-center sm:border-l sm:border-white/10 sm:pl-4">
           <p className="min-w-0">
             <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Now playing
+              {t("Now playing")}
             </span>
             <span
               className="block truncate text-sm font-semibold text-foreground"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              {currentSeason?.name ?? `Season ${season}`}, Episode {episode}
+              {currentSeason?.name ?? `${t("Season")} ${season}`}, {t("Episode")} {episode}
             </span>
           </p>
         </div>
@@ -164,7 +167,7 @@ export default function TVPlayer({
             className="h-10 rounded-full px-4 cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" />
-            Previous
+            {t("Previous")}
           </Button>
           <Button
             type="button"
@@ -174,7 +177,7 @@ export default function TVPlayer({
             disabled={!hasNext}
             className="h-10 rounded-full px-4 cursor-pointer"
           >
-            Next
+            {t("Next")}
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -186,7 +189,7 @@ export default function TVPlayer({
           className="text-lg font-semibold mb-3"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          Episodes
+          {t("Episodes")}
         </h3>
 
         {loading ? (
@@ -200,7 +203,7 @@ export default function TVPlayer({
           </div>
         ) : episodes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No episode previews available.
+            {t("No episode previews available.")}
           </p>
         ) : (
           <div className="group/episodes relative">
@@ -210,7 +213,7 @@ export default function TVPlayer({
                 <button
                   type="button"
                   onClick={() => scrollEpisodes("left")}
-                  aria-label="Scroll left"
+                  aria-label={t("Scroll left")}
                   className="absolute left-0 top-0 bottom-0 z-20 flex w-12 items-center justify-center opacity-0 group-hover/episodes:opacity-100 transition-opacity cursor-pointer"
                 >
                   <ChevronLeft className="h-8 w-8 text-foreground" />
@@ -223,7 +226,7 @@ export default function TVPlayer({
                 <button
                   type="button"
                   onClick={() => scrollEpisodes("right")}
-                  aria-label="Scroll right"
+                  aria-label={t("Scroll right")}
                   className="absolute right-0 top-0 bottom-0 z-20 flex w-12 items-center justify-center opacity-0 group-hover/episodes:opacity-100 transition-opacity cursor-pointer"
                 >
                   <ChevronRight className="h-8 w-8 text-foreground" />
@@ -259,7 +262,7 @@ export default function TVPlayer({
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center bg-card text-muted-foreground text-xs">
-                      No preview
+                      {t("No preview")}
                     </div>
                   )}
 
@@ -276,7 +279,7 @@ export default function TVPlayer({
                     <p className="text-sm font-semibold leading-snug text-white line-clamp-2">
                       {isActive && (
                         <span className="mr-1.5 inline-block translate-y-[-1px] rounded bg-accent-red px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider align-middle">
-                          Watching
+                          {t("Watching")}
                         </span>
                       )}
                       {ep.episode_number}. {ep.name}

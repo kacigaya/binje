@@ -9,12 +9,15 @@ import { Button } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
 import { backdropUrl, logoUrl } from "@/lib/tmdb";
 import ExpandableOverview from "@/components/ExpandableOverview";
+import { localizedHref } from "@/lib/i18n";
+import { useTranslations } from "@/lib/use-locale";
 
 interface HeroProps {
   items: MediaItem[];
 }
 
 export default function Hero({ items }: HeroProps) {
+  const { locale, t } = useTranslations();
   const [activeIndex, setActiveIndex] = useState(0);
 
   const safeItems = useMemo(
@@ -49,7 +52,7 @@ export default function Hero({ items }: HeroProps) {
       : `/watch/${activeItem.id}`;
   const rating = Number.isFinite(activeItem.vote_average)
     ? activeItem.vote_average.toFixed(1)
-    : "N/A";
+    : t("N/A");
 
   return (
     <section className="relative w-full h-[70vh] sm:h-[80vh] overflow-hidden">
@@ -92,11 +95,11 @@ export default function Hero({ items }: HeroProps) {
               <Badge
                 className="bg-accent-red text-white text-xs font-bold uppercase tracking-wider hover:bg-accent-red/90 border-transparent"
               >
-                Trending
+                {t("Trending")}
               </Badge>
               {activeItem.media_type === "tv" && (
                 <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
-                  TV Series
+                  {t("TV Series")}
                 </Badge>
               )}
               <div className="flex items-center gap-1 text-accent-red">
@@ -116,23 +119,23 @@ export default function Hero({ items }: HeroProps) {
             />
 
             <div className="flex items-center gap-3 pt-2">
-              <Link href={watchHref}>
+              <Link href={localizedHref(locale, watchHref)}>
                 <Button
                   size="lg"
                   className="rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-8 h-12 text-base cursor-pointer"
                 >
                   <Play className="h-5 w-5 fill-white" />
-                  Watch Now
+                  {t("Watch Now")}
                 </Button>
               </Link>
-              <Link href={detailHref}>
+              <Link href={localizedHref(locale, detailHref)}>
                 <Button
                   size="lg"
                   variant="outline"
                   className="rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-8 h-12 text-base cursor-pointer"
                 >
                   <Info className="h-5 w-5" />
-                  Details
+                  {t("Details")}
                 </Button>
               </Link>
             </div>

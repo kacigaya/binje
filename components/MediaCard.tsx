@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import type { MediaItem } from "@/types/tmdb";
 import { posterUrl } from "@/lib/tmdb";
+import { localizedHref } from "@/lib/i18n";
+import { useTranslations } from "@/lib/use-locale";
 
 export default function MediaCard({
   item,
@@ -11,15 +13,16 @@ export default function MediaCard({
   item: MediaItem;
   eager?: boolean;
 }) {
+  const { locale, t } = useTranslations();
   const poster = posterUrl(item.poster_path, "w342");
   const href =
     item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
   const rating = Number.isFinite(item.vote_average)
     ? item.vote_average.toFixed(1)
-    : "N/A";
+    : t("N/A");
 
   return (
-    <Link href={href} className="group block shrink-0">
+    <Link href={localizedHref(locale, href)} className="group block shrink-0">
       <div className="relative w-40 sm:w-46.25 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
         <div className="relative aspect-2/3 overflow-hidden rounded-xl">
           <Image

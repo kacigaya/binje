@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "@/lib/use-locale";
 
 export default function RouteError({
   error,
@@ -15,6 +16,11 @@ export default function RouteError({
   title?: string;
   message?: string;
 }) {
+  const { t } = useTranslations();
+  const localizedTitle = title === "Something went wrong" ? t(title) : title;
+  const localizedMessage = message.startsWith("We couldn't load")
+    ? t("We couldn't load the content. This might be temporary. Please try again.")
+    : message;
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -29,9 +35,9 @@ export default function RouteError({
           className="text-2xl font-bold"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          {title}
+          {localizedTitle}
         </h2>
-        <p className="max-w-md text-muted-foreground">{message}</p>
+        <p className="max-w-md text-muted-foreground">{localizedMessage}</p>
       </div>
       <Button
         onClick={reset}
@@ -39,7 +45,7 @@ export default function RouteError({
         className="gap-2 rounded-full cursor-pointer"
       >
         <RotateCcw className="h-4 w-4" />
-        Try Again
+        {t("Try Again")}
       </Button>
     </div>
   );

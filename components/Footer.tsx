@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { Cookie, Film, ShieldCheck } from "lucide-react";
+import { localizedHref } from "@/lib/i18n";
+import { useTranslations } from "@/lib/use-locale";
 
 export default function Footer() {
+  const { locale, t } = useTranslations();
   return (
     <footer className="border-t border-white/10 bg-background/80">
       <div className="mx-auto max-w-7xl h-16 px-4 sm:px-6 flex items-center justify-between">
@@ -27,14 +30,14 @@ export default function Footer() {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <Cookie className="h-4 w-4" />
-            Cookies
+            {t("Cookies")}
           </button>
           <Link
-            href="/privacy"
+            href={localizedHref(locale, "/privacy")}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ShieldCheck className="h-4 w-4" />
-            Privacy
+            {t("Privacy")}
           </Link>
           <Link
             href="https://github.com/kacigaya/binje"

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { Space_Grotesk, Outfit } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CookiesBanner from "@/components/CookiesBanner";
+import { isLocale, translate } from "@/lib/i18n";
 
 const heading = Space_Grotesk({
   variable: "--font-heading",
@@ -17,22 +19,38 @@ const body = Outfit({
   weight: ["300", "400", "500", "600", "700"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "b!nje",
-    template: "%s | b!nje",
-  },
-  description:
-    "Discover and stream thousands of movies. Your cinematic journey starts here.",
-};
+export function generateStaticParams() {
+  return [{ locale: "en" }, { locale: "fr" }];
+}
 
-export default function RootLayout({
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) return {};
+  return {
+    title: { default: "b!nje", template: "%s | b!nje" },
+    description: translate(
+      locale,
+      "Discover and stream thousands of movies. Your cinematic journey starts here.",
+    ),
+  };
+}
+
+export default async function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }>) {
+  const { locale } = await params;
+  if (!isLocale(locale)) notFound();
+
   return (
-    <html lang="en" className={`${heading.variable} ${body.variable} dark`}>
+    <html lang={locale} className={`${heading.variable} ${body.variable} dark`}>
       <head>
         <link rel="preconnect" href="https://image.tmdb.org" />
         <link rel="dns-prefetch" href="https://image.tmdb.org" />

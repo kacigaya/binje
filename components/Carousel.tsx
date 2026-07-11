@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import MediaCard from "@/components/MediaCard";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import type { MediaItem } from "@/types/tmdb";
+import { useTranslations } from "@/lib/use-locale";
 
 export default function Carousel({
   title,
@@ -14,6 +15,7 @@ export default function Carousel({
   items: MediaItem[];
   priority?: boolean;
 }) {
+  const { t } = useTranslations();
   const { scrollRef, canScrollLeft, canScrollRight, scroll } =
     useHorizontalScroll(items);
 
@@ -34,7 +36,7 @@ export default function Carousel({
               type="button"
               onClick={() => scroll("left")}
               className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
-              aria-label="Scroll left"
+              aria-label={t("Scroll left")}
             >
               <ChevronLeft className="h-8 w-8 text-foreground" />
             </button>
@@ -61,7 +63,7 @@ export default function Carousel({
               type="button"
               onClick={() => scroll("right")}
               className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
-              aria-label="Scroll right"
+              aria-label={t("Scroll right")}
             >
               <ChevronRight className="h-8 w-8 text-foreground" />
             </button>

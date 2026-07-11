@@ -9,13 +9,15 @@ import {
   pickMovieLogo,
   tvToMedia,
 } from "@/lib/tmdb";
+import { translate, type Locale } from "@/lib/i18n";
 
 export const revalidate = 3600;
 
-export default async function HomePage() {
+export default async function HomePage({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params;
   const [trending, trendingTV] = await Promise.all([
-    getTrending(),
-    getTrendingTV(),
+    getTrending(locale),
+    getTrendingTV(locale),
   ]);
 
   const featuredItems = await Promise.all(
@@ -23,8 +25,8 @@ export default async function HomePage() {
       const item = movieToMedia(movie);
 
       try {
-        const images = await getMovieImages(movie.id);
-        const logo = pickMovieLogo(images.logos);
+        const images = await getMovieImages(movie.id, locale);
+        const logo = pickMovieLogo(images.logos, locale);
 
         if (!logo) return item;
 
@@ -48,11 +50,11 @@ export default async function HomePage() {
         <ContinueWatching />
 
         <Carousel
-          title="Trending Movies"
+          title={translate(locale, "Trending Movies")}
           items={trending.map(movieToMedia)}
           priority
         />
-        <Carousel title="Trending TV Shows" items={trendingTV.map(tvToMedia)} />
+        <Carousel title={translate(locale, "Trending TV Shows")} items={trendingTV.map(tvToMedia)} />
       </div>
     </div>
   );

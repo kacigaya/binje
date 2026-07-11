@@ -14,10 +14,13 @@ import {
 } from "@/lib/play-history";
 import { posterUrl } from "@/lib/tmdb";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
+import { localizedHref } from "@/lib/i18n";
+import { useTranslations } from "@/lib/use-locale";
 
 const EMPTY_HISTORY: PlayHistoryItem[] = [];
 
 export default function ContinueWatching() {
+  const { locale, t } = useTranslations();
   const items = useSyncExternalStore(
     subscribeToPlayHistory,
     getPlayHistory,
@@ -40,7 +43,7 @@ export default function ContinueWatching() {
         className="text-xl sm:text-2xl font-bold tracking-tight mb-4 px-4 sm:px-6"
         style={{ fontFamily: "var(--font-heading)" }}
       >
-        Continue Watching
+        {t("Continue Watching")}
       </h2>
 
       <div className="group/carousel relative">
@@ -51,7 +54,7 @@ export default function ContinueWatching() {
               type="button"
               onClick={() => scroll("left")}
               className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
-              aria-label="Scroll left"
+              aria-label={t("Scroll left")}
             >
               <ChevronLeft className="h-8 w-8 text-foreground" />
             </button>
@@ -64,7 +67,7 @@ export default function ContinueWatching() {
               type="button"
               onClick={() => scroll("right")}
               className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
-              aria-label="Scroll right"
+              aria-label={t("Scroll right")}
             >
               <ChevronRight className="h-8 w-8 text-foreground" />
             </button>
@@ -79,7 +82,7 @@ export default function ContinueWatching() {
             const poster = posterUrl(item.poster_path, "w342");
             const rating = Number.isFinite(item.vote_average)
               ? item.vote_average.toFixed(1)
-              : "N/A";
+              : t("N/A");
             const progress =
               typeof item.progress === "number" &&
               Number.isFinite(item.progress) &&
@@ -91,7 +94,7 @@ export default function ContinueWatching() {
             return (
               <Link
                 key={`${item.type}-${item.id}`}
-                href={getPlayHistoryHref(item)}
+                href={localizedHref(locale, getPlayHistoryHref(item))}
                 className="group block shrink-0"
               >
                 <div className="relative w-40 sm:w-46.25 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
@@ -111,13 +114,13 @@ export default function ContinueWatching() {
                     </div>
 
                     <div className="absolute top-2 left-2 rounded-full bg-accent-red/90 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
-                      {item.type === "tv" ? "TV" : "Movie"}
+                      {t(item.type === "tv" ? "TV" : "Movie")}
                     </div>
 
                     <button
                       type="button"
                       onClick={(event) => removeItem(event, item)}
-                      aria-label={`Remove ${item.title} from history`}
+                      aria-label={`${t("Remove from continue watching")}: ${item.title}`}
                       className="absolute right-2 bottom-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white/85 backdrop-blur-sm transition-colors hover:bg-accent-red hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-red/70"
                     >
                       <X className="h-4 w-4" />
