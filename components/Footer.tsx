@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Cookie, Film, ShieldCheck } from "lucide-react";
 import { localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 
 export default function Footer() {
   const { locale, t } = useTranslations();
+  const pathname = usePathname();
+  const router = useRouter();
   return (
     <footer className="border-t border-white/10 bg-background/80">
-      <div className="mx-auto max-w-7xl h-16 px-4 sm:px-6 flex items-center justify-between">
+      <div className="mx-auto flex min-h-16 max-w-7xl flex-col items-center justify-between gap-3 px-4 py-3 sm:h-16 sm:flex-row sm:px-6 sm:py-0">
         <div
           className="flex items-center gap-2 text-sm text-muted-foreground"
           style={{ fontFamily: "var(--font-heading)" }}
@@ -20,7 +23,27 @@ export default function Footer() {
           </span>
         </div>
 
-        <div className="flex items-center gap-4 sm:gap-6">
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
+          <div className="flex items-center rounded-full border border-white/10 bg-white/5 p-0.5 text-xs font-semibold">
+            {(["en", "fr"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-current={locale === value ? "page" : undefined}
+                onClick={() => {
+                  const nextPath = pathname.replace(/^\/(en|fr)(?=\/|$)/, `/${value}`);
+                  router.push(`${nextPath}${window.location.search}`);
+                }}
+                className={`rounded-full px-2 py-1 uppercase transition-colors cursor-pointer ${
+                  locale === value
+                    ? "bg-accent-red text-white"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             onClick={() => {

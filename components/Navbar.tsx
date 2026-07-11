@@ -271,28 +271,6 @@ export default function Navbar() {
               )}
             </div>
           )}
-          {!open && (
-            <div className="flex items-center rounded-full border border-white/10 bg-white/5 p-0.5 text-xs font-semibold">
-              {(["en", "fr"] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-current={locale === value ? "page" : undefined}
-                  onClick={() => {
-                    const nextPath = pathname.replace(/^\/(en|fr)(?=\/|$)/, `/${value}`);
-                    router.push(`${nextPath}${window.location.search}`);
-                  }}
-                  className={`rounded-full px-2 py-1 uppercase transition-colors cursor-pointer ${
-                    locale === value
-                      ? "bg-accent-red text-white"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {value}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
         </div>
 
