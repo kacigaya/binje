@@ -246,7 +246,7 @@ export default function TVPlayer({
                 <button
                   key={ep.id}
                   onClick={() => navigate(season, ep.episode_number)}
-                  className={`group relative w-72 sm:w-80 shrink-0 text-left aspect-video rounded-2xl overflow-hidden ring-1 transition-all cursor-pointer ${
+                  className={`group relative w-72 sm:w-80 shrink-0 text-left aspect-video rounded-2xl overflow-hidden ring-1 transition-[box-shadow] cursor-pointer ${
                     isActive
                       ? "ring-2 ring-white"
                       : "ring-white/10 hover:ring-white/30"

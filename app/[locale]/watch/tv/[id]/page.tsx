@@ -9,6 +9,7 @@ import {
   getTVContentRating,
   getTVImages,
   getSeasonEpisodes,
+  backdropUrl,
   logoUrl,
   pickTVLogo,
 } from "@/lib/tmdb";
@@ -33,9 +34,21 @@ export async function generateMetadata({
   const show = await getTVDetails(showId, locale);
   const season = s ? parseInt(s, 10) : 1;
   const episode = e ? parseInt(e, 10) : 1;
+  const title = `${show.name}: ${translate(locale, "Season")} ${season}, ${translate(locale, "Episode")} ${episode}`;
+  const image = backdropUrl(show.backdrop_path, "w1280");
   return {
-    title: `${show.name}: ${translate(locale, "Season")} ${season}, ${translate(locale, "Episode")} ${episode}`,
+    title,
     description: show.overview,
+    // Watch page is a functional duplicate of the detail page; canonicalize
+    // to the detail page so search engines index one.
+    alternates: { canonical: `/${locale}/tv/${showId}` },
+    openGraph: {
+      type: "video.episode",
+      title,
+      description: show.overview,
+      url: `/${locale}/watch/tv/${showId}`,
+      ...(image ? { images: [image] } : {}),
+    },
   };
 }
 

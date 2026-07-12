@@ -16,6 +16,7 @@ const FRENCH = {
   "Close menu": "Fermer le menu",
   "Open search": "Ouvrir la recherche",
   "Close search": "Fermer la recherche",
+  "Clear search": "Effacer la recherche",
   Untitled: "Sans titre",
   Movie: "Film",
   TV: "Série",

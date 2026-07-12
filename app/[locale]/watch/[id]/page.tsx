@@ -13,6 +13,7 @@ import {
   getMovieDetails,
   getMovieContentRating,
   getMovieImages,
+  backdropUrl,
   logoUrl,
   pickMovieLogo,
 } from "@/lib/tmdb";
@@ -27,7 +28,21 @@ export async function generateMetadata({
   const movieId = parseInt(id, 10);
   if (!Number.isFinite(movieId) || movieId <= 0) return {};
   const movie = await getMovieDetails(movieId, locale);
-  return { title: movie.title, description: movie.overview };
+  const image = backdropUrl(movie.backdrop_path, "w1280");
+  return {
+    title: movie.title,
+    description: movie.overview,
+    // Watch page is a functional duplicate of the detail page; canonicalize
+    // to the detail page so search engines index one.
+    alternates: { canonical: `/${locale}/movie/${movieId}` },
+    openGraph: {
+      type: "video.movie",
+      title: movie.title,
+      description: movie.overview,
+      url: `/${locale}/watch/${movieId}`,
+      ...(image ? { images: [image] } : {}),
+    },
+  };
 }
 
 export default async function WatchPage({

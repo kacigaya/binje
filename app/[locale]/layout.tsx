@@ -23,6 +23,9 @@ export function generateStaticParams() {
   return [{ locale: "en" }, { locale: "fr" }];
 }
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://binje-stream.netlify.app";
+
 export async function generateMetadata({
   params,
 }: {
@@ -30,14 +33,30 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
+  const description = translate(
+    locale,
+    "Discover and stream thousands of movies. Your cinematic journey starts here.",
+  );
   return {
+    metadataBase: new URL(SITE_URL),
     title: { default: "b!nje", template: "%s | b!nje" },
-    description: translate(
-      locale,
-      "Discover and stream thousands of movies. Your cinematic journey starts here.",
-    ),
+    description,
+    alternates: { canonical: `/${locale}` },
+    openGraph: {
+      type: "website",
+      siteName: "b!nje",
+      title: "b!nje",
+      description,
+      url: `/${locale}`,
+      locale: locale === "fr" ? "fr_FR" : "en_US",
+    },
+    twitter: { card: "summary_large_image" },
   };
 }
+
+export const viewport = {
+  themeColor: "#050506",
+};
 
 export default async function RootLayout({
   children,

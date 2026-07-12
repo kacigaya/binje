@@ -31,9 +31,18 @@ export async function generateMetadata({
   const showId = parseInt(id, 10);
   if (!Number.isFinite(showId) || showId <= 0) return {};
   const show = await getTVDetails(showId, locale);
+  const image = backdropUrl(show.backdrop_path, "w1280");
   return {
     title: show.name,
     description: show.overview,
+    alternates: { canonical: `/${locale}/tv/${showId}` },
+    openGraph: {
+      type: "video.tv_show",
+      title: show.name,
+      description: show.overview,
+      url: `/${locale}/tv/${showId}`,
+      ...(image ? { images: [image] } : {}),
+    },
   };
 }
 

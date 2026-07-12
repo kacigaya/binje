@@ -109,20 +109,24 @@ function SearchContent() {
     <div className="pt-24 pb-16 px-4 sm:px-6 max-w-7xl mx-auto w-full">
       {/* Search input */}
       <div className="relative max-w-2xl mx-auto mb-8">
-        <Search className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
+        <Search
+          aria-hidden="true"
+          className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground"
+        />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("Search movies & TV shows...")}
+          aria-label={t("Search movies & TV shows...")}
           autoFocus
-          className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-13 pr-12 text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition-all"
+          className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-13 pr-12 text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery("")}
-            aria-label={t("Close search")}
+            aria-label={t("Clear search")}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             <X className="size-5" />
@@ -136,7 +140,7 @@ function SearchContent() {
           <button
             key={type}
             onClick={() => setFilter(type)}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition-all cursor-pointer ${
+            className={`px-5 py-2 rounded-full text-sm font-medium transition cursor-pointer ${
               filter === type
                 ? "bg-accent-red text-white"
                 : "bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"

@@ -122,7 +122,7 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 z-50">
-      <div className="mx-auto max-w-7xl rounded-[2rem] bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30 transition-[background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none">
+      <div className="mx-auto max-w-7xl rounded-[2rem] bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30">
         <div className="flex items-center justify-between px-4 sm:px-6 h-16">
         <Link
           href={localizedHref(locale, "/")}
@@ -169,13 +169,16 @@ export default function Navbar() {
               className="relative flex md:hidden items-center justify-center size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
               aria-label={menuOpen ? t("Close menu") : t("Open menu")}
               aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
             >
               <Menu
+                aria-hidden="true"
                 className={`absolute size-5 transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none ${
                   menuOpen ? "rotate-90 scale-75 opacity-0" : "rotate-0 scale-100 opacity-100"
                 }`}
               />
               <X
+                aria-hidden="true"
                 className={`absolute size-5 transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none ${
                   menuOpen ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-75 opacity-0"
                 }`}
@@ -188,14 +191,18 @@ export default function Navbar() {
               {open ? (
                 <form onSubmit={handleSubmit} className="flex items-center gap-2">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                    <Search
+                      aria-hidden="true"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
+                    />
                     <input
                       ref={inputRef}
                       type="text"
                       placeholder={t("Search movies & TV...")}
+                      aria-label={t("Search movies & TV...")}
                       value={query}
                       onChange={(event) => handleQueryChange(event.target.value)}
-                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition-all"
+                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition"
                     />
                     {suggestions.length > 0 && (
                       <div className="absolute right-0 top-12 w-72 overflow-hidden rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -275,6 +282,7 @@ export default function Navbar() {
         </div>
 
         <div
+          id="mobile-menu"
           className={`grid md:hidden overflow-hidden transition-[grid-template-rows,opacity,transform] duration-300 ease-out motion-reduce:transition-none ${
             menuOpen
               ? "grid-rows-[1fr] opacity-100 translate-y-0"
@@ -295,7 +303,7 @@ export default function Navbar() {
                     href={href}
                     onClick={() => setMenuOpen(false)}
                     tabIndex={menuOpen ? 0 : -1}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition duration-200 ${
                       active
                         ? "bg-white/10 text-foreground"
                         : "text-muted-foreground hover:bg-white/8 hover:text-foreground"

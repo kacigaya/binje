@@ -31,9 +31,18 @@ export async function generateMetadata({
   const movieId = parseInt(id, 10);
   if (!Number.isFinite(movieId) || movieId <= 0) return {};
   const movie = await getMovieDetails(movieId, locale);
+  const image = backdropUrl(movie.backdrop_path, "w1280");
   return {
     title: movie.title,
     description: movie.overview,
+    alternates: { canonical: `/${locale}/movie/${movieId}` },
+    openGraph: {
+      type: "video.movie",
+      title: movie.title,
+      description: movie.overview,
+      url: `/${locale}/movie/${movieId}`,
+      ...(image ? { images: [image] } : {}),
+    },
   };
 }
 
