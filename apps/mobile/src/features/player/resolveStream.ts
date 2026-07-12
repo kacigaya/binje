@@ -39,8 +39,11 @@ function isPlayableUrl(value: unknown): value is string {
 }
 
 export async function resolveStream(media: StreamMedia, variant: AudioVariant): Promise<StreamResponse> {
-  const result = await apiRequest<StreamResponse>(variant === "vf" ? "/api/resolve-vf" : "/api/resolve", {
+  const resolverBase = process.env.EXPO_PUBLIC_RESOLVE_BASE_URL?.trim().replace(/\/+$/, "");
+  const endpoint = variant === "vf" ? "resolve-vf" : "resolve";
+  const result = await apiRequest<StreamResponse>(resolverBase ? `/${endpoint}` : `/api/${endpoint}`, {
     query: buildResolveQuery(media),
+    ...(resolverBase ? { baseUrl: resolverBase } : {}),
   });
   if (!isPlayableUrl(result.url)) throw new Error("The server did not return a playable stream.");
   return {

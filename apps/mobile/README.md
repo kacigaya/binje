@@ -11,6 +11,7 @@ bun run mobile:start
 ```
 
 `EXPO_PUBLIC_API_BASE_URL` must be the public origin of the b!nje Next.js backend, without a trailing slash.
+Set optional `EXPO_PUBLIC_RESOLVE_BASE_URL` to the deployed resolver Worker origin when production stream extraction uses Cloudflare egress.
 
 ## Development builds
 
