@@ -216,7 +216,7 @@ export default function Player({
             aria-label={t("Quality")}
             value={quality}
             onChange={(event) => changeQuality(Number(event.target.value))}
-            className="cursor-pointer rounded-full bg-white/10 px-2 py-1 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-accent-red/60"
+            className="cursor-pointer rounded-full bg-white/10 pl-3 pr-2 py-1 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-accent-red/60"
           >
             <option value={-1}>{t("Auto")}</option>
             {qualities.map((item) => (
