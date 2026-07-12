@@ -242,7 +242,7 @@ export default async function TVShowPage({
             >
               {translate(locale, "Seasons")}
             </h3>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide p-2">
               {show.seasons
                 .filter((s) => s.season_number > 0)
                 .map((season) => {
