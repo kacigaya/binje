@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "bun test",
+    "test": "bash -lc 'shopt -s globstar; bun test lib/**/*.test.ts app/**/*.test.ts'",
     "mobile:start": "bun --cwd apps/mobile start",
     "mobile:android": "bun --cwd apps/mobile android",
     "mobile:ios": "bun --cwd apps/mobile ios",
