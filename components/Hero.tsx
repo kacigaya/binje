@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Star, Info } from "lucide-react";
+import { Play, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
@@ -102,10 +102,33 @@ export default function Hero({ items }: HeroProps) {
                   {t("TV Series")}
                 </Badge>
               )}
-              <div className="flex items-center gap-1 text-accent-red">
-                <Star className="h-4 w-4 fill-accent-red" />
-                <span className="text-sm font-semibold">{rating}</span>
+              <div className="flex items-center gap-1.5 text-accent-red font-semibold">
+                <Image
+                  src="/tmdb.svg"
+                  alt=""
+                  width={37}
+                  height={16}
+                  aria-hidden="true"
+                  className="h-4 w-auto shrink-0"
+                />
+                <span className="text-sm">{rating}</span>
               </div>
+              {activeItem.rottenTomatoesScore !== null &&
+                activeItem.rottenTomatoesScore !== undefined && (
+                  <div className="flex items-center gap-1.5 text-accent-red font-semibold">
+                    <Image
+                      src="/rotten-tomatoes.svg"
+                      alt=""
+                      width={16}
+                      height={16}
+                      aria-hidden="true"
+                      className="h-4 w-4 shrink-0"
+                    />
+                    <span className="text-sm">
+                      {activeItem.rottenTomatoesScore}%
+                    </span>
+                  </div>
+                )}
               {activeItem.date && (
                 <span className="text-sm text-muted-foreground">
                   {new Date(activeItem.date).getFullYear()}
@@ -114,6 +137,7 @@ export default function Hero({ items }: HeroProps) {
             </div>
 
             <ExpandableOverview
+              key={activeItem.id}
               text={activeItem.overview}
               className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-xl"
             />

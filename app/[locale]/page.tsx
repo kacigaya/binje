@@ -3,6 +3,7 @@ import Carousel from "@/components/Carousel";
 import ContinueWatching from "@/components/ContinueWatching";
 import {
   getMovieImages,
+  getMovieDetails,
   getTrending,
   getTrendingTV,
   movieToMedia,
@@ -10,6 +11,7 @@ import {
   tvToMedia,
 } from "@/lib/tmdb";
 import { translate, type Locale } from "@/lib/i18n";
+import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 
 export const revalidate = 3600;
 
@@ -24,21 +26,24 @@ export default async function HomePage({ params }: { params: Promise<{ locale: L
     trending.map(async (movie) => {
       const item = movieToMedia(movie);
 
-      try {
-        const images = await getMovieImages(movie.id, locale);
-        const logo = pickMovieLogo(images.logos, locale);
+      const [images, details] = await Promise.all([
+        getMovieImages(movie.id, locale).catch(() => null),
+        getMovieDetails(movie.id, locale).catch(() => null),
+      ]);
+      const logo = images ? pickMovieLogo(images.logos, locale) : null;
+      const rottenTomatoesScore = await getRottenTomatoesScore(
+        details?.imdb_id,
+      );
 
-        if (!logo) return item;
-
-        return {
-          ...item,
+      return {
+        ...item,
+        rottenTomatoesScore,
+        ...(logo && {
           logo_path: logo.file_path,
           logo_width: logo.width,
           logo_height: logo.height,
-        };
-      } catch {
-        return item;
-      }
+        }),
+      };
     }),
   );
 

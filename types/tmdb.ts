@@ -171,6 +171,7 @@ export interface MediaItem {
   logo_path?: string | null;
   logo_width?: number;
   logo_height?: number;
+  rottenTomatoesScore?: number | null;
 }
 
 export interface MultiSearchResult {

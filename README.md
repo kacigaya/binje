@@ -19,7 +19,7 @@
 - Watch pages for movies and TV episodes with embedded player (vidlink.pro)
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
 - "Continue Watching" row backed by local play history
-- Hero with auto-rotating featured titles and expandable overview
+- Hero with auto-rotating featured titles, two-line expandable overview, and TMDB/Rotten Tomatoes ratings
 - Lazy-loaded carousels and loading skeletons
 - Cookie consent banner that gates play-history writes, with a `/privacy` policy page
 - Per-page SEO metadata via `generateMetadata`
