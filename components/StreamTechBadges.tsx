@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { RESOLVE_BASE, proxied } from "@/components/Player";
+import { fetchResolve } from "@/lib/resolve-client";
 import { parseTsCodecs, type StreamTech } from "@/lib/stream-probe";
 
 type Info = StreamTech & { height: number | null };
@@ -44,12 +45,9 @@ export default function StreamTechBadges({
           params.set("season", "1");
           params.set("episode", "1");
         }
-        const res = await fetch(`${RESOLVE_BASE}/resolve?${params.toString()}`);
-        if (!res.ok) return;
-        const data = (await res.json()) as {
-          url: string;
-          sources?: { file: string; height: number }[];
-        };
+        const data = await fetchResolve(
+          `${RESOLVE_BASE}/resolve?${params.toString()}`,
+        );
 
         let height = data.sources?.length
           ? Math.max(...data.sources.map((s) => s.height))

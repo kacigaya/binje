@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { Clock, Calendar } from "lucide-react";
 import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
+import StreamTechBadges from "@/components/StreamTechBadges";
 import { Badge } from "@/components/ui/badge";
 import Player from "@/components/Player";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
@@ -14,7 +16,7 @@ import {
   logoUrl,
   pickMovieLogo,
 } from "@/lib/tmdb";
-import type { Locale } from "@/lib/i18n";
+import { localizedHref, type Locale } from "@/lib/i18n";
 
 export async function generateMetadata({
   params,
@@ -63,25 +65,29 @@ export default async function WatchPage({
       {/* Movie info above player */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
         <div className="space-y-4 mt-6">
-          {logo && movieLogoUrl && (
-            <Image
-              src={movieLogoUrl}
-              alt={`${movie.title} logo`}
-              width={logo.width}
-              height={logo.height}
-              className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
-              priority
-            />
-          )}
-
-          {!logo && (
-            <h1
-              className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {movie.title}
-            </h1>
-          )}
+          <Link
+            href={localizedHref(locale, `/movie/${movie.id}`)}
+            className="inline-block"
+            aria-label={movie.title}
+          >
+            {logo && movieLogoUrl ? (
+              <Image
+                src={movieLogoUrl}
+                alt={`${movie.title} logo`}
+                width={logo.width}
+                height={logo.height}
+                className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
+                priority
+              />
+            ) : (
+              <h1
+                className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                {movie.title}
+              </h1>
+            )}
+          </Link>
 
           <div className="flex flex-wrap gap-2">
             {movie.genres.map((g) => (
@@ -135,6 +141,13 @@ export default async function WatchPage({
                 {new Date(movie.release_date).getFullYear()}
               </div>
             )}
+            <StreamTechBadges
+              type="movie"
+              tmdbId={movie.id}
+              title={movie.original_title}
+              year={movie.release_date.slice(0, 4)}
+              imdbId={movie.imdb_id}
+            />
           </div>
 
           <ExpandableOverview

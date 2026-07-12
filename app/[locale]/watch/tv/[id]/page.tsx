@@ -15,7 +15,9 @@ import {
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
 import ExpandableOverview from "@/components/ExpandableOverview";
 import TVPlayer from "./TVPlayer";
-import { translate, type Locale } from "@/lib/i18n";
+import Link from "next/link";
+import StreamTechBadges from "@/components/StreamTechBadges";
+import { localizedHref, translate, type Locale } from "@/lib/i18n";
 
 export async function generateMetadata({
   params,
@@ -88,25 +90,29 @@ export default async function WatchTVPage({
       {/* Show info above player */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
         <div className="space-y-4 mt-6">
-          {logo && showLogoUrl && (
-            <Image
-              src={showLogoUrl}
-              alt={`${show.name} logo`}
-              width={logo.width}
-              height={logo.height}
-              className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
-              priority
-            />
-          )}
-
-          {!logo && (
-            <h1
-              className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {show.name}
-            </h1>
-          )}
+          <Link
+            href={localizedHref(locale, `/tv/${show.id}`)}
+            className="inline-block"
+            aria-label={show.name}
+          >
+            {logo && showLogoUrl ? (
+              <Image
+                src={showLogoUrl}
+                alt={`${show.name} logo`}
+                width={logo.width}
+                height={logo.height}
+                className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
+                priority
+              />
+            ) : (
+              <h1
+                className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                {show.name}
+              </h1>
+            )}
+          </Link>
 
           <div className="flex flex-wrap gap-2">
             <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
@@ -165,6 +171,13 @@ export default async function WatchTVPage({
                 {new Date(show.first_air_date).getFullYear()}
               </div>
             )}
+            <StreamTechBadges
+              type="tv"
+              tmdbId={show.id}
+              title={show.original_name}
+              year={show.first_air_date.slice(0, 4)}
+              imdbId={show.external_ids.imdb_id}
+            />
           </div>
 
           <ExpandableOverview

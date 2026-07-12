@@ -3,6 +3,7 @@
 import Hls from "hls.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Select } from "@/components/ui/select";
+import { fetchResolve } from "@/lib/resolve-client";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
@@ -107,13 +108,7 @@ export default function Player({
 
     (async () => {
       try {
-        const res = await fetch(sourceUrl);
-        if (!res.ok) throw new Error("resolve failed");
-        const data = (await res.json()) as {
-          url: string;
-          tracks?: Track[];
-          sources?: StreamSource[];
-        };
+        const data = await fetchResolve(sourceUrl);
         if (cancelled) return;
 
         setTracks((data.tracks ?? []).filter((t) => t.file));
