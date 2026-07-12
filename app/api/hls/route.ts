@@ -2,7 +2,7 @@ import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
 
-const PLAYER_ORIGIN = "https://vidcore.net";
+const PLAYER_ORIGIN = "https://player.videasy.to";
 const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
 const FETCH_TIMEOUT_MS = 12000;

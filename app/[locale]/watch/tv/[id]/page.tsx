@@ -149,6 +149,9 @@ export default async function WatchTVPage({
       <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8">
         <TVPlayer
           showId={show.id}
+          title={show.original_name}
+          year={show.first_air_date.slice(0, 4)}
+          imdbId={show.external_ids.imdb_id}
           season={season}
           episode={episode}
           seasons={seasons.map((ss) => ({

@@ -16,7 +16,7 @@
 - Dedicated `/movies` and `/tv-shows` browse pages
 - Detailed movie and TV show pages (ratings, cast, seasons, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
-- Watch pages for movies and TV episodes with embedded player (vidlink.pro)
+- Watch pages with Videasy VO, optional VF, subtitles, and manual HLS quality selection
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
 - "Continue Watching" row backed by local play history
 - Hero with auto-rotating featured titles, two-line expandable overview, and TMDB/Rotten Tomatoes ratings
@@ -33,7 +33,7 @@
 - UI: React 19, Tailwind CSS 4, shadcn tokens, Lucide icons
 - Styling: clsx, tailwind-merge
 - Data: TMDB (movies/TV), OMDb (optional Rotten Tomatoes scores)
-- Player: VidLink proxy (`/api/vidlink`) and HLS stream proxy (`/api/hls`)
+- Player: hls.js with Videasy Yoru HQ/Neon fallback through enc-dec.app and `/api/hls`
 - Language: TypeScript
 - Testing: Bun test, Playwright
 
@@ -65,12 +65,15 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 Unprefixed URLs redirect to `/en` or `/fr` from the browser language; use the
 navbar language switch to change locale while keeping the current page.
 
+Production stream resolution is mirrored in `worker/resolve-worker.js`. Deploy that
+Worker separately after reviewing resolver changes; local development uses `/api/resolve`.
+
 ### Project structure
 
 ```
 app/            # Next.js App Router pages and layouts
   [locale]/     # English/French pages
-  api/          # Server routes (search, hls, vidlink, episodes)
+  api/          # Server routes (search, stream resolution, HLS, episodes)
   movie/[id]/   # Movie detail page
   movies/       # Browse all movies
   search/       # Search results

@@ -26,12 +26,18 @@ interface SeasonInfo {
 
 export default function TVPlayer({
   showId,
+  title,
+  year,
+  imdbId,
   season: initialSeason,
   episode: initialEpisode,
   seasons,
   initialEpisodes,
 }: {
   showId: number;
+  title: string;
+  year: string;
+  imdbId: string | null;
   season: number;
   episode: number;
   seasons: SeasonInfo[];
@@ -114,7 +120,15 @@ export default function TVPlayer({
 
   return (
     <div className="space-y-4">
-      <Player tmdbId={showId} type="tv" season={season} episode={episode} />
+      <Player
+        tmdbId={showId}
+        title={title}
+        year={year}
+        imdbId={imdbId}
+        type="tv"
+        season={season}
+        episode={episode}
+      />
 
       {/* Controls */}
       <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">

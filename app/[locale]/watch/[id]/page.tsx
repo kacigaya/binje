@@ -119,7 +119,13 @@ export default async function WatchPage({
 
       {/* Player */}
       <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8">
-        <Player tmdbId={movie.id} type="movie" />
+        <Player
+          tmdbId={movie.id}
+          title={movie.original_title}
+          year={movie.release_date.slice(0, 4)}
+          imdbId={movie.imdb_id}
+          type="movie"
+        />
       </div>
     </div>
   );

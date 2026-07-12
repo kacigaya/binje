@@ -1,10 +1,11 @@
-// Cloudflare Worker: stream resolver (current provider: vidcore.net).
+// Cloudflare Worker: Videasy Yoru HQ resolver with Neon fallback.
 // Only job: hit the provider + enc-dec.app to get the m3u8 url. The Worker's
 // Cloudflare egress gets past provider-side Cloudflare blocks (Netlify/AWS IPs
 // are often blocked). Segment proxying stays on Netlify /api/hls; stream
 // CDNs tend to block the Worker's IP but allow Netlify's server-side fetch.
 
-const PLAYER_ORIGIN = "https://vidcore.net";
+const PLAYER_ORIGIN = "https://player.videasy.to";
+const SOURCE_API = "https://api.wingsdatabase.com";
 const ENC_API = "https://enc-dec.app/api";
 // French (VF) provider. frembed serves no HLS directly — its /api/stream slots
 // 302 to file hosters; only uqload gives a clean signed m3u8. Keep the unpacker
@@ -18,9 +19,10 @@ const ALLOWED_ORIGINS = [
 ];
 
 const BASE_HEADERS = {
+  accept: "*/*",
+  origin: PLAYER_ORIGIN,
   "user-agent": UA,
   referer: `${PLAYER_ORIGIN}/`,
-  "x-requested-with": "XMLHttpRequest",
 };
 
 function cors(origin) {
@@ -32,51 +34,92 @@ function cors(origin) {
   };
 }
 
-async function resolveStream(type, id, season, episode) {
-  const path =
-    type === "tv" ? `/tv/${id}/${season}/${episode}/` : `/movie/${id}/`;
-  const page = await fetch(`${PLAYER_ORIGIN}${path}`, {
-    headers: BASE_HEADERS,
-  }).then((r) => r.text());
+function qualityHeight(value) {
+  if (typeof value !== "string") return null;
+  if (value.toUpperCase() === "4K") return 2160;
+  const height = Number(value.match(/^(\d+)p$/i)?.[1]);
+  return Number.isInteger(height) && height > 0 ? height : null;
+}
 
-  const text = page.match(/\\"en\\":\\"(.*?)\\"/)?.[1];
-  if (!text) throw new Error("no player token");
-
-  const enc = await fetch(`${ENC_API}/enc-vidcore?text=${text}`).then((r) =>
-    r.json(),
+function parseVideasyResult(value) {
+  const adaptiveSource = value?.sources?.find(
+    (item) => item.type === "hls" && typeof item.url === "string",
   );
-  if (enc.status !== 200) throw new Error("enc-vidcore failed");
-  const { servers, stream, token } = enc.result;
+  const sources = (value?.sources ?? [])
+    .flatMap((item) => {
+      const height = qualityHeight(item.quality);
+      return typeof item.url === "string" && height
+        ? [{ file: item.url, height }]
+        : [];
+    })
+    .sort((a, b) => b.height - a.height);
+  const defaultSource = sources.find(({ height }) => height === 1080) ?? sources[0];
+  if (!adaptiveSource && !defaultSource) throw new Error("no playable HLS source");
 
-  const authed = { ...BASE_HEADERS, "x-csrf-token": token };
-  const serversEnc = await fetch(servers, {
-    method: "POST",
-    headers: authed,
-  }).then((r) => r.text());
-  const serversDec = await fetch(`${ENC_API}/dec-vidcore`, {
+  const labels = new Set();
+  const tracks = (value?.subtitles ?? []).flatMap((item) => {
+    if (typeof item.url !== "string") return [];
+    const label = item.language ?? item.lang;
+    if (label && labels.has(label)) return [];
+    if (label) labels.add(label);
+    return [{ file: item.url, label }];
+  });
+
+  return {
+    url: defaultSource?.file ?? adaptiveSource.url,
+    tracks,
+    ...(sources.length ? { sources } : {}),
+  };
+}
+
+async function resolveServer(server, parameters, id, seed) {
+  const encrypted = await fetch(
+    `${SOURCE_API}/${server}/sources-with-title?${parameters}`,
+    { headers: BASE_HEADERS },
+  ).then((response) => response.text());
+  const decrypted = await fetch(`${ENC_API}/dec-videasy`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ text: serversEnc }),
-  }).then((r) => r.json());
-  if (serversDec.status !== 200) throw new Error("dec servers failed");
+    body: JSON.stringify({ text: encrypted, id, seed }),
+  }).then((response) => response.json());
+  if (decrypted.status !== 200) throw new Error("dec-videasy failed");
 
-  // Some servers resolve to dead CDNs or serve DASH under an .m3u8 name;
-  // probe the playlist and require actual HLS before accepting.
-  for (const server of serversDec.result ?? []) {
-    const streamEnc = await fetch(`${stream}/${server.data}`, {
-      method: "POST",
-      headers: authed,
-    }).then((r) => r.text());
-    const dec = await fetch(`${ENC_API}/dec-vidcore`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text: streamEnc }),
-    }).then((r) => r.json());
-    if (dec.status === 200 && dec.result?.url && (await isPlayable(dec.result.url))) {
-      return { url: dec.result.url, tracks: dec.result.tracks ?? [] };
-    }
+  return parseVideasyResult(decrypted.result);
+}
+
+async function resolveStream(type, id, title, year, imdbId, season, episode) {
+  const seedData = await fetch(`${SOURCE_API}/seed?mediaId=${id}`, {
+    headers: BASE_HEADERS,
+  }).then((response) => response.json());
+  if (!seedData.seed) throw new Error("no Videasy seed");
+
+  const parameters = new URLSearchParams({
+    title: encodeURIComponent(title),
+    mediaType: type,
+    year,
+    tmdbId: id,
+    imdbId,
+    enc: "2",
+    seed: seedData.seed,
+  });
+  if (type === "tv") {
+    parameters.set("seasonId", season);
+    parameters.set("episodeId", episode);
   }
-  throw new Error("no server returned a stream");
+
+  const highQuality = await resolveServer(
+    "cdn",
+    parameters,
+    id,
+    seedData.seed,
+  ).catch(() =>
+    resolveServer("cdn", parameters, id, seedData.seed).catch(() => null),
+  );
+  if (highQuality?.sources?.some(({ height }) => height >= 1080)) {
+    return highQuality;
+  }
+
+  return resolveServer("neon2", parameters, id, seedData.seed);
 }
 
 const FR_HEADERS = { "user-agent": UA, referer: `${FREMBED_ORIGIN}/` };
@@ -175,18 +218,27 @@ const worker = {
 
     const type = url.searchParams.get("type");
     const id = url.searchParams.get("id");
-    if ((type !== "movie" && type !== "tv") || !/^\d+$/.test(id || "")) {
+    const title = url.searchParams.get("title")?.trim() || "";
+    const year = url.searchParams.get("year") || "";
+    const imdbId = url.searchParams.get("imdbId")?.trim() || "";
+    const season = url.searchParams.get("season") || "1";
+    const episode = url.searchParams.get("episode") || "1";
+    const isVf = url.pathname === "/resolve-vf";
+    const validEpisode =
+      type !== "tv" || (/^[1-9]\d*$/.test(season) && /^[1-9]\d*$/.test(episode));
+    if (
+      (type !== "movie" && type !== "tv") ||
+      !/^\d+$/.test(id || "") ||
+      (!isVf && (!title || title.length > 200 || !/^\d{4}$/.test(year))) ||
+      (!isVf && imdbId !== "" && !/^tt\d+$/.test(imdbId)) ||
+      !validEpisode
+    ) {
       return Response.json({ error: "bad params" }, { status: 400, headers: ch });
     }
     try {
-      const resolve =
-        url.pathname === "/resolve-vf" ? resolveVf : resolveStream;
-      const result = await resolve(
-        type,
-        id,
-        url.searchParams.get("season") || "1",
-        url.searchParams.get("episode") || "1",
-      );
+      const result = isVf
+        ? await resolveVf(type, id, season, episode)
+        : await resolveStream(type, id, title, year, imdbId, season, episode);
       return Response.json(result, {
         headers: { ...ch, "cache-control": "no-store" },
       });

@@ -95,6 +95,8 @@ const FRENCH = {
   "Stream unavailable. Try again later.":
     "Flux indisponible. Réessayez plus tard.",
   "Loading…": "Chargement…",
+  Quality: "Qualité",
+  Auto: "Auto",
   Season: "Saison",
   Episode: "Épisode",
   "Now playing": "Lecture en cours",

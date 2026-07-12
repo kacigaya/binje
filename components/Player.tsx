@@ -8,8 +8,10 @@ import { useTranslations } from "@/lib/use-locale";
 
 export type PlayerMediaType = "movie" | "tv";
 type Track = { file: string; label?: string };
+type Quality = { index: number; height: number; bitrate: number };
+type StreamSource = { file: string; height: number };
 
-// "en" = default vidcore (original audio) via /api/resolve.
+// "en" = Videasy Yoru HQ with Neon fallback via /api/resolve.
 // "vf" = French via /api/resolve-vf (frembed → uqload HLS).
 type Lang = "en" | "vf";
 const LANGS: { id: Lang; label: string }[] = [
@@ -27,13 +29,34 @@ function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
 }
 
+function createMasterPlaylist(sources: StreamSource[]) {
+  // ponytail: Videasy labels fixed streams but supplies no bitrates. Estimates
+  // only guide hls.js ABR; manual resolution selection remains exact.
+  const lines = ["#EXTM3U", "#EXT-X-VERSION:3"];
+  for (const source of sources) {
+    const width = Math.round((source.height * 16) / 9 / 2) * 2;
+    const bandwidth = Math.round(source.height * source.height * 5);
+    lines.push(
+      `#EXT-X-STREAM-INF:BANDWIDTH=${bandwidth},RESOLUTION=${width}x${source.height}`,
+      new URL(proxied(source.file), window.location.origin).href,
+    );
+  }
+  return `${lines.join("\n")}\n`;
+}
+
 export default function Player({
   tmdbId,
+  title,
+  year,
+  imdbId = "",
   type = "movie",
   season,
   episode,
 }: {
   tmdbId: number;
+  title: string;
+  year: string;
+  imdbId?: string | null;
   type?: PlayerMediaType;
   season?: number;
   episode?: number;
@@ -42,18 +65,27 @@ export default function Player({
   const [lang, setLang] = useState<Lang>("en");
 
   const sourceUrl = useMemo(() => {
-    const params = new URLSearchParams({ type, id: String(tmdbId) });
+    const params = new URLSearchParams({
+      type,
+      id: String(tmdbId),
+      title,
+      year,
+      imdbId: imdbId ?? "",
+    });
     if (type === "tv") {
       params.set("season", String(season ?? 1));
       params.set("episode", String(episode ?? 1));
     }
     const endpoint = lang === "vf" ? "resolve-vf" : "resolve";
     return `${RESOLVE_BASE}/${endpoint}?${params.toString()}`;
-  }, [episode, lang, season, tmdbId, type]);
+  }, [episode, imdbId, lang, season, title, tmdbId, type, year]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const lastSavedAtRef = useRef(0);
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [qualities, setQualities] = useState<Quality[]>([]);
+  const [quality, setQuality] = useState(-1);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -65,22 +97,53 @@ export default function Player({
     setError(false);
     setLoading(true);
     setTracks([]);
+    setQualities([]);
+    setQuality(-1);
     lastSavedAtRef.current = 0;
 
     let hls: Hls | null = null;
+    let masterUrl: string | null = null;
 
     (async () => {
       try {
         const res = await fetch(sourceUrl);
         if (!res.ok) throw new Error("resolve failed");
-        const data = (await res.json()) as { url: string; tracks?: Track[] };
+        const data = (await res.json()) as {
+          url: string;
+          tracks?: Track[];
+          sources?: StreamSource[];
+        };
         if (cancelled) return;
 
         setTracks((data.tracks ?? []).filter((t) => t.file));
-        const src = proxied(data.url);
+        const hlsSupported = Hls.isSupported();
+        if (hlsSupported && data.sources?.length) {
+          masterUrl = URL.createObjectURL(
+            new Blob([createMasterPlaylist(data.sources)], {
+              type: "application/vnd.apple.mpegurl",
+            }),
+          );
+        }
+        const src = masterUrl ?? proxied(data.url);
 
-        if (Hls.isSupported()) {
+        if (hlsSupported) {
           hls = new Hls({ enableWorker: true });
+          hlsRef.current = hls;
+          hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+            const byHeight = new Map<number, Quality>();
+            data.levels.forEach((level, index) => {
+              if (!level.height) return;
+              const current = byHeight.get(level.height);
+              if (!current || level.bitrate > current.bitrate) {
+                byHeight.set(level.height, {
+                  index,
+                  height: level.height,
+                  bitrate: level.bitrate,
+                });
+              }
+            });
+            setQualities([...byHeight.values()].sort((a, b) => b.height - a.height));
+          });
           hls.loadSource(src);
           hls.attachMedia(video);
           hls.on(Hls.Events.ERROR, (_e, payload) => {
@@ -102,9 +165,16 @@ export default function Player({
 
     return () => {
       cancelled = true;
+      if (hlsRef.current === hls) hlsRef.current = null;
       hls?.destroy();
+      if (masterUrl) URL.revokeObjectURL(masterUrl);
     };
   }, [sourceUrl]);
+
+  function changeQuality(index: number) {
+    setQuality(index);
+    if (hlsRef.current) hlsRef.current.nextLevel = index;
+  }
 
   function onTimeUpdate() {
     const video = videoRef.current;
@@ -141,6 +211,21 @@ export default function Player({
             {l.label}
           </button>
         ))}
+        {qualities.length > 0 && (
+          <select
+            aria-label={t("Quality")}
+            value={quality}
+            onChange={(event) => changeQuality(Number(event.target.value))}
+            className="cursor-pointer rounded-full bg-white/10 px-2 py-1 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-accent-red/60"
+          >
+            <option value={-1}>{t("Auto")}</option>
+            {qualities.map((item) => (
+              <option key={item.height} value={item.index}>
+                {item.height}p
+              </option>
+            ))}
+          </select>
+        )}
       </div>
       <video
         ref={videoRef}
