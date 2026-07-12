@@ -1,5 +1,3 @@
-import { Tabs } from "expo-router";
-
-export default function TabsLayout() {
-  return <Tabs screenOptions={{ headerShown: false }} />;
-}
+import { Tabs } from 'expo-router'; import { Text, type ColorValue } from 'react-native'; import { ConsentBanner } from '../../components/ConsentBanner'; import { colors } from '../../theme';
+const icon=(symbol:string,color:ColorValue)=><Text style={{color,fontSize:20}}>{symbol}</Text>;
+export default function TabsLayout(){return <><Tabs screenOptions={{headerShown:false,tabBarActiveTintColor:colors.accent,tabBarInactiveTintColor:colors.muted,tabBarStyle:{backgroundColor:colors.surface,borderTopColor:colors.border,height:66,paddingBottom:8},sceneStyle:{backgroundColor:colors.background}}}><Tabs.Screen name="index" options={{title:'Home',tabBarIcon:({color})=>icon('⌂',color)}}/><Tabs.Screen name="browse" options={{title:'Browse',tabBarIcon:({color})=>icon('▦',color)}}/><Tabs.Screen name="search" options={{title:'Search',tabBarIcon:({color})=>icon('⌕',color)}}/><Tabs.Screen name="library" options={{title:'Library',tabBarIcon:({color})=>icon('＋',color)}}/><Tabs.Screen name="settings" options={{title:'Settings',tabBarIcon:({color})=>icon('⚙',color)}}/></Tabs><ConsentBanner/></>}

@@ -1,0 +1,3 @@
+import { Pressable,StyleSheet,Text } from 'react-native'; import { colors } from '../theme';
+export function Button({label,onPress,secondary=false,accessibilityLabel}:{label:string;onPress:()=>void;secondary?:boolean;accessibilityLabel?:string}){return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??label} onPress={onPress} style={({pressed})=>[s.base,secondary&&s.secondary,pressed&&s.pressed]}><Text style={s.text}>{label}</Text></Pressable>}
+const s=StyleSheet.create({base:{minHeight:48,backgroundColor:colors.accent,borderRadius:12,paddingHorizontal:18,alignItems:'center',justifyContent:'center'},secondary:{backgroundColor:colors.surfaceAlt},pressed:{opacity:.75},text:{color:colors.text,fontWeight:'700',fontSize:15}});
