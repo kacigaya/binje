@@ -39,7 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
+.hermes/plans
 # Playwright
 playwright.config.ts
 tests/
