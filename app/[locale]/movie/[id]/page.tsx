@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import WatchlistButton from "@/components/WatchlistButton";
+import StreamTechBadges from "@/components/StreamTechBadges";
 import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 import {
   getMovieDetails,
@@ -166,6 +167,13 @@ export default async function MoviePage({
                   })}
                 </div>
               )}
+              <StreamTechBadges
+                type="movie"
+                tmdbId={movie.id}
+                title={movie.original_title}
+                year={movie.release_date.slice(0, 4)}
+                imdbId={movie.imdb_id}
+              />
             </div>
 
             {/* Actions */}

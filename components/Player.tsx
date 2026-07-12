@@ -24,9 +24,9 @@ const LANGS: { id: Lang; label: string }[] = [
 // provider-side Cloudflare blocks; Netlify's IP is often blocked). Defaults to
 // local /api for dev. Segment proxy always stays on /api/hls; the stream CDN
 // serves Netlify's server-side fetch but blocks the Worker's IP.
-const RESOLVE_BASE = (process.env.NEXT_PUBLIC_RESOLVE_BASE || "/api").replace(/\/+$/, "");
+export const RESOLVE_BASE = (process.env.NEXT_PUBLIC_RESOLVE_BASE || "/api").replace(/\/+$/, "");
 
-function proxied(url: string) {
+export function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
 }
 

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import WatchlistButton from "@/components/WatchlistButton";
+import StreamTechBadges from "@/components/StreamTechBadges";
 import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 import {
   getTVDetails,
@@ -171,6 +172,13 @@ export default async function TVShowPage({
                   })}
                 </div>
               )}
+              <StreamTechBadges
+                type="tv"
+                tmdbId={show.id}
+                title={show.original_name}
+                year={show.first_air_date.slice(0, 4)}
+                imdbId={show.external_ids.imdb_id}
+              />
             </div>
 
             {/* Actions */}
