@@ -1,4 +1,4 @@
-import { ApiError, apiRequest, normalizeBaseUrl } from "../client";
+import { apiRequest, normalizeBaseUrl } from "../client";
 
 describe("API client", () => {
   const originalFetch = global.fetch;
@@ -40,7 +40,7 @@ describe("API client", () => {
     }) as jest.Mock;
 
     await expect(apiRequest("/api/search", { baseUrl: "https://example.com" })).rejects.toEqual(
-      expect.objectContaining<ApiError>({ status: 429, code: "RATE_LIMITED", message: "Slow down." }),
+      expect.objectContaining({ status: 429, code: "RATE_LIMITED", message: "Slow down." }),
     );
   });
 
@@ -54,7 +54,7 @@ describe("API client", () => {
     }) as jest.Mock;
 
     await expect(apiRequest("/api/mobile/home", { baseUrl: "https://example.com" })).rejects.toEqual(
-      expect.objectContaining<ApiError>({ status: 502, message: "Request failed with status 502." }),
+      expect.objectContaining({ status: 502, message: "Request failed with status 502." }),
     );
   });
 });
