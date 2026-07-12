@@ -11,6 +11,7 @@ import WatchlistButton from "@/components/WatchlistButton";
 import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 import {
   getTVDetails,
+  getTVContentRating,
   getTVCredits,
   getSimilarTV,
   tvToMedia,
@@ -57,6 +58,7 @@ export default async function TVShowPage({
   const backdrop = backdropUrl(show.backdrop_path, "w1280");
   const poster = posterUrl(show.poster_path, "w500");
   const topCast = credits.cast.slice(0, 12);
+  const contentRating = getTVContentRating(show);
 
   return (
     <div className="flex flex-col">
@@ -147,6 +149,9 @@ export default async function TVShowPage({
                   />
                   {rottenTomatoesScore}%
                 </div>
+              )}
+              {contentRating && (
+                <div className="font-semibold text-accent-red">{contentRating}</div>
               )}
               <div className="flex items-center gap-1">
                 <Layers className="h-4 w-4" />

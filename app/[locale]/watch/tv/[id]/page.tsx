@@ -5,6 +5,7 @@ import { Star, Calendar, Layers, Tv } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   getTVDetails,
+  getTVContentRating,
   getTVImages,
   getSeasonEpisodes,
   logoUrl,
@@ -51,6 +52,7 @@ export default async function WatchTVPage({
   ]);
   const logo = pickTVLogo(images.logos, locale);
   const showLogoUrl = logoUrl(logo?.file_path ?? null);
+  const contentRating = getTVContentRating(show);
 
   const season = s ? parseInt(s, 10) : 1;
   const episode = e ? parseInt(e, 10) : 1;
@@ -120,6 +122,9 @@ export default async function WatchTVPage({
               <Star className="h-4 w-4 fill-accent-red" />
               {show.vote_average.toFixed(1)}
             </div>
+            {contentRating && (
+              <div className="font-semibold text-accent-red">{contentRating}</div>
+            )}
             <div className="flex items-center gap-1">
               <Layers className="h-4 w-4" />
               {show.number_of_seasons} {show.number_of_seasons === 1 ? translate(locale, "Season") : translate(locale, "Seasons")}

@@ -129,6 +129,11 @@ export default function Hero({ items }: HeroProps) {
                     </span>
                   </div>
                 )}
+              {activeItem.contentRating && (
+                <span className="text-sm font-semibold text-accent-red">
+                  {activeItem.contentRating}
+                </span>
+              )}
               {activeItem.date && (
                 <span className="text-sm text-muted-foreground">
                   {new Date(activeItem.date).getFullYear()}

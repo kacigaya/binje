@@ -4,6 +4,7 @@ import ContinueWatching from "@/components/ContinueWatching";
 import {
   getMovieImages,
   getMovieDetails,
+  getMovieContentRating,
   getTrending,
   getTrendingTV,
   movieToMedia,
@@ -38,6 +39,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: L
       return {
         ...item,
         rottenTomatoesScore,
+        contentRating: details ? getMovieContentRating(details) : null,
         ...(logo && {
           logo_path: logo.file_path,
           logo_width: logo.width,

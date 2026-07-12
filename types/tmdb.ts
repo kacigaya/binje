@@ -25,6 +25,9 @@ export interface MovieDetails extends Movie {
   status: string;
   tagline: string;
   production_companies: ProductionCompany[];
+  release_dates: {
+    results: { iso_3166_1: string; release_dates: { certification: string }[] }[];
+  };
 }
 
 export interface TVShow {
@@ -56,6 +59,9 @@ export interface TVShowDetails extends TVShow {
   created_by: { id: number; name: string; profile_path: string | null }[];
   networks: { id: number; name: string; logo_path: string | null }[];
   production_companies: ProductionCompany[];
+  content_ratings: {
+    results: { iso_3166_1: string; rating: string }[];
+  };
 }
 
 interface Season {
@@ -172,6 +178,7 @@ export interface MediaItem {
   logo_width?: number;
   logo_height?: number;
   rottenTomatoesScore?: number | null;
+  contentRating?: string | null;
 }
 
 export interface MultiSearchResult {

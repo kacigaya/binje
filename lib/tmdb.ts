@@ -124,7 +124,21 @@ export async function getMoviesByGenre(genreId: number, locale: Locale = DEFAULT
 }
 
 export async function getMovieDetails(id: number, locale: Locale = DEFAULT_LOCALE): Promise<MovieDetails> {
-  return tmdbFetch<MovieDetails>(`/movie/${id}`, 86400, locale);
+  return tmdbFetch<MovieDetails>(`/movie/${id}?append_to_response=release_dates`, 86400, locale);
+}
+
+function formatFrenchContentRating(rating: string | undefined): string | null {
+  const value = rating?.trim();
+  if (!value) return null;
+  const age = value.match(/^[+-]?(\d+)$/)?.[1];
+  return age ? `+${age}` : value;
+}
+
+export function getMovieContentRating(movie: MovieDetails): string | null {
+  const rating = movie.release_dates.results
+    .find(({ iso_3166_1 }) => iso_3166_1 === "FR")
+    ?.release_dates.find(({ certification }) => certification.trim())?.certification;
+  return formatFrenchContentRating(rating);
 }
 
 export async function getMovieImages(id: number, locale: Locale = DEFAULT_LOCALE): Promise<MovieImagesResponse> {
@@ -189,8 +203,14 @@ export async function getTVByGenre(genreId: number, locale: Locale = DEFAULT_LOC
 
 export async function getTVDetails(id: number, locale: Locale = DEFAULT_LOCALE): Promise<TVShowDetails> {
   return tmdbFetch<TVShowDetails>(
-    `/tv/${id}?append_to_response=external_ids`,
+    `/tv/${id}?append_to_response=external_ids,content_ratings`,
     86400, locale,
+  );
+}
+
+export function getTVContentRating(show: TVShowDetails): string | null {
+  return formatFrenchContentRating(
+    show.content_ratings.results.find(({ iso_3166_1 }) => iso_3166_1 === "FR")?.rating,
   );
 }
 

@@ -11,6 +11,7 @@ import WatchlistButton from "@/components/WatchlistButton";
 import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 import {
   getMovieDetails,
+  getMovieContentRating,
   getMovieCredits,
   getSimilarMovies,
   movieToMedia,
@@ -56,6 +57,7 @@ export default async function MoviePage({
   const poster = posterUrl(movie.poster_path, "w500");
   const director = credits.crew.find((c) => c.job === "Director");
   const topCast = credits.cast.slice(0, 12);
+  const contentRating = getMovieContentRating(movie);
 
   return (
     <div className="flex flex-col">
@@ -144,6 +146,9 @@ export default async function MoviePage({
                   />
                   {rottenTomatoesScore}%
                 </div>
+              )}
+              {contentRating && (
+                <div className="font-semibold text-accent-red">{contentRating}</div>
               )}
               {movie.runtime > 0 && (
                 <div className="flex items-center gap-1">

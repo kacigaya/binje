@@ -7,6 +7,7 @@ import Player from "@/components/Player";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
 import {
   getMovieDetails,
+  getMovieContentRating,
   getMovieImages,
   logoUrl,
   pickMovieLogo,
@@ -39,6 +40,7 @@ export default async function WatchPage({
   ]);
   const logo = pickMovieLogo(images.logos, locale);
   const movieLogoUrl = logoUrl(logo?.file_path ?? null);
+  const contentRating = getMovieContentRating(movie);
 
   return (
     <div className="flex flex-col pt-20">
@@ -94,6 +96,9 @@ export default async function WatchPage({
               <Star className="h-4 w-4 fill-accent-red" />
               {movie.vote_average.toFixed(1)}
             </div>
+            {contentRating && (
+              <div className="font-semibold text-accent-red">{contentRating}</div>
+            )}
             {movie.runtime > 0 && (
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
