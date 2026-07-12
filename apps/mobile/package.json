@@ -3,7 +3,10 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
+    "@expo-google-fonts/outfit": "^0.4.3",
+    "@expo-google-fonts/space-grotesk": "^0.4.1",
     "@expo/ui": "~57.0.4",
+    "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@tanstack/react-query": "^5.90.20",
     "expo": "~57.0.4",
@@ -13,6 +16,7 @@
     "expo-font": "~57.0.0",
     "expo-glass-effect": "~57.0.0",
     "expo-image": "~57.0.0",
+    "expo-linear-gradient": "~57.0.0",
     "expo-linking": "~57.0.2",
     "expo-localization": "~57.0.0",
     "expo-router": "~57.0.4",

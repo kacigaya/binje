@@ -12,8 +12,14 @@ export interface MobileMediaSummary {
   rating: number;
 }
 
+export interface MobileFeaturedItem extends MobileMediaSummary {
+  logoUrl: string | null;
+  rottenTomatoesScore: number | null;
+  contentRating: string | null;
+}
+
 export interface MobileHomeResponse {
-  featured: MobileMediaSummary[];
+  featured: MobileFeaturedItem[];
   trendingMovies: MobileMediaSummary[];
   trendingTV: MobileMediaSummary[];
 }
@@ -48,6 +54,7 @@ export interface MobileStreamMetadata {
 }
 
 export interface MobileMediaDetails extends MobileMediaSummary {
+  logoUrl: string | null;
   tagline: string;
   genres: MobileGenre[];
   cast: MobilePerson[];

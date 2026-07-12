@@ -24,6 +24,15 @@ const nextConfig: NextConfig = {
         { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
       ],
     },
+    // Read-only discovery endpoints consumed by the Expo app (native + web preview).
+    {
+      source: "/api/mobile/:path*",
+      headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+    },
+    {
+      source: "/api/(search|resolve|resolve-vf|hls|episodes)",
+      headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+    },
   ],
 };
 

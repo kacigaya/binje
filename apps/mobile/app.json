@@ -14,7 +14,7 @@
     "android": {
       "package": "com.gayakaci.binje",
       "adaptiveIcon": {
-        "backgroundColor": "#09090B",
+        "backgroundColor": "#050506",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
@@ -30,7 +30,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#09090B",
+          "backgroundColor": "#050506",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 180
         }

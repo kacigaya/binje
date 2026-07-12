@@ -2,6 +2,7 @@ export type {
   MobileApiErrorResponse,
   MobileBrowseResponse,
   MobileEpisode,
+  MobileFeaturedItem,
   MobileGenre,
   MobileHomeResponse,
   MobileLocale,
