@@ -23,7 +23,7 @@ export default function MediaCard({
 
   return (
     <Link href={localizedHref(locale, href)} className="group block shrink-0">
-      <div className="relative w-40 sm:w-46.25 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
+      <div className="relative w-40 sm:w-46.25 overflow-hidden rounded-xl bg-card transition-transform duration-200 group-hover:scale-[1.04] group-hover:ring-1 group-hover:ring-white/25">
         <div className="relative aspect-2/3 overflow-hidden rounded-xl">
           <Image
             src={poster}
@@ -31,13 +31,13 @@ export default function MediaCard({
             fill
             priority={eager}
             loading={eager ? "eager" : "lazy"}
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
+            className="object-cover transition-transform duration-200 group-hover:scale-110"
             sizes="(max-width: 640px) 160px, 185px"
           />
-          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
 
           <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
-            <Star className="h-3 w-3 fill-accent-red" />
+            <Star className="size-3 fill-accent-red" />
             {rating}
           </div>
 
@@ -47,7 +47,7 @@ export default function MediaCard({
             </div>
           )}
 
-          <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <p className="text-sm font-semibold text-white leading-tight line-clamp-2">
               {item.title}
             </p>

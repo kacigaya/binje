@@ -27,7 +27,7 @@ export default function ExpandableOverview({
     <div>
       <p
         ref={textRef}
-        className={`${className} ${expanded ? "" : "line-clamp-2"}`}
+        className={`text-pretty ${className} ${expanded ? "" : "line-clamp-2"}`}
       >
         {text}
       </p>

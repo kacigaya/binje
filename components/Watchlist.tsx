@@ -35,7 +35,7 @@ export default function Watchlist() {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-card/40 px-6 py-20 text-center">
-        <Bookmark className="h-10 w-10 text-muted-foreground" />
+        <Bookmark className="size-10 text-muted-foreground" />
         <p className="text-lg font-semibold">{t("Your watchlist is empty")}</p>
         <p className="max-w-md text-sm text-muted-foreground">
           {t("Browse movies and TV shows, then tap")}{" "}
@@ -60,19 +60,19 @@ export default function Watchlist() {
             href={localizedHref(locale, getWatchlistHref(item))}
             className="group block"
           >
-            <div className="relative overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
+            <div className="relative overflow-hidden rounded-xl bg-card transition-transform duration-200 group-hover:scale-[1.04] group-hover:ring-1 group-hover:ring-white/25">
               <div className="relative aspect-2/3 overflow-hidden rounded-xl">
                 <Image
                   src={poster}
                   alt={item.title}
                   fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  className="object-cover transition-transform duration-200 group-hover:scale-110"
                   sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 185px"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/15 to-transparent" />
 
                 <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
-                  <Star className="h-3 w-3 fill-accent-red" />
+                  <Star className="size-3 fill-accent-red" />
                   {rating}
                 </div>
 
@@ -84,9 +84,9 @@ export default function Watchlist() {
                   type="button"
                   onClick={(event) => removeItem(event, item)}
                   aria-label={`${t("Remove from watchlist")}: ${item.title}`}
-                  className="absolute right-2 bottom-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white/85 backdrop-blur-sm transition-colors hover:bg-accent-red hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-red/70"
+                  className="absolute right-2 bottom-2 z-10 flex size-8 items-center justify-center rounded-full bg-black/70 text-white/85 backdrop-blur-sm transition-colors hover:bg-accent-red hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-red/70"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="size-4" />
                 </button>
 
                 <div className="absolute bottom-0 left-0 right-0 p-3 pr-11">

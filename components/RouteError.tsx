@@ -27,8 +27,8 @@ export default function RouteError({
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 px-4">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
-        <AlertTriangle className="h-8 w-8 text-destructive" />
+      <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
+        <AlertTriangle className="size-8 text-destructive" />
       </div>
       <div className="space-y-2 text-center">
         <h2
@@ -44,7 +44,7 @@ export default function RouteError({
         variant="outline"
         className="gap-2 rounded-full cursor-pointer"
       >
-        <RotateCcw className="h-4 w-4" />
+        <RotateCcw className="size-4" />
         {t("Try Again")}
       </Button>
     </div>

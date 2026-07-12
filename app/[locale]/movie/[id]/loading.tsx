@@ -47,7 +47,7 @@ export default function MovieLoading() {
                 key={i}
                 className="shrink-0 w-27.5 flex flex-col items-center gap-2"
               >
-                <Skeleton className="w-27.5 h-27.5 rounded-full" />
+                <Skeleton className="size-27.5 rounded-full" />
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-3 w-16" />
               </div>

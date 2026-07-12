@@ -84,7 +84,7 @@ export default function Hero({ items }: HeroProps) {
               />
             ) : (
               <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none"
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-balance"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 {activeItem.title}
@@ -111,7 +111,7 @@ export default function Hero({ items }: HeroProps) {
                   aria-hidden="true"
                   className="h-4 w-auto shrink-0"
                 />
-                <span className="text-sm">{rating}</span>
+                <span className="text-sm tabular-nums">{rating}</span>
               </div>
               {activeItem.rottenTomatoesScore !== null &&
                 activeItem.rottenTomatoesScore !== undefined && (
@@ -122,7 +122,7 @@ export default function Hero({ items }: HeroProps) {
                       width={16}
                       height={16}
                       aria-hidden="true"
-                      className="h-4 w-4 shrink-0"
+                      className="size-4 shrink-0"
                     />
                     <span className="text-sm">
                       {activeItem.rottenTomatoesScore}%
@@ -153,7 +153,7 @@ export default function Hero({ items }: HeroProps) {
                   size="lg"
                   className="rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-8 h-12 text-base cursor-pointer"
                 >
-                  <Play className="h-5 w-5 fill-white" />
+                  <Play className="size-5 fill-white" />
                   {t("Watch Now")}
                 </Button>
               </Link>
@@ -163,7 +163,7 @@ export default function Hero({ items }: HeroProps) {
                   variant="outline"
                   className="rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-8 h-12 text-base cursor-pointer"
                 >
-                  <Info className="h-5 w-5" />
+                  <Info className="size-5" />
                   {t("Details")}
                 </Button>
               </Link>

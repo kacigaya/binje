@@ -121,8 +121,8 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="fixed top-3 left-3 right-3 z-50">
-      <div className="mx-auto max-w-7xl rounded-[2rem] bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30 transition-[background-color,box-shadow] duration-300 ease-out motion-reduce:transition-none">
+    <nav className="fixed top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 z-50">
+      <div className="mx-auto max-w-7xl rounded-[2rem] bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30 transition-[background-color,box-shadow] duration-200 ease-out motion-reduce:transition-none">
         <div className="flex items-center justify-between px-4 sm:px-6 h-16">
         <Link
           href={localizedHref(locale, "/")}
@@ -130,7 +130,7 @@ export default function Navbar() {
           className="flex items-center gap-2 text-xl font-bold tracking-tight"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          <Film className="h-6 w-6 text-accent-red" />
+          <Film className="size-6 text-accent-red" />
           <span className="text-foreground">
             b<span className="text-accent-red">!</span>nje
           </span>
@@ -154,7 +154,7 @@ export default function Navbar() {
                         : "text-muted-foreground hover:bg-white/8 hover:text-foreground"
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="size-4" />
                     {t(link.label)}
                   </Link>
                 );
@@ -166,17 +166,17 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
-              className="relative flex md:hidden items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
+              className="relative flex md:hidden items-center justify-center size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
               aria-label={menuOpen ? t("Close menu") : t("Open menu")}
               aria-expanded={menuOpen}
             >
               <Menu
-                className={`absolute h-5 w-5 transition-all duration-300 ease-out motion-reduce:transition-none ${
+                className={`absolute size-5 transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none ${
                   menuOpen ? "rotate-90 scale-75 opacity-0" : "rotate-0 scale-100 opacity-100"
                 }`}
               />
               <X
-                className={`absolute h-5 w-5 transition-all duration-300 ease-out motion-reduce:transition-none ${
+                className={`absolute size-5 transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none ${
                   menuOpen ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-75 opacity-0"
                 }`}
               />
@@ -188,7 +188,7 @@ export default function Navbar() {
               {open ? (
                 <form onSubmit={handleSubmit} className="flex items-center gap-2">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
                     <input
                       ref={inputRef}
                       type="text"
@@ -250,10 +250,10 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={close}
-                    className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
+                    className="flex items-center justify-center size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
                     aria-label={t("Close search")}
                   >
-                    <X className="h-4 w-4" />
+                    <X className="size-4" />
                   </button>
                 </form>
               ) : (
@@ -263,10 +263,10 @@ export default function Navbar() {
                     setOpen(true);
                     setMenuOpen(false);
                   }}
-                  className="flex items-center justify-center h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
+                  className="flex items-center justify-center size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
                   aria-label={t("Open search")}
                 >
-                  <Search className="h-5 w-5" />
+                  <Search className="size-5" />
                 </button>
               )}
             </div>
@@ -275,7 +275,7 @@ export default function Navbar() {
         </div>
 
         <div
-          className={`grid md:hidden overflow-hidden transition-[grid-template-rows,opacity,transform] duration-300 ease-out motion-reduce:transition-none ${
+          className={`grid md:hidden overflow-hidden transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none ${
             menuOpen
               ? "grid-rows-[1fr] opacity-100 translate-y-0"
               : "grid-rows-[0fr] -translate-y-2 opacity-0 pointer-events-none"
@@ -303,7 +303,7 @@ export default function Navbar() {
                       menuOpen ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
                     }`}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="size-5" />
                     {t(link.label)}
                   </Link>
                 );

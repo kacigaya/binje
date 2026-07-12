@@ -56,7 +56,7 @@ export default function ContinueWatching() {
               className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
               aria-label={t("Scroll left")}
             >
-              <ChevronLeft className="h-8 w-8 text-foreground" />
+              <ChevronLeft className="size-8 text-foreground" />
             </button>
           </>
         )}
@@ -69,7 +69,7 @@ export default function ContinueWatching() {
               className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
               aria-label={t("Scroll right")}
             >
-              <ChevronRight className="h-8 w-8 text-foreground" />
+              <ChevronRight className="size-8 text-foreground" />
             </button>
           </>
         )}
@@ -97,19 +97,19 @@ export default function ContinueWatching() {
                 href={localizedHref(locale, getPlayHistoryHref(item))}
                 className="group block shrink-0"
               >
-                <div className="relative w-40 sm:w-46.25 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_30px_rgba(225,29,72,0.15)]">
+                <div className="relative w-40 sm:w-46.25 overflow-hidden rounded-xl bg-card transition-transform duration-200 group-hover:scale-[1.04] group-hover:ring-1 group-hover:ring-white/25">
                   <div className="relative aspect-2/3 overflow-hidden rounded-xl">
                     <Image
                       src={poster}
                       alt={item.title}
                       fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-110"
+                      className="object-cover transition-transform duration-200 group-hover:scale-110"
                       sizes="(max-width: 640px) 160px, 185px"
                     />
                     <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/15 to-transparent" />
 
                     <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
-                      <Star className="h-3 w-3 fill-accent-red" />
+                      <Star className="size-3 fill-accent-red" />
                       {rating}
                     </div>
 
@@ -121,9 +121,9 @@ export default function ContinueWatching() {
                       type="button"
                       onClick={(event) => removeItem(event, item)}
                       aria-label={`${t("Remove from continue watching")}: ${item.title}`}
-                      className="absolute right-2 bottom-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white/85 backdrop-blur-sm transition-colors hover:bg-accent-red hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-red/70"
+                      className="absolute right-2 bottom-2 z-10 flex size-8 items-center justify-center rounded-full bg-black/70 text-white/85 backdrop-blur-sm transition-colors hover:bg-accent-red hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-red/70"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="size-4" />
                     </button>
 
                     <div className="absolute bottom-0 left-0 right-0 p-3 pr-11">

@@ -3,13 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Play,
-  Clock,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, Clock } from "lucide-react";
+import { Select } from "@/components/ui/select";
 import Player from "@/components/Player";
 import { Button } from "@/components/ui/button";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
@@ -133,27 +128,19 @@ export default function TVPlayer({
       {/* Controls */}
       <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">
         <div className="flex items-center justify-between gap-3 sm:justify-start">
-          <label
-            htmlFor="season-select"
-            className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-          >
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {t("Season")}
-          </label>
-          <div className="relative">
-            <select
-              id="season-select"
-              value={season}
-              onChange={(e) => navigate(Number(e.target.value), 1)}
-              className="h-10 appearance-none rounded-full border border-white/15 bg-white/5 pl-4 pr-10 text-sm font-medium text-foreground outline-none transition-colors hover:bg-white/10 focus-visible:border-accent-red/50 focus-visible:ring-2 focus-visible:ring-accent-red/30 cursor-pointer"
-            >
-              {seasons.map((s) => (
-                <option key={s.season_number} value={s.season_number}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
-          </div>
+          </span>
+          <Select
+            ariaLabel={t("Season")}
+            value={season}
+            onValueChange={(value) => navigate(value, 1)}
+            items={seasons.map((s) => ({
+              value: s.season_number,
+              label: s.name,
+            }))}
+            className="h-10 rounded-full border border-white/15 bg-white/5 px-4 text-sm font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:border-accent-red/50 focus-visible:ring-accent-red/30"
+          />
         </div>
 
         <div className="flex min-w-0 items-center sm:border-l sm:border-white/10 sm:pl-4">
@@ -180,7 +167,7 @@ export default function TVPlayer({
             disabled={!hasPrev}
             className="h-10 rounded-full px-4 cursor-pointer"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="size-4" />
             {t("Previous")}
           </Button>
           <Button
@@ -192,7 +179,7 @@ export default function TVPlayer({
             className="h-10 rounded-full px-4 cursor-pointer"
           >
             {t("Next")}
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="size-4" />
           </Button>
         </div>
       </div>
@@ -230,7 +217,7 @@ export default function TVPlayer({
                   aria-label={t("Scroll left")}
                   className="absolute left-0 top-0 bottom-0 z-20 flex w-12 items-center justify-center opacity-0 group-hover/episodes:opacity-100 transition-opacity cursor-pointer"
                 >
-                  <ChevronLeft className="h-8 w-8 text-foreground" />
+                  <ChevronLeft className="size-8 text-foreground" />
                 </button>
               </>
             )}
@@ -243,7 +230,7 @@ export default function TVPlayer({
                   aria-label={t("Scroll right")}
                   className="absolute right-0 top-0 bottom-0 z-20 flex w-12 items-center justify-center opacity-0 group-hover/episodes:opacity-100 transition-opacity cursor-pointer"
                 >
-                  <ChevronRight className="h-8 w-8 text-foreground" />
+                  <ChevronRight className="size-8 text-foreground" />
                 </button>
               </>
             )}
@@ -261,7 +248,7 @@ export default function TVPlayer({
                   onClick={() => navigate(season, ep.episode_number)}
                   className={`group relative w-72 sm:w-80 shrink-0 text-left aspect-video rounded-2xl overflow-hidden ring-1 transition-all cursor-pointer ${
                     isActive
-                      ? "ring-2 ring-white shadow-[0_0_0_4px_rgba(255,255,255,0.08)]"
+                      ? "ring-2 ring-white"
                       : "ring-white/10 hover:ring-white/30"
                   }`}
                 >
@@ -271,7 +258,7 @@ export default function TVPlayer({
                       alt={ep.name}
                       fill
                       loading="lazy"
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="object-cover transition-transform duration-200 group-hover:scale-105"
                       sizes="320px"
                     />
                   ) : (
@@ -285,7 +272,7 @@ export default function TVPlayer({
 
                   {/* Hover play overlay */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Play className="h-9 w-9 text-white fill-white" />
+                    <Play className="size-9 text-white fill-white" />
                   </div>
 
                   {/* Overlaid content */}
@@ -300,7 +287,7 @@ export default function TVPlayer({
                     </p>
                     {ep.runtime ? (
                       <span className="flex items-center gap-1 text-[11px] text-white/60">
-                        <Clock className="h-3 w-3" />
+                        <Clock className="size-3" />
                         {ep.runtime}m
                       </span>
                     ) : null}

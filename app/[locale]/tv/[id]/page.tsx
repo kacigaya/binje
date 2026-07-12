@@ -97,7 +97,7 @@ export default async function TVShowPage({
           {/* Info */}
           <div className="flex-1 space-y-5 pt-4 sm:pt-16">
             <h1
-              className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight"
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight text-balance"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               {show.name}
@@ -125,7 +125,7 @@ export default async function TVShowPage({
             </div>
 
             {/* Meta row */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
               <div className="flex items-center gap-1.5 text-accent-red font-semibold">
                 <Image
                   src="/tmdb.svg"
@@ -145,7 +145,7 @@ export default async function TVShowPage({
                     width={16}
                     height={16}
                     aria-hidden="true"
-                    className="h-4 w-4 shrink-0"
+                    className="size-4 shrink-0"
                   />
                   {rottenTomatoesScore}%
                 </div>
@@ -154,16 +154,16 @@ export default async function TVShowPage({
                 <div className="font-semibold text-accent-red">{contentRating}</div>
               )}
               <div className="flex items-center gap-1">
-                <Layers className="h-4 w-4" />
+                <Layers className="size-4" />
                 {show.number_of_seasons} {show.number_of_seasons === 1 ? translate(locale, "Season") : translate(locale, "Seasons")}
               </div>
               <div className="flex items-center gap-1">
-                <Tv className="h-4 w-4" />
+                <Tv className="size-4" />
                 {show.number_of_episodes} {show.number_of_episodes === 1 ? translate(locale, "Episode") : translate(locale, "Episodes")}
               </div>
               {show.first_air_date && (
                 <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
+                  <Calendar className="size-4" />
                   {new Date(show.first_air_date).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
                     year: "numeric",
                     month: "long",
@@ -180,7 +180,7 @@ export default async function TVShowPage({
                   size="lg"
                   className="w-full sm:w-auto rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer"
                 >
-                  <Play className="h-5 w-5 fill-white" />
+                  <Play className="size-5 fill-white" />
                   {translate(locale, "Watch Now")}
                 </Button>
               </Link>
@@ -258,7 +258,7 @@ export default async function TVShowPage({
                       href={localizedHref(locale, `/watch/tv/${show.id}?s=${season.season_number}&e=1`)}
                       className="group shrink-0"
                     >
-                      <div className="relative w-35 sm:w-40 overflow-hidden rounded-xl bg-card transition-all duration-300 group-hover:scale-[1.04] group-hover:shadow-[0_0_20px_rgba(225,29,72,0.12)]">
+                      <div className="relative w-35 sm:w-40 overflow-hidden rounded-xl bg-card transition-transform duration-200 group-hover:scale-[1.04] group-hover:ring-1 group-hover:ring-white/25">
                         <div className="relative aspect-2/3 overflow-hidden rounded-xl">
                           <Image
                             src={sPoster}
@@ -303,7 +303,7 @@ export default async function TVShowPage({
                     key={`${person.id}-${i}`}
                     className="shrink-0 w-27.5 text-center"
                   >
-                    <div className="relative w-27.5 h-27.5 rounded-full overflow-hidden bg-muted mx-auto mb-2">
+                    <div className="relative size-27.5 rounded-full overflow-hidden bg-muted mx-auto mb-2">
                       {photo ? (
                         <Image
                           src={photo}
