@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Star, Clock, Calendar } from "lucide-react";
+import { Clock, Calendar } from "lucide-react";
+import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 import { Badge } from "@/components/ui/badge";
 import Player from "@/components/Player";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
@@ -35,9 +36,11 @@ export default async function WatchPage({
   const { locale, id } = await params;
   const movieId = parseInt(id, 10);
   if (!Number.isFinite(movieId) || movieId <= 0) notFound();
-  const [movie, images] = await Promise.all([
-    getMovieDetails(movieId, locale),
+  const moviePromise = getMovieDetails(movieId, locale);
+  const [movie, images, rottenTomatoesScore] = await Promise.all([
+    moviePromise,
     getMovieImages(movieId, locale),
+    moviePromise.then(({ imdb_id }) => getRottenTomatoesScore(imdb_id)),
   ]);
   const logo = pickMovieLogo(images.logos, locale);
   const movieLogoUrl = logoUrl(logo?.file_path ?? null);
@@ -73,7 +76,7 @@ export default async function WatchPage({
 
           {!logo && (
             <h1
-              className="text-2xl sm:text-3xl font-bold tracking-tight"
+              className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               {movie.title}
@@ -92,23 +95,43 @@ export default async function WatchPage({
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1 text-accent-red font-semibold">
-              <Star className="h-4 w-4 fill-accent-red" />
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
+            <div className="flex items-center gap-1.5 text-accent-red font-semibold">
+              <Image
+                src="/tmdb.svg"
+                alt=""
+                width={37}
+                height={16}
+                aria-hidden="true"
+                className="h-4 w-auto shrink-0"
+              />
               {movie.vote_average.toFixed(1)}
             </div>
+            {rottenTomatoesScore !== null && (
+              <div className="flex items-center gap-1.5 font-semibold text-accent-red">
+                <Image
+                  src="/rotten-tomatoes.svg"
+                  alt=""
+                  width={16}
+                  height={16}
+                  aria-hidden="true"
+                  className="size-4 shrink-0"
+                />
+                {rottenTomatoesScore}%
+              </div>
+            )}
             {contentRating && (
               <div className="font-semibold text-accent-red">{contentRating}</div>
             )}
             {movie.runtime > 0 && (
               <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
+                <Clock className="size-4" />
                 {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
               </div>
             )}
             {movie.release_date && (
               <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
+                <Calendar className="size-4" />
                 {new Date(movie.release_date).getFullYear()}
               </div>
             )}

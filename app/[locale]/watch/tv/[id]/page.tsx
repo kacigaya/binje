@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Star, Calendar, Layers, Tv } from "lucide-react";
+import { Calendar, Layers, Tv } from "lucide-react";
+import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 import { Badge } from "@/components/ui/badge";
 import {
   getTVDetails,
@@ -47,9 +48,13 @@ export default async function WatchTVPage({
   const { s, e } = await searchParams;
   const showId = parseInt(id, 10);
   if (!Number.isFinite(showId) || showId <= 0) notFound();
-  const [show, images] = await Promise.all([
-    getTVDetails(showId, locale),
+  const showPromise = getTVDetails(showId, locale);
+  const [show, images, rottenTomatoesScore] = await Promise.all([
+    showPromise,
     getTVImages(showId, locale),
+    showPromise.then(({ external_ids }) =>
+      getRottenTomatoesScore(external_ids.imdb_id),
+    ),
   ]);
   const logo = pickTVLogo(images.logos, locale);
   const showLogoUrl = logoUrl(logo?.file_path ?? null);
@@ -96,7 +101,7 @@ export default async function WatchTVPage({
 
           {!logo && (
             <h1
-              className="text-2xl sm:text-3xl font-bold tracking-tight"
+              className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               {show.name}
@@ -118,25 +123,45 @@ export default async function WatchTVPage({
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1 text-accent-red font-semibold">
-              <Star className="h-4 w-4 fill-accent-red" />
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
+            <div className="flex items-center gap-1.5 text-accent-red font-semibold">
+              <Image
+                src="/tmdb.svg"
+                alt=""
+                width={37}
+                height={16}
+                aria-hidden="true"
+                className="h-4 w-auto shrink-0"
+              />
               {show.vote_average.toFixed(1)}
             </div>
+            {rottenTomatoesScore !== null && (
+              <div className="flex items-center gap-1.5 font-semibold text-accent-red">
+                <Image
+                  src="/rotten-tomatoes.svg"
+                  alt=""
+                  width={16}
+                  height={16}
+                  aria-hidden="true"
+                  className="size-4 shrink-0"
+                />
+                {rottenTomatoesScore}%
+              </div>
+            )}
             {contentRating && (
               <div className="font-semibold text-accent-red">{contentRating}</div>
             )}
             <div className="flex items-center gap-1">
-              <Layers className="h-4 w-4" />
+              <Layers className="size-4" />
               {show.number_of_seasons} {show.number_of_seasons === 1 ? translate(locale, "Season") : translate(locale, "Seasons")}
             </div>
             <div className="flex items-center gap-1">
-              <Tv className="h-4 w-4" />
+              <Tv className="size-4" />
               {show.number_of_episodes} {show.number_of_episodes === 1 ? translate(locale, "Episode") : translate(locale, "Episodes")}
             </div>
             {show.first_air_date && (
               <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
+                <Calendar className="size-4" />
                 {new Date(show.first_air_date).getFullYear()}
               </div>
             )}
