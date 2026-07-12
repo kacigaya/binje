@@ -1,6 +1,7 @@
 "use client";
 
 import Hls from "hls.js";
+import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
 import { cn } from "@/lib/utils";
@@ -212,19 +213,22 @@ export default function Player({
           </button>
         ))}
         {qualities.length > 0 && (
-          <select
-            aria-label={t("Quality")}
-            value={quality}
-            onChange={(event) => changeQuality(Number(event.target.value))}
-            className="cursor-pointer rounded-full bg-white/10 pl-3 pr-2 py-1 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-accent-red/60"
-          >
-            <option value={-1}>{t("Auto")}</option>
-            {qualities.map((item) => (
-              <option key={item.height} value={item.index}>
-                {item.height}p
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              aria-label={t("Quality")}
+              value={quality}
+              onChange={(event) => changeQuality(Number(event.target.value))}
+              className="cursor-pointer appearance-none rounded-full bg-white/10 pl-3 pr-8 py-1 text-xs font-semibold text-white outline-none focus:ring-2 focus:ring-accent-red/60"
+            >
+              <option value={-1}>{t("Auto")}</option>
+              {qualities.map((item) => (
+                <option key={item.height} value={item.index}>
+                  {item.height}p
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/70" />
+          </div>
         )}
       </div>
       <video
