@@ -275,14 +275,14 @@ export default function Navbar() {
         </div>
 
         <div
-          className={`grid md:hidden overflow-hidden transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none ${
+          className={`grid md:hidden overflow-hidden transition-[grid-template-rows,opacity,transform] duration-300 ease-out motion-reduce:transition-none ${
             menuOpen
               ? "grid-rows-[1fr] opacity-100 translate-y-0"
               : "grid-rows-[0fr] -translate-y-2 opacity-0 pointer-events-none"
           }`}
           aria-hidden={!menuOpen}
         >
-          <div className="min-h-0 overflow-hidden border-t border-white/5">
+          <div className="min-h-0 overflow-hidden">
             <div className="flex flex-col gap-1 px-4 py-3 sm:px-6">
               {navLinks.map((link) => {
                 const href = localizedHref(locale, link.href);
