@@ -12,6 +12,7 @@ import {
   pickTVLogo,
 } from "@/lib/tmdb";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
+import ExpandableOverview from "@/components/ExpandableOverview";
 import TVPlayer from "./TVPlayer";
 import { translate, type Locale } from "@/lib/i18n";
 
@@ -141,7 +142,10 @@ export default async function WatchTVPage({
             )}
           </div>
 
-          <p className="text-foreground/70 leading-relaxed">{show.overview}</p>
+          <ExpandableOverview
+            text={show.overview}
+            className="text-foreground/70 leading-relaxed"
+          />
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { Star, Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Player from "@/components/Player";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
+import ExpandableOverview from "@/components/ExpandableOverview";
 import {
   getMovieDetails,
   getMovieContentRating,
@@ -113,7 +114,10 @@ export default async function WatchPage({
             )}
           </div>
 
-          <p className="text-foreground/70 leading-relaxed">{movie.overview}</p>
+          <ExpandableOverview
+            text={movie.overview}
+            className="text-foreground/70 leading-relaxed"
+          />
         </div>
       </div>
 
