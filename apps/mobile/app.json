@@ -3,13 +3,24 @@
     "name": "b!nje",
     "slug": "binje",
     "version": "1.0.0",
+    "description": "Discover and stream trending movies and TV shows. VO/VF audio, continue watching, watchlist, English and French.",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "binje",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#050506",
+    "primaryColor": "#e11d48",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#050506"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.gayakaci.binje"
+      "bundleIdentifier": "com.gayakaci.binje",
+      "infoPlist": {
+        "CFBundleDisplayName": "b!nje",
+        "UIViewControllerBasedStatusBarAppearance": true
+      }
     },
     "android": {
       "package": "com.gayakaci.binje",
@@ -46,6 +57,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f4ec221b-ba54-41d7-8e4d-653ba36719a6"
+      }
+    },
+    "owner": "gayakaci"
   }
 }
