@@ -10,6 +10,7 @@ export const fr: Record<keyof typeof en, string> = {
   privacy: 'Confidentialité', privacyPolicy: 'Politique de confidentialité', consentTitle: 'Nous utilisons le stockage local', consentBody: 'Nous enregistrons votre historique sur cet appareil pour reprendre là où vous vous êtes arrêté. Aucun suivi.', accept: 'Accepter', dismiss: 'Fermer', allowStorage: 'Autoriser cookies et stockage local',
   errorTitle: 'Une erreur est survenue', errorBody: 'Impossible de charger le contenu. Le problème est peut-être temporaire. Veuillez réessayer.', retry: 'Réessayer', loading: 'Chargement…',
   back: 'Retour', quality: 'Qualité', auto: 'Auto',
+  nowWatching: 'Lecture en cours', watching: 'En lecture', noPreview: 'Aucun aperçu', noEpisodes: 'Aucun aperçu d’épisode disponible.',
   noResults: 'Aucun résultat', noPoster: 'Aucune affiche', searchPlaceholder: 'Rechercher des films et séries…', season: 'Saison', episode: 'Épisode', previous: 'Précédent', next: 'Suivant',
   streamUnavailable: 'Flux indisponible. Réessayez plus tard.', language: 'Langue', english: 'Anglais', french: 'Français', clearHistory: 'Effacer l’historique', removeHistory: 'Retirer de la liste Continuer à regarder',
 };
