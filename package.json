@@ -2,13 +2,22 @@
   "name": "binje",
   "version": "0.4.16",
   "private": true,
+  "workspaces": [
+    "apps/mobile"
+  ],
   "packageManager": "bun@1.3.11",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "bun test"
+    "test": "bash -lc 'shopt -s globstar; bun test lib/**/*.test.ts app/**/*.test.ts'",
+    "mobile:start": "bun --cwd apps/mobile start",
+    "mobile:android": "bun --cwd apps/mobile android",
+    "mobile:ios": "bun --cwd apps/mobile ios",
+    "mobile:lint": "bun --cwd apps/mobile lint",
+    "mobile:test": "bun --cwd apps/mobile test",
+    "mobile:typecheck": "bun --cwd apps/mobile typecheck"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -16,8 +25,8 @@
     "hls.js": "^1.6.16",
     "lucide-react": "^1.7.0",
     "next": "16.2.6",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
     "tailwind-merge": "^3.5.0",
     "tw-animate-css": "^1.4.0"
   },

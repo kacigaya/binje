@@ -1,0 +1,7 @@
+node_modules
+.expo
+coverage
+dist
+*.log
+.env*
+!.env.example

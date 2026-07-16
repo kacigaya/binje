@@ -1,0 +1,1 @@
+import { useLocalSearchParams } from 'expo-router'; import DetailsScreen from '../../features/details/DetailsScreen'; export default function TVDetails(){const {id}=useLocalSearchParams<{id:string}>();return <DetailsScreen type="tv" id={Number(id)}/>}

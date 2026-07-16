@@ -5,7 +5,7 @@
 <h1 align="center">b!nje</h1>
 
 <p align="center">
-   <strong>A movie and TV discovery app built with Next.js.</strong><br>
+   <strong>A movie and TV discovery app for web, Android, and iOS.</strong><br>
    <em>Powered by TMDB API with optional Rotten Tomatoes scores via OMDb.</em>
 </p>
 
@@ -26,6 +26,7 @@
 - Image optimization (AVIF/WebP, TMDB-aligned responsive sizes, 30-day cache TTL)
 - TMDB logos on watch pages
 - Responsive dark theme (Tailwind v4, shadcn tokens, red accent)
+- Expo SDK 57 mobile client with native navigation, local watchlist/history, and HLS playback
 
 ## Tech stack
 
@@ -36,6 +37,7 @@
 - Player: hls.js with Videasy Yoru HQ/Neon fallback through enc-dec.app and `/api/hls`
 - Language: TypeScript
 - Testing: Bun test, Playwright
+- Mobile: Expo Router, React Native, expo-video, TanStack Query, AsyncStorage
 
 ## Getting started
 
@@ -68,6 +70,16 @@ navbar language switch to change locale while keeping the current page.
 Production stream resolution is mirrored in `worker/resolve-worker.js`. Deploy that
 Worker separately after reviewing resolver changes; local development uses `/api/resolve`.
 
+### Mobile development
+
+```bash
+cp apps/mobile/.env.example apps/mobile/.env
+bun run mobile:start
+```
+
+The Expo application uses the Next.js deployment as its backend. See
+[`apps/mobile/README.md`](./apps/mobile/README.md) for development-build and EAS instructions.
+
 ### Project structure
 
 ```
@@ -82,7 +94,8 @@ app/            # Next.js App Router pages and layouts
   watch/[id]/   # Movie watch page
   watch/tv/[id] # TV episode watch page
   privacy/      # Privacy policy
-components/     # Reusable UI components (Hero, Carousel, Player, etc.)
+components/     # Reusable web UI components (Hero, Carousel, Player, etc.)
+apps/mobile/    # Expo Router application for Android and iOS
 lib/            # Utilities and TMDB API client
 types/          # TypeScript type definitions
 public/         # Static assets

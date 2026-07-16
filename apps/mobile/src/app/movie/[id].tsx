@@ -1,0 +1,1 @@
+import { useLocalSearchParams } from 'expo-router'; import DetailsScreen from '../../features/details/DetailsScreen'; export default function MovieDetails(){const {id}=useLocalSearchParams<{id:string}>();return <DetailsScreen type="movie" id={Number(id)}/>}

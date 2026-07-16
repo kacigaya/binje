@@ -1,0 +1,21 @@
+# Mobile release checklist
+
+- [ ] Confirm Expo account and EAS project ownership
+- [ ] Confirm `com.gayakaci.binje` for Android and iOS
+- [ ] Confirm content rights and required store disclosures
+- [ ] Confirm TMDB/OMDb/provider attribution
+- [ ] Run root and mobile tests
+- [ ] Run root and mobile lint
+- [ ] Run mobile TypeScript checks
+- [ ] Run Expo Doctor
+- [ ] Export Android, iOS, and web bundles
+- [ ] Install an Android development build and verify navigation
+- [ ] Install an iOS development build and verify navigation
+- [ ] Verify VO and VF playback on both platforms
+- [ ] Verify TV season and episode selection
+- [ ] Verify consent, watchlist, history, and clear-data behavior
+- [ ] Verify English and French layouts
+- [ ] Verify Android back navigation and iOS gestures
+- [ ] Verify no secrets exist in public Expo config or exported bundles
+- [ ] Build internal preview binaries
+- [ ] Obtain explicit approval before store submission
