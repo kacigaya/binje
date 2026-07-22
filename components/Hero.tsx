@@ -92,11 +92,6 @@ export default function Hero({ items }: HeroProps) {
             )}
 
             <div className="flex items-center gap-3">
-              <Badge
-                className="bg-accent-red text-white text-xs font-bold uppercase tracking-wider hover:bg-accent-red/90 border-transparent"
-              >
-                {t("Trending")}
-              </Badge>
               {activeItem.media_type === "tv" && (
                 <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
                   {t("TV Series")}
