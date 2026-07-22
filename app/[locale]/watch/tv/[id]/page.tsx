@@ -128,14 +128,11 @@ export default async function WatchTVPage({
           </Link>
 
           <div className="flex flex-wrap gap-2">
-            <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
-              {translate(locale, "TV Series")}
-            </Badge>
             {show.genres.map((g) => (
               <Badge
                 key={g.id}
                 variant="outline"
-                className="border-white/15 text-foreground/80 text-xs"
+                className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
               >
                 {g.name}
               </Badge>

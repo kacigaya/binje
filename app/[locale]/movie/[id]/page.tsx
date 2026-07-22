@@ -124,7 +124,7 @@ export default async function MoviePage({
                 <Badge
                   key={g.id}
                   variant="outline"
-                  className="border-white/15 text-foreground/80 text-xs"
+                  className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
                 >
                   {g.name}
                 </Badge>
