@@ -14,11 +14,16 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://binje-stream.netlify.app"
+        "EXPO_PUBLIC_API_BASE_URL": "https://binje-stream.netlify.app",
+        "EXPO_PUBLIC_RESOLVE_BASE_URL": "https://binje-stream.sparkling-limit-e94a.workers.dev"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://binje-stream.netlify.app",
+        "EXPO_PUBLIC_RESOLVE_BASE_URL": "https://binje-stream.sparkling-limit-e94a.workers.dev"
+      }
     }
   },
   "submit": {
