@@ -61,8 +61,6 @@ export function logoUrl(path: string | null, size = "w500") {
   return `${IMAGE_BASE}/${size}${path}`;
 }
 
-// ─── Converters ────────────────────────────────────────────
-
 export function movieToMedia(m: Movie): MediaItem {
   return {
     id: m.id,
@@ -88,8 +86,6 @@ export function tvToMedia(t: TVShow): MediaItem {
     media_type: "tv",
   };
 }
-
-// ─── Movies ────────────────────────────────────────────────
 
 export async function getTrending(locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
   const data = await tmdbFetch<MovieResponse>("/trending/movie/week", 3600, locale);
@@ -166,8 +162,6 @@ export async function getSimilarMovies(id: number, locale: Locale = DEFAULT_LOCA
   const data = await tmdbFetch<MovieResponse>(`/movie/${id}/similar`, 3600, locale);
   return data.results;
 }
-
-// ─── TV Shows ──────────────────────────────────────────────
 
 export async function getTrendingTV(locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
   const data = await tmdbFetch<TVShowResponse>("/trending/tv/week", 3600, locale);
@@ -248,8 +242,6 @@ export async function getSeasonEpisodes(
   );
   return data.episodes ?? [];
 }
-
-// ─── Search ────────────────────────────────────────────────
 
 export async function searchMulti(
   query: string,

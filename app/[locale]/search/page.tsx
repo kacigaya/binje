@@ -107,7 +107,6 @@ function SearchContent() {
 
   return (
     <div className="pt-24 pb-16 px-4 sm:px-6 max-w-7xl mx-auto w-full">
-      {/* Search input */}
       <div className="relative max-w-2xl mx-auto mb-8">
         <Search
           aria-hidden="true"
@@ -134,7 +133,6 @@ function SearchContent() {
         )}
       </div>
 
-      {/* Filter tabs */}
       <div className="flex items-center justify-center gap-2 mb-8">
         {FILTER_TYPES.map((type) => (
           <button
@@ -151,7 +149,6 @@ function SearchContent() {
         ))}
       </div>
 
-      {/* Loading skeletons */}
       {loading && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
           {Array.from({ length: 12 }).map((_, i) => (
@@ -160,7 +157,6 @@ function SearchContent() {
         </div>
       )}
 
-      {/* Results grid */}
       {!loading && filtered.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
           {filtered.map((item, index) => {
@@ -192,7 +188,6 @@ function SearchContent() {
                   )}
                   <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
 
-                  {/* Rating */}
                   {item.vote_average != null && (
                     <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
                       <Star className="size-3 fill-accent-red" />
@@ -200,14 +195,12 @@ function SearchContent() {
                     </div>
                   )}
 
-                  {/* Media type badge */}
                   {item.media_type === "tv" && (
                     <div className="absolute top-2 left-2 rounded-full bg-accent-red/90 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
                       TV
                     </div>
                   )}
 
-                  {/* Title on hover */}
                   <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <p className="text-sm font-semibold text-white leading-tight line-clamp-2">
                       {title}
@@ -225,7 +218,6 @@ function SearchContent() {
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && searched && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Search className="size-12 text-muted-foreground/40 mb-4" />
@@ -241,7 +233,6 @@ function SearchContent() {
         </div>
       )}
 
-      {/* Initial state */}
       {!loading && !searched && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Search className="size-12 text-muted-foreground/40 mb-4" />

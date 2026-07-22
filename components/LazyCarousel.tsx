@@ -9,12 +9,6 @@ interface LazyCarouselProps {
   items: MediaItem[];
 }
 
-/**
- * Defers rendering of a Carousel until it is close to the viewport.
- * This reduces the number of DOM nodes, React event listeners and image
- * decode operations on initial page load, improving Time-to-Interactive
- * and scroll smoothness for below-the-fold sections.
- */
 export default function LazyCarousel({ title, items }: LazyCarouselProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -30,8 +24,6 @@ export default function LazyCarousel({ title, items }: LazyCarouselProps) {
           observer.disconnect();
         }
       },
-      // Start loading 300 px before the section enters the viewport so there
-      // is no perceived delay as the user scrolls down.
       { rootMargin: "300px" },
     );
 
@@ -40,7 +32,6 @@ export default function LazyCarousel({ title, items }: LazyCarouselProps) {
   }, []);
 
   return (
-    // Reserve approximate carousel height to prevent layout shift.
     <div ref={sentinelRef} className="min-h-[350px]">
       {visible && <Carousel title={title} items={items} />}
     </div>

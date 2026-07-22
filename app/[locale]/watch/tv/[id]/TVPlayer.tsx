@@ -43,7 +43,6 @@ export default function TVPlayer({
   const [season, setSeason] = useState(initialSeason);
   const [episode, setEpisode] = useState(initialEpisode);
   const [episodes, setEpisodes] = useState<Episode[]>(initialEpisodes);
-  // Season the cached `episodes` belong to; drives the loading state.
   const [episodesSeason, setEpisodesSeason] = useState(initialSeason);
 
   const currentSeason = seasons.find((s) => s.season_number === season);
@@ -125,7 +124,6 @@ export default function TVPlayer({
         episode={episode}
       />
 
-      {/* Controls */}
       <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">
         <div className="flex items-center justify-between gap-3 sm:justify-start">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -157,7 +155,6 @@ export default function TVPlayer({
           </p>
         </div>
 
-        {/* Prev/Next buttons */}
         <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex">
           <Button
             type="button"
@@ -184,7 +181,6 @@ export default function TVPlayer({
         </div>
       </div>
 
-      {/* Episode previews */}
       <div className="px-4 sm:px-0">
         <h3
           className="text-lg font-semibold mb-3"
@@ -267,15 +263,12 @@ export default function TVPlayer({
                     </div>
                   )}
 
-                  {/* Bottom gradient scrim */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent transition-opacity group-hover:opacity-0" />
 
-                  {/* Hover play overlay */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Play className="size-9 text-white fill-white" />
                   </div>
 
-                  {/* Overlaid content */}
                   <div className="absolute inset-x-0 bottom-0 p-3.5 space-y-1 transition-opacity group-hover:opacity-0">
                     <p className="text-sm font-semibold leading-snug text-white line-clamp-2">
                       {isActive && (
@@ -298,7 +291,6 @@ export default function TVPlayer({
                     ) : null}
                   </div>
 
-                  {/* Active progress accent */}
                   {isActive && (
                     <span className="absolute inset-x-0 bottom-0 h-1 bg-accent-red transition-opacity group-hover:opacity-0" />
                   )}

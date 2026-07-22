@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function WatchTVLoading() {
   return (
     <div className="flex flex-col pt-20">
-      {/* Show info above player */}
+      {}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
         <div className="space-y-4 mt-6">
           <Skeleton className="h-12 w-64 max-w-full" />
@@ -29,12 +29,12 @@ export default function WatchTVLoading() {
         </div>
       </div>
 
-      {/* Player + episodes */}
+      {}
       <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8">
         <div className="space-y-4">
           <Skeleton className="w-full aspect-video rounded-xl" />
 
-          {/* Controls */}
+          {}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-4 sm:px-0">
             <Skeleton className="h-9 w-40 rounded-lg" />
             <Skeleton className="h-5 w-56" />
@@ -44,7 +44,7 @@ export default function WatchTVLoading() {
             </div>
           </div>
 
-          {/* Episodes */}
+          {}
           <div className="px-4 sm:px-0">
             <Skeleton className="h-6 w-24 mb-3" />
             <div className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2">

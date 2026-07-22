@@ -72,7 +72,6 @@ export default async function TVShowPage({
 
   return (
     <div className="flex flex-col">
-      {/* Backdrop */}
       <div className="relative w-full h-[50vh] sm:h-[60vh]">
         {backdrop && (
           <Image
@@ -87,10 +86,8 @@ export default async function TVShowPage({
         <div className="absolute inset-0 bg-linear-to-t from-background via-background/70 to-background/30" />
       </div>
 
-      {/* Content */}
       <div className="relative -mt-48 z-10 mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16">
         <div className="flex flex-col sm:flex-row gap-8">
-          {/* Poster */}
           <div className="shrink-0 mx-auto sm:mx-0">
             <div className="relative w-50 sm:w-65 aspect-2/3 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10">
               <Image
@@ -104,7 +101,6 @@ export default async function TVShowPage({
             </div>
           </div>
 
-          {/* Info */}
           <div className="flex-1 space-y-5 pt-4 sm:pt-16">
             <h1
               className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight text-balance"
@@ -131,7 +127,6 @@ export default async function TVShowPage({
               ))}
             </div>
 
-            {/* Meta row */}
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
               <div className="flex items-center gap-1.5 text-accent-red font-semibold">
                 <Image
@@ -187,7 +182,6 @@ export default async function TVShowPage({
               />
             </div>
 
-            {/* Actions */}
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mt-2">
               <Link href={localizedHref(locale, `/watch/tv/${show.id}`)} className="w-full sm:w-auto">
                 <Button
@@ -215,7 +209,6 @@ export default async function TVShowPage({
               <Separator className="bg-white/10" />
             </div>
 
-            {/* Overview */}
             <div>
               <h3
                 className="text-lg font-semibold mb-2"
@@ -228,7 +221,6 @@ export default async function TVShowPage({
               </p>
             </div>
 
-            {/* Created by */}
             {show.created_by.length > 0 && (
               <div>
                 <span className="text-sm text-muted-foreground">
@@ -240,7 +232,6 @@ export default async function TVShowPage({
               </div>
             )}
 
-            {/* Networks */}
             {show.networks.length > 0 && (
               <div>
                 <span className="text-sm text-muted-foreground">{translate(locale, "Network")}</span>
@@ -252,7 +243,6 @@ export default async function TVShowPage({
           </div>
         </div>
 
-        {/* Seasons */}
         {show.seasons.length > 0 && (
           <div className="mt-12">
             <h3
@@ -300,7 +290,6 @@ export default async function TVShowPage({
           </div>
         )}
 
-        {/* Cast */}
         {topCast.length > 0 && (
           <div className="mt-12">
             <h3
@@ -346,7 +335,6 @@ export default async function TVShowPage({
           </div>
         )}
 
-        {/* Similar TV */}
         {similar.length > 0 && (
           <div className="mt-12">
             <Carousel title={translate(locale, "Similar Shows")} items={similar.map(tvToMedia)} />

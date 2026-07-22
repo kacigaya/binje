@@ -13,18 +13,12 @@ type Track = { file: string; label?: string };
 type Quality = { index: number; height: number; bitrate: number };
 type StreamSource = { file: string; height: number };
 
-// "en" = Videasy Yoru HQ with Neon fallback via /api/resolve.
-// "vf" = French via /api/resolve-vf (frembed → uqload HLS).
 type Lang = "en" | "vf";
 const LANGS: { id: Lang; label: string }[] = [
   { id: "en", label: "VO" },
   { id: "vf", label: "VF" },
 ];
 
-// Resolve runs on the Cloudflare Worker in prod (its egress gets past
-// provider-side Cloudflare blocks; Netlify's IP is often blocked). Defaults to
-// local /api for dev. Segment proxy always stays on /api/hls; the stream CDN
-// serves Netlify's server-side fetch but blocks the Worker's IP.
 export const RESOLVE_BASE = (process.env.NEXT_PUBLIC_RESOLVE_BASE || "/api").replace(/\/+$/, "");
 
 export function proxied(url: string) {
@@ -32,8 +26,6 @@ export function proxied(url: string) {
 }
 
 function createMasterPlaylist(sources: StreamSource[]) {
-  // ponytail: Videasy labels fixed streams but supplies no bitrates. Estimates
-  // only guide hls.js ABR; manual resolution selection remains exact.
   const lines = ["#EXTM3U", "#EXT-X-VERSION:3"];
   for (const source of sources) {
     const width = Math.round((source.height * 16) / 9 / 2) * 2;
@@ -146,7 +138,7 @@ export default function Player({
             if (payload.fatal) setError(true);
           });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-          video.src = src; // Safari native HLS
+          video.src = src;
         } else {
           throw new Error("HLS unsupported");
         }

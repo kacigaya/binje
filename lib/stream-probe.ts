@@ -1,6 +1,3 @@
-// Identify video/audio codecs from the first bytes of an MPEG-TS segment.
-// The provider's playlists carry no CODECS/VIDEO-RANGE attributes, so this is
-// the only way to know what the stream actually contains.
 
 export type StreamTech = {
   video: "H264" | "HEVC" | null;
@@ -40,7 +37,6 @@ function packetPayload(data: Uint8Array, offset: number) {
   return start < offset + TS_PACKET_SIZE ? start : -1;
 }
 
-// PSI sections begin with a pointer_field on payload-start packets.
 function sectionStart(data: Uint8Array, payload: number) {
   return payload + 1 + data[payload];
 }
@@ -56,7 +52,6 @@ export function parseTsCodecs(data: Uint8Array): StreamTech {
     offset += TS_PACKET_SIZE
   ) {
     if (data[offset] !== 0x47) {
-      // Lost sync; try to re-sync on the next 0x47 byte.
       const next = data.indexOf(0x47, offset + 1);
       if (next === -1) break;
       offset = next - TS_PACKET_SIZE;
@@ -69,11 +64,10 @@ export function parseTsCodecs(data: Uint8Array): StreamTech {
     if (payload === -1) continue;
 
     if (pid === 0) {
-      // PAT: first program's PMT PID.
       const section = sectionStart(data, payload);
       if (data[section] !== 0x00) continue;
       const sectionLength = ((data[section + 1] & 0x0f) << 8) | data[section + 2];
-      const programsEnd = section + 3 + sectionLength - 4; // minus CRC
+      const programsEnd = section + 3 + sectionLength - 4;
       for (let p = section + 8; p + 4 <= programsEnd; p += 4) {
         const programNumber = (data[p] << 8) | data[p + 1];
         if (programNumber !== 0) {
@@ -85,7 +79,7 @@ export function parseTsCodecs(data: Uint8Array): StreamTech {
       const section = sectionStart(data, payload);
       if (data[section] !== 0x02) continue;
       const sectionLength = ((data[section + 1] & 0x0f) << 8) | data[section + 2];
-      const sectionEnd = section + 3 + sectionLength - 4; // minus CRC
+      const sectionEnd = section + 3 + sectionLength - 4;
       const programInfoLength =
         ((data[section + 10] & 0x0f) << 8) | data[section + 11];
       let es = section + 12 + programInfoLength;
@@ -96,7 +90,7 @@ export function parseTsCodecs(data: Uint8Array): StreamTech {
         const esInfoLength = ((data[es + 3] & 0x0f) << 8) | data[es + 4];
         es += 5 + esInfoLength;
       }
-      break; // PMT parsed; done with PSI.
+      break;
     }
   }
 
@@ -108,13 +102,12 @@ export function parseTsCodecs(data: Uint8Array): StreamTech {
   return { video, audio };
 }
 
-// Scan for an ADTS header to read the AAC channel configuration.
 function findAacChannels(data: Uint8Array) {
   for (let i = 0; i + 4 < data.length; i++) {
     if (data[i] !== 0xff || (data[i + 1] & 0xf6) !== 0xf0) continue;
     const config = ((data[i + 2] & 0x01) << 2) | ((data[i + 3] & 0xc0) >> 6);
     const sampling = (data[i + 2] & 0x3c) >> 2;
-    if (sampling > 12 || config === 0) continue; // invalid header, keep scanning
+    if (sampling > 12 || config === 0) continue;
     return AAC_CHANNELS[config] ?? null;
   }
   return null;

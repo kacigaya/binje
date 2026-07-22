@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test";
 import { extractM3u8, scrapeM3u8, unpackPacked } from "./uqload";
 
-// A real-shaped uqload embed: jwplayer setup wrapped in a Dean Edwards packer.
 const PACKED =
   "eval(function(p,a,c,k,e,d){while(c--)if(k[c])p=p.replace(new RegExp(String.raw`\\b`+c.toString(a)+String.raw`\\b`,\"g\"),k[c]);return p}('0(\"1\").2({3:[{4:\"5://6.7.8/9/a.b?c=d&e=43200\"}]})',15,15,'jwplayer|vplayer|setup|sources|file|https|strm1|uqload|is|hls2|master|m3u8|t|abc|e'.split('|')))";
 
@@ -29,7 +28,6 @@ test("scrapeM3u8 grabs a plain in-page m3u8 (non-uqload hoster)", () => {
   expect(scrapeM3u8(html)).toBe(
     "https://cdn.example.net/vod/abc/master.m3u8?t=xyz",
   );
-  // still unpacks a packer when present
   expect(scrapeM3u8(PACKED)).toBe(
     "https://strm1.uqload.is/hls2/master.m3u8?t=abc&e=43200",
   );

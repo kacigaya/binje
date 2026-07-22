@@ -1,8 +1,17 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isLocale, preferredLocale } from "@/lib/i18n";
+import { clientIp, isRateLimited } from "@/lib/rate-limit";
 
 export function proxy(request: NextRequest) {
-  const [, locale] = request.nextUrl.pathname.split("/");
+  const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/api/")) {
+    return isRateLimited(clientIp(request.headers), pathname)
+      ? NextResponse.json({ error: "Too many requests" }, { status: 429 })
+      : NextResponse.next();
+  }
+
+  const [, locale] = pathname.split("/");
   if (isLocale(locale)) return NextResponse.next();
 
   const url = request.nextUrl.clone();
@@ -11,5 +20,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  matcher: ["/api/:path*", "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

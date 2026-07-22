@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// ponytail: stream extraction depends on Videasy and enc-dec.app (third-party,
-// closed-source, 40 req/s). If either changes, update this resolver and Worker.
 const PLAYER_ORIGIN = "https://player.videasy.to";
 const SOURCE_API = "https://api.wingsdatabase.com";
 const ENC_API = "https://enc-dec.app/api";

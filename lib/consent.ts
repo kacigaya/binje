@@ -18,6 +18,5 @@ export function setConsent(value: ConsentValue): void {
   try {
     window.localStorage.setItem(CONSENT_STORAGE_KEY, value);
   } catch {
-    // ignore quota / private-mode failures
   }
 }

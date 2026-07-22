@@ -54,7 +54,6 @@
     --accent-red: #e11d48;
 }
 
-/* Always dark and cinematic */
 .dark,
 :root {
     --background: #050506;
@@ -102,7 +101,6 @@
     }
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -118,7 +116,6 @@
     background: rgba(255, 255, 255, 0.25);
 }
 
-/* Horizontal carousel scrollbar hide */
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
 }

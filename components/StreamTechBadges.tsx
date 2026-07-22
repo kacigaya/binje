@@ -56,8 +56,6 @@ export default function StreamTechBadges({
           ? data.sources.reduce((a, b) => (b.height > a.height ? b : a)).file
           : data.url;
 
-        // Playlist lines come back rewritten to /api/hls by the proxy, so
-        // follow-up fetches use them as-is.
         let playlist = await fetch(proxied(topFile)).then((r) => r.text());
         if (playlist.includes("#EXT-X-STREAM-INF")) {
           const heights = [...playlist.matchAll(/RESOLUTION=\d+x(\d+)/g)].map(
@@ -91,7 +89,6 @@ export default function StreamTechBadges({
 
   const badges: string[] = [];
   if (info.height) badges.push(info.height >= 2160 ? "4K" : `${info.height}p`);
-  // ponytail: playlists carry no VIDEO-RANGE; HEVC→HDR is a heuristic, H264→SDR is fact.
   if (info.video) badges.push(info.video === "HEVC" ? "HDR" : "SDR");
   if (info.audio) badges.push(info.audio);
   if (badges.length === 0) return null;

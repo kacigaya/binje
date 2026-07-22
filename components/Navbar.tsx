@@ -84,7 +84,6 @@ export default function Navbar() {
     };
   }, [locale, open, query]);
 
-  // Close on Escape
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {

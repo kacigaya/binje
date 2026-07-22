@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CookiesBanner from "@/components/CookiesBanner";
 import { isLocale, translate } from "@/lib/i18n";
+import { SITE_URL } from "@/lib/site";
 
 const heading = Space_Grotesk({
   variable: "--font-heading",
@@ -22,9 +23,6 @@ const body = Outfit({
 export function generateStaticParams() {
   return [{ locale: "en" }, { locale: "fr" }];
 }
-
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://binje-stream.netlify.app";
 
 export async function generateMetadata({
   params,

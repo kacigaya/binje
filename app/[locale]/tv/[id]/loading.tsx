@@ -37,7 +37,7 @@ export default function TVShowLoading() {
           </div>
         </div>
 
-        {/* Seasons skeleton */}
+        {}
         <div className="mt-12 space-y-4">
           <Skeleton className="h-7 w-24" />
           <div className="flex gap-4">
@@ -50,7 +50,7 @@ export default function TVShowLoading() {
           </div>
         </div>
 
-        {/* Cast skeleton */}
+        {}
         <div className="mt-12 space-y-4">
           <Skeleton className="h-7 w-20" />
           <div className="flex gap-4">

@@ -1,10 +1,6 @@
 import { ScrollViewStyleReset } from "expo-router/html";
 import type { PropsWithChildren } from "react";
 
-// Web-only HTML shell. body is position:fixed so mobile browsers treat the
-// app as a non-scrolling surface: the URL bar never collapses, the layout
-// viewport stays equal to the visual viewport, and the tab bar can neither
-// clip below the screen nor leave a dead strip under it.
 export default function Root({ children }: PropsWithChildren) {
   return (
     <html lang="en">

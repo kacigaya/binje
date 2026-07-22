@@ -3,13 +3,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function MovieLoading() {
   return (
     <div className="flex flex-col">
-      {/* Backdrop skeleton */}
+      {}
       <div className="relative w-full h-[50vh] sm:h-[60vh]">
         <Skeleton className="absolute inset-0 rounded-none" />
         <div className="absolute inset-0 bg-linear-to-t from-background via-background/70 to-background/30" />
       </div>
 
-      {/* Content skeleton */}
+      {}
       <div className="relative -mt-48 z-10 mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16">
         <div className="flex flex-col sm:flex-row gap-8">
           <Skeleton className="shrink-0 mx-auto sm:mx-0 w-50 sm:w-65 aspect-2/3 rounded-2xl" />
@@ -38,7 +38,7 @@ export default function MovieLoading() {
           </div>
         </div>
 
-        {/* Cast skeleton */}
+        {}
         <div className="mt-12 space-y-4">
           <Skeleton className="h-7 w-20" />
           <div className="flex gap-4">

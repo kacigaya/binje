@@ -39,8 +39,6 @@ export async function generateMetadata({
   return {
     title,
     description: show.overview,
-    // Watch page is a functional duplicate of the detail page; canonicalize
-    // to the detail page so search engines index one.
     alternates: { canonical: `/${locale}/tv/${showId}` },
     openGraph: {
       type: "video.episode",
@@ -100,7 +98,6 @@ export default async function WatchTVPage({
         }}
       />
 
-      {/* Show info above player */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
         <div className="space-y-4 mt-6">
           <Link
@@ -197,7 +194,6 @@ export default async function WatchTVPage({
         </div>
       </div>
 
-      {/* Player */}
       <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8">
         <TVPlayer
           showId={show.id}

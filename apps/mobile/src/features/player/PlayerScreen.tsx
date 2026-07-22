@@ -229,7 +229,6 @@ export function PlayerScreen({
           fullscreenOptions={{ enable: true }}
         />
         {resolving ? <View style={styles.overlay}><ActivityIndicator color="#fff" size="large" /></View> : null}
-        {/* VO/VF + quality selector floating on the player, like the web build */}
         <View style={styles.playerControls}>
           <View style={styles.playerPillGroup}>
             {(["vo", "vf"] as const).map((item) => (

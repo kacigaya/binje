@@ -1,23 +1,22 @@
-// Mirrors web design tokens in app/globals.css
 export const colors = {
   background: '#050506',
-  surface: '#0c0c0f', // --card
-  surfaceAlt: '#1a1a1f', // --secondary / --muted
-  text: '#f0f0f0', // --foreground
-  muted: '#8a8a8a', // --muted-foreground
-  accent: '#e11d48', // --accent-red
+  surface: '#0c0c0f',
+  surfaceAlt: '#1a1a1f',
+  text: '#f0f0f0',
+  muted: '#8a8a8a',
+  accent: '#e11d48',
   accentPressed: '#be123c',
-  destructive: '#ef4444', // --destructive
-  border: 'rgba(255,255,255,0.08)', // --border
+  destructive: '#ef4444',
+  border: 'rgba(255,255,255,0.08)',
   borderStrong: 'rgba(255,255,255,0.15)',
-  fill: 'rgba(255,255,255,0.08)', // web bg-white/8 pills
-  fillActive: 'rgba(255,255,255,0.10)', // web bg-white/10 active pills
+  fill: 'rgba(255,255,255,0.08)',
+  fillActive: 'rgba(255,255,255,0.10)',
   success: '#22c55e',
 } as const;
 export const fonts = {
-  heading: 'SpaceGrotesk_700Bold', // web --font-heading
+  heading: 'SpaceGrotesk_700Bold',
   headingMedium: 'SpaceGrotesk_500Medium',
-  body: 'Outfit_400Regular', // web --font-sans
+  body: 'Outfit_400Regular',
   bodyMedium: 'Outfit_500Medium',
   bodySemiBold: 'Outfit_600SemiBold',
   bodyBold: 'Outfit_700Bold',
