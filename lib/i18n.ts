@@ -95,6 +95,10 @@ const FRENCH = {
   "No VF stream for this title.": "Aucun flux VF disponible pour ce titre.",
   "Stream unavailable. Try again later.":
     "Flux indisponible. Réessayez plus tard.",
+  "This title can't be played.": "Ce titre ne peut pas être lu.",
+  "Connection lost. Check your network.":
+    "Connexion perdue. Vérifiez votre réseau.",
+  "Playback failed. Try again.": "La lecture a échoué. Réessayez.",
   "Loading…": "Chargement…",
   Quality: "Qualité",
   Auto: "Auto",

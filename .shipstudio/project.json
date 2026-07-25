@@ -1,0 +1,18 @@
+{
+  "_description": "Ship Studio project metadata. Auto-generated - safe to delete if needed, will be recreated.",
+  "schema_version": 3,
+  "publish": {
+    "staging": null,
+    "production": null
+  },
+  "last_opened": 1784722411959,
+  "terminal_state": {
+    "tabs": [
+      {
+        "agent_id": "claude-code",
+        "session_id": "e17a140a-a003-48b2-a608-1a679472b47f"
+      }
+    ],
+    "active_tab_index": 0
+  }
+}

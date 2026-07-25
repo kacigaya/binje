@@ -3,7 +3,12 @@
 import Hls from "hls.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Select } from "@/components/ui/select";
-import { fetchResolve } from "@/lib/resolve-client";
+import {
+  clearResolveCache,
+  fetchResolve,
+  ResolveError,
+  type ResolveFailure,
+} from "@/lib/resolve-client";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
@@ -13,6 +18,7 @@ type Track = { file: string; label?: string };
 type Quality = { index: number; height: number; bitrate: number };
 type StreamSource = { file: string; height: number };
 
+type PlayerError = ResolveFailure | "playback";
 type Lang = "en" | "vf";
 const LANGS: { id: Lang; label: string }[] = [
   { id: "en", label: "VO" },
@@ -80,7 +86,8 @@ export default function Player({
   const [tracks, setTracks] = useState<Track[]>([]);
   const [qualities, setQualities] = useState<Quality[]>([]);
   const [quality, setQuality] = useState(-1);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<PlayerError | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -88,7 +95,7 @@ export default function Player({
     const video = videoRef.current;
     if (!video) return;
 
-    setError(false);
+    setError(null);
     setLoading(true);
     setTracks([]);
     setQualities([]);
@@ -135,7 +142,7 @@ export default function Player({
           hls.loadSource(src);
           hls.attachMedia(video);
           hls.on(Hls.Events.ERROR, (_e, payload) => {
-            if (payload.fatal) setError(true);
+            if (payload.fatal) setError("playback");
           });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
           video.src = src;
@@ -143,9 +150,9 @@ export default function Player({
           throw new Error("HLS unsupported");
         }
         setLoading(false);
-      } catch {
+      } catch (cause) {
         if (!cancelled) {
-          setError(true);
+          setError(cause instanceof ResolveError ? cause.reason : "playback");
           setLoading(false);
         }
       }
@@ -157,7 +164,21 @@ export default function Player({
       hls?.destroy();
       if (masterUrl) URL.revokeObjectURL(masterUrl);
     };
-  }, [sourceUrl]);
+  }, [sourceUrl, attempt]);
+
+  function retry() {
+    clearResolveCache(sourceUrl);
+    setAttempt((value) => value + 1);
+  }
+
+  function errorMessage(reason: PlayerError) {
+    if (reason === "invalid") return t("This title can't be played.");
+    if (reason === "network") return t("Connection lost. Check your network.");
+    if (reason === "playback") return t("Playback failed. Try again.");
+    return lang === "vf"
+      ? t("No VF stream for this title.")
+      : t("Stream unavailable. Try again later.");
+  }
 
   function changeQuality(index: number) {
     setQuality(index);
@@ -234,12 +255,21 @@ export default function Player({
         ))}
       </video>
       {(loading || error) && (
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-white/70 pointer-events-none">
-          {error
-            ? lang === "vf"
-              ? t("No VF stream for this title.")
-              : t("Stream unavailable. Try again later.")
-            : t("Loading…")}
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-sm text-white/70 pointer-events-none">
+          {error ? (
+            <>
+              <p>{errorMessage(error)}</p>
+              <button
+                type="button"
+                onClick={retry}
+                className="pointer-events-auto rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white transition-colors cursor-pointer hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-accent-red/60"
+              >
+                {t("Try Again")}
+              </button>
+            </>
+          ) : (
+            t("Loading…")
+          )}
         </div>
       )}
     </div>
