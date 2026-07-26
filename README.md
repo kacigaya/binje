@@ -16,7 +16,7 @@
 - Dedicated `/movies` and `/tv-shows` browse pages
 - Detailed movie and TV show pages (ratings, cast, seasons, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
-- Watch pages with Videasy VO, optional VF, subtitles, and manual HLS quality selection
+- Watch pages serving your own HLS library, with subtitles and manual quality selection
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
 - "Continue Watching" row backed by local play history
 - Hero with auto-rotating featured titles, two-line expandable overview, and TMDB/Rotten Tomatoes ratings
@@ -34,7 +34,7 @@
 - UI: React 19, Tailwind CSS 4, shadcn tokens, Lucide icons
 - Styling: clsx, tailwind-merge
 - Data: TMDB (movies/TV), OMDb (optional Rotten Tomatoes scores)
-- Player: hls.js with Videasy Yoru HQ/Neon fallback through enc-dec.app and `/api/hls`
+- Player: hls.js against your own S3-compatible library, proxied through `/api/hls`
 - Language: TypeScript
 - Testing: Bun test, Playwright
 - Mobile: Expo Router, React Native, expo-video, TanStack Query, AsyncStorage
@@ -67,8 +67,45 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 Unprefixed URLs redirect to `/en` or `/fr` from the browser language; use the
 navbar language switch to change locale while keeping the current page.
 
-Production stream resolution is mirrored in `worker/resolve-worker.js`. Deploy that
-Worker separately after reviewing resolver changes; local development uses `/api/resolve`.
+### Stream library
+
+`/api/resolve` serves playback from an S3-compatible bucket you control (R2, S3, MinIO,
+B2). Set these in `.env.local`:
+
+```
+STORAGE_ENDPOINT=https://<account>.r2.cloudflarestorage.com
+STORAGE_BUCKET=binje
+STORAGE_ACCESS_KEY_ID=...
+STORAGE_SECRET_ACCESS_KEY=...
+STORAGE_REGION=auto              # optional, defaults to "auto"
+STORAGE_PREFIX=library           # optional, confines every key to this prefix
+STORAGE_URL_TTL_SECONDS=900      # optional signed-URL lifetime
+```
+
+Without these, `/api/resolve` returns 503 and the player reports the title as
+unplayable. Credentials stay server-side: the resolver hands the browser plain object
+URLs and `/api/hls` signs each fetch, refusing anything that is not a media file inside
+the configured bucket and prefix.
+
+Each title carries an `index.json` manifest at `movies/<tmdbId>/` or
+`tv/<tmdbId>/s<season>e<episode>/`:
+
+```json
+{
+  "renditions": [
+    { "height": 1080, "file": "movies/37165/1080p.m3u8" },
+    { "height": 720, "file": "movies/37165/720p.m3u8" }
+  ],
+  "subtitles": [{ "label": "English", "file": "movies/37165/subs/en.vtt" }]
+}
+```
+
+`file` is a bucket key, or an absolute `https://` URL to serve through a CDN in front of
+the bucket. Playback defaults to 1080p when present, otherwise the highest rendition. A
+missing manifest resolves as 404 and the player says the title cannot be played.
+
+`worker/resolve-worker.js` predates this and still targets the old third-party provider;
+it is unused by the app and safe to delete.
 
 ### Mobile development
 

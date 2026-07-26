@@ -1,6 +1,7 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
+import { isLibraryObject, presignGet, storageConfigFromEnv } from "@/lib/storage";
 
 const PLAYER_ORIGIN = "https://player.videasy.to";
 const BROWSER_USER_AGENT =
@@ -113,6 +114,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
   }
 
+  // Library objects are private: sign them here so credentials stay server-side.
+  // Anything else on the storage host is refused rather than signed blindly.
+  const storage = storageConfigFromEnv();
+  const onStorageHost =
+    storage !== null && new URL(storage.endpoint).host === targetUrl.host;
+  if (onStorageHost && !isLibraryObject(storage, targetUrl)) {
+    return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
+  }
+  const fetchUrl = onStorageHost
+    ? new URL(await presignGet(storage, targetUrl.toString()))
+    : targetUrl;
+
   const headers = new Headers({
     accept: request.headers.get("accept") ?? "*/*",
     origin: PLAYER_ORIGIN,
@@ -127,7 +140,7 @@ export async function GET(request: NextRequest) {
 
   let response: Response;
   try {
-    response = await safeFetch(targetUrl, {
+    response = await safeFetch(fetchUrl, {
       cache: "no-store",
       headers,
       signal: controller.signal,

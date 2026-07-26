@@ -39,10 +39,10 @@ export function fetchResolve(url: string): Promise<ResolveResult> {
       throw new ResolveError("network");
     }
     if (!response.ok) {
-      throw new ResolveError(
-        response.status === 400 ? "invalid" : "unavailable",
-        response.status,
-      );
+      // 400 rejected params and 404 not-in-library are both permanent: no
+      // amount of retrying will produce a stream for this request.
+      const permanent = response.status === 400 || response.status === 404;
+      throw new ResolveError(permanent ? "invalid" : "unavailable", response.status);
     }
     try {
       return (await response.json()) as ResolveResult;
