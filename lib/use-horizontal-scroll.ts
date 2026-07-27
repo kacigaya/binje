@@ -25,9 +25,7 @@ export function useHorizontalScroll(refreshKey?: unknown) {
 
   useEffect(() => {
     checkScroll();
-  }, [checkScroll, refreshKey]);
-
-  useEffect(() => {
+    // refreshKey also covers the element appearing later (list starts empty)
     const el = scrollRef.current;
     if (!el) return;
     el.addEventListener("scroll", onScroll, { passive: true });
@@ -35,7 +33,7 @@ export function useHorizontalScroll(refreshKey?: unknown) {
       el.removeEventListener("scroll", onScroll);
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [onScroll]);
+  }, [checkScroll, onScroll, refreshKey]);
 
   const scroll = useCallback(
     (direction: "left" | "right") => {
