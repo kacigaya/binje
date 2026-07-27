@@ -46,7 +46,7 @@ function Select<T extends string | number>({
               <BaseSelect.Item
                 key={String(item.value)}
                 value={item.value}
-                className="flex cursor-pointer items-center justify-between gap-2 px-3 py-1.5 outline-none data-highlighted:bg-white/10"
+                className="flex cursor-pointer items-center justify-between gap-2 px-3 py-1.5 outline-none data-highlighted:bg-white/20 data-highlighted:text-foreground data-highlighted:inset-ring-2 data-highlighted:inset-ring-accent-red/60"
               >
                 <BaseSelect.ItemText>{item.label}</BaseSelect.ItemText>
                 <BaseSelect.ItemIndicator>

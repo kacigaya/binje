@@ -3,8 +3,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { Search, Film, X, Clapperboard, Tv, Bookmark, Menu } from "lucide-react";
-import { useState, useRef, SyntheticEvent, useEffect, useCallback } from "react";
+import { Search, Film, X, Clapperboard, Tv, Bookmark, Menu, Loader2 } from "lucide-react";
+import {
+  useState,
+  useRef,
+  SyntheticEvent,
+  useEffect,
+  useCallback,
+  useTransition,
+} from "react";
 import { localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -36,7 +43,10 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [isNavigating, startNavigation] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  const busy = loadingSuggestions || isNavigating;
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -46,16 +56,19 @@ export default function Navbar() {
     setOpen(false);
     setQuery("");
     setSuggestions([]);
+    setLoadingSuggestions(false);
   }, []);
 
   useEffect(() => {
     const trimmedQuery = query.trim();
 
     if (!open || trimmedQuery.length < 2) {
+      setLoadingSuggestions(false);
       return;
     }
 
     const controller = new AbortController();
+    setLoadingSuggestions(true);
     const timer = window.setTimeout(async () => {
       try {
         const res = await fetch(
@@ -75,6 +88,8 @@ export default function Navbar() {
           return;
         }
         setSuggestions([]);
+      } finally {
+        if (!controller.signal.aborted) setLoadingSuggestions(false);
       }
     }, 250);
 
@@ -97,10 +112,14 @@ export default function Navbar() {
 
   function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (query.trim()) {
-      router.push(localizedHref(locale, `/search?q=${encodeURIComponent(query.trim())}`));
-      close();
-    }
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery || isNavigating) return;
+    startNavigation(() => {
+      router.push(
+        localizedHref(locale, `/search?q=${encodeURIComponent(trimmedQuery)}`),
+      );
+    });
+    close();
   }
 
   function handleQueryChange(value: string) {
@@ -111,11 +130,14 @@ export default function Navbar() {
   }
 
   function openSuggestion(suggestion: SearchSuggestion) {
+    if (isNavigating) return;
     const href =
       suggestion.media_type === "tv"
         ? `/tv/${suggestion.id}`
         : `/movie/${suggestion.id}`;
-    router.push(localizedHref(locale, href));
+    startNavigation(() => {
+      router.push(localizedHref(locale, href));
+    });
     close();
   }
 
@@ -190,19 +212,33 @@ export default function Navbar() {
               {open ? (
                 <form onSubmit={handleSubmit} className="flex items-center gap-2">
                   <div className="relative">
-                    <Search
-                      aria-hidden="true"
-                      className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
-                    />
+                    {busy ? (
+                      <Loader2
+                        aria-hidden="true"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 size-4 animate-spin text-accent-red pointer-events-none motion-reduce:animate-none"
+                      />
+                    ) : (
+                      <Search
+                        aria-hidden="true"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
+                      />
+                    )}
                     <input
                       ref={inputRef}
                       type="text"
+                      required
+                      minLength={2}
+                      maxLength={100}
                       placeholder={t("Search movies & TV...")}
                       aria-label={t("Search movies & TV...")}
+                      aria-busy={busy}
                       value={query}
                       onChange={(event) => handleQueryChange(event.target.value)}
                       className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition"
                     />
+                    <span className="sr-only" role="status" aria-live="polite">
+                      {busy ? t("Searching…") : ""}
+                    </span>
                     {suggestions.length > 0 && (
                       <div className="absolute right-0 top-12 w-72 overflow-hidden rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
                         {suggestions.map((suggestion) => {
@@ -217,7 +253,8 @@ export default function Navbar() {
                               key={`${suggestion.media_type}-${suggestion.id}`}
                               type="button"
                               onClick={() => openSuggestion(suggestion)}
-                              className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus:bg-white/8 focus:outline-none"
+                              disabled={isNavigating}
+                              className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus:bg-white/8 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-red/60 disabled:opacity-50 disabled:pointer-events-none"
                             >
                               <span className="relative h-12.5 w-8.5 shrink-0 overflow-hidden rounded bg-white/8">
                                 {suggestion.poster_path ? (

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Play, Calendar, Tv, Layers } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonClasses } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import WatchlistButton from "@/components/WatchlistButton";
@@ -183,14 +183,16 @@ export default async function TVShowPage({
             </div>
 
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mt-2">
-              <Link href={localizedHref(locale, `/watch/tv/${show.id}`)} className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer"
-                >
-                  <Play className="size-5 fill-white" />
-                  {translate(locale, "Watch Now")}
-                </Button>
+              <Link
+                href={localizedHref(locale, `/watch/tv/${show.id}`)}
+                className={buttonClasses({
+                  size: "lg",
+                  className:
+                    "w-full sm:w-auto rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer",
+                })}
+              >
+                <Play data-icon="inline-start" className="size-5 fill-white" />
+                {translate(locale, "Watch Now")}
               </Link>
               <WatchlistButton
                 item={{
@@ -210,12 +212,12 @@ export default async function TVShowPage({
             </div>
 
             <div>
-              <h3
+              <h2
                 className="text-lg font-semibold mb-2"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 {translate(locale, "Overview")}
-              </h3>
+              </h2>
               <p className="text-foreground/70 leading-relaxed">
                 {show.overview}
               </p>
@@ -245,12 +247,12 @@ export default async function TVShowPage({
 
         {show.seasons.length > 0 && (
           <div className="mt-12">
-            <h3
+            <h2
               className="text-xl font-bold mb-6"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               {translate(locale, "Seasons")}
-            </h3>
+            </h2>
             <div className="flex gap-4 overflow-x-auto scrollbar-hide p-2">
               {show.seasons
                 .filter((s) => s.season_number > 0)
@@ -292,12 +294,12 @@ export default async function TVShowPage({
 
         {topCast.length > 0 && (
           <div className="mt-12">
-            <h3
+            <h2
               className="text-xl font-bold mb-6 px-0"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               {translate(locale, "Cast")}
-            </h3>
+            </h2>
             <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
               {topCast.map((person, i) => {
                 const photo = profileUrl(person.profile_path);

@@ -255,7 +255,11 @@ export default function Player({
         ))}
       </video>
       {(loading || error) && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-sm text-white/70 pointer-events-none">
+        <div
+          role="status"
+          aria-live="polite"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-sm text-white/70 pointer-events-none"
+        >
           {error ? (
             <>
               <p>{errorMessage(error)}</p>

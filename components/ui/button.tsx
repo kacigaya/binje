@@ -33,6 +33,23 @@ const sizes = {
 type ButtonVariant = keyof typeof variants
 type ButtonSize = keyof typeof sizes
 
+/**
+ * Button styling without the `<button>` element, so an element that is already
+ * interactive (a `Link`, for example) can look like a button without nesting a
+ * second control inside it.
+ */
+function buttonClasses({
+  variant = "default",
+  size = "default",
+  className,
+}: {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  className?: string
+} = {}) {
+  return cn(base, variants[variant], sizes[size], className)
+}
+
 function Button({
   className,
   variant = "default",
@@ -45,10 +62,10 @@ function Button({
   return (
     <button
       data-slot="button"
-      className={cn(base, variants[variant], sizes[size], className)}
+      className={buttonClasses({ variant, size, className })}
       {...props}
     />
   )
 }
 
-export { Button }
+export { Button, buttonClasses }
