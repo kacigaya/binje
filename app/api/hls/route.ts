@@ -1,6 +1,7 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
+import { isSignedProxyRequest, proxyUrl } from "@/lib/hls-token";
 import { isLibraryObject, presignGet, storageConfigFromEnv } from "@/lib/storage";
 
 const PLAYER_ORIGIN = "https://player.videasy.to";
@@ -85,40 +86,65 @@ async function safeFetch(start: URL, init: RequestInit) {
   throw new Error("Too many redirects.");
 }
 
-function proxiedUrl(url: string | URL, requestUrl: string) {
-  const proxyUrl = new URL("/api/hls", requestUrl);
-  proxyUrl.searchParams.set("url", String(url));
-  return `${proxyUrl.pathname}${proxyUrl.search}`;
+/** Segment and key URLs are rewritten through this proxy, freshly signed. */
+async function proxied(url: string | URL, requestUrl: string) {
+  const signed = new URL(await proxyUrl(requestUrl, String(url)));
+  return `${signed.pathname}${signed.search}`;
 }
 
-function rewritePlaylist(text: string, targetUrl: URL, requestUrl: string) {
-  return text
-    .split("\n")
-    .map((line) => {
+const URI_ATTRIBUTE = /URI="([^"]+)"/g;
+
+async function rewritePlaylist(text: string, targetUrl: URL, requestUrl: string) {
+  const lines = await Promise.all(
+    text.split("\n").map(async (line) => {
       const trimmed = line.trim();
       if (!trimmed) return line;
-      if (trimmed.startsWith("#")) {
-        return line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
-          return `URI="${proxiedUrl(new URL(uri, targetUrl), requestUrl)}"`;
-        });
+      if (!trimmed.startsWith("#")) {
+        return proxied(new URL(trimmed, targetUrl), requestUrl);
       }
-      return proxiedUrl(new URL(trimmed, targetUrl), requestUrl);
-    })
-    .join("\n");
+      // Signing is async, so collect the rewritten URIs before substituting.
+      const signed = await Promise.all(
+        [...line.matchAll(URI_ATTRIBUTE)].map(([, uri]) =>
+          proxied(new URL(uri, targetUrl), requestUrl),
+        ),
+      );
+      let index = 0;
+      return line.replace(URI_ATTRIBUTE, () => `URI="${signed[index++]}"`);
+    }),
+  );
+  return lines.join("\n");
 }
 
 export async function GET(request: NextRequest) {
-  const targetUrl = getTargetUrl(request.nextUrl.searchParams.get("url"));
+  const query = request.nextUrl.searchParams;
+  const rawTarget = query.get("url");
+  const targetUrl = getTargetUrl(rawTarget);
   if (!targetUrl) return NextResponse.json({ error: "Invalid HLS URL." }, { status: 400 });
+
+  const storage = storageConfigFromEnv();
+  const onStorageHost =
+    storage !== null && new URL(storage.endpoint).host === targetUrl.host;
+
+  // Only targets minted by our own resolvers are fetched. Otherwise the proxy
+  // is an open relay: any caller could route traffic through our egress.
+  const signed = await isSignedProxyRequest(
+    rawTarget!,
+    query.get("exp"),
+    query.get("sig"),
+  );
+  // ponytail: unsigned library objects still pass so mobile builds shipped
+  // before signing keep playing; that set is closed and checked below anyway.
+  // Drop this branch once those clients are gone.
+  if (!signed && !onStorageHost) {
+    return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
+  }
+
   if (!(await isSafeHost(targetUrl))) {
     return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
   }
 
   // Library objects are private: sign them here so credentials stay server-side.
   // Anything else on the storage host is refused rather than signed blindly.
-  const storage = storageConfigFromEnv();
-  const onStorageHost =
-    storage !== null && new URL(storage.endpoint).host === targetUrl.host;
   if (onStorageHost && !isLibraryObject(storage, targetUrl)) {
     return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
   }
@@ -161,7 +187,12 @@ export async function GET(request: NextRequest) {
   if (response.ok && (contentType.includes("mpegurl") || targetUrl.pathname.endsWith(".m3u8"))) {
     responseHeaders.set("content-type", "application/vnd.apple.mpegurl");
     responseHeaders.delete("content-length");
-    return new NextResponse(await response.text().then((text) => rewritePlaylist(text, targetUrl, request.nextUrl.href)), {
+    const playlist = await rewritePlaylist(
+      await response.text(),
+      targetUrl,
+      request.nextUrl.href,
+    );
+    return new NextResponse(playlist, {
       status: response.status,
       headers: responseHeaders,
     });

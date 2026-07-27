@@ -13,7 +13,7 @@ import { useLocale } from "../../providers/LocaleProvider";
 import { upsertPlayHistory, updatePlayHistoryProgress } from "../../storage/playHistory";
 import { colors, fonts, spacing } from "../../theme";
 import { createProgressWriter } from "./progressWriter";
-import { proxiedHlsUrl, resolveStream, type AudioVariant } from "./resolveStream";
+import { resolveStream, type AudioVariant } from "./resolveStream";
 import type { MobileMediaType, StreamResponse } from "../../types/api";
 
 export function PlayerScreen({
@@ -108,7 +108,7 @@ export function PlayerScreen({
         if (cancelled) return;
         setStream(result);
         setQualityHeight(null);
-        await player.replaceAsync({ uri: proxiedHlsUrl(result.url), contentType: "hls" });
+        await player.replaceAsync({ uri: result.url, contentType: "hls" });
         if (!cancelled) player.play();
       })
       .catch((error: unknown) => {
@@ -133,7 +133,7 @@ export function PlayerScreen({
     if (!file) return;
     setQualityHeight(height);
     const position = player.currentTime;
-    await player.replaceAsync({ uri: proxiedHlsUrl(file), contentType: "hls" });
+    await player.replaceAsync({ uri: file, contentType: "hls" });
     if (position > 0) player.seekBy(position);
     player.play();
   }

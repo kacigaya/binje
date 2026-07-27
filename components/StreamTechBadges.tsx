@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RESOLVE_BASE, proxied } from "@/components/Player";
+import { RESOLVE_BASE } from "@/components/Player";
 import { fetchResolve } from "@/lib/resolve-client";
 import { parseTsCodecs, type StreamTech } from "@/lib/stream-probe";
 
@@ -56,7 +56,7 @@ export default function StreamTechBadges({
           ? data.sources.reduce((a, b) => (b.height > a.height ? b : a)).file
           : data.url;
 
-        let playlist = await fetch(proxied(topFile)).then((r) => r.text());
+        let playlist = await fetch(topFile).then((r) => r.text());
         if (playlist.includes("#EXT-X-STREAM-INF")) {
           const heights = [...playlist.matchAll(/RESOLUTION=\d+x(\d+)/g)].map(
             (m) => Number(m[1]),

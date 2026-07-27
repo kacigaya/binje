@@ -12,7 +12,7 @@ function stubFetch(handler: () => Response | Promise<Response>) {
   globalThis.fetch = (async () => {
     calls += 1;
     return handler();
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
   return () => calls;
 }
 

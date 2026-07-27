@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { proxyResolverPayload } from "@/lib/hls-token";
 import {
   manifestKey,
   parseLibraryManifest,
@@ -64,9 +65,10 @@ export async function GET(request: NextRequest) {
       resolveFileUrl(config, file),
     );
 
-    return NextResponse.json(result, {
-      headers: { "cache-control": "no-store" },
-    });
+    return NextResponse.json(
+      await proxyResolverPayload(request.nextUrl.origin, result),
+      { headers: { "cache-control": "no-store" } },
+    );
   } catch {
     return NextResponse.json(
       { error: "Failed to resolve stream." },

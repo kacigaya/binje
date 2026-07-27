@@ -4,13 +4,17 @@ const RESOLVE_ORIGIN = process.env.NEXT_PUBLIC_RESOLVE_BASE?.startsWith("http")
   ? new URL(process.env.NEXT_PUBLIC_RESOLVE_BASE).origin
   : "";
 
+// Enforced, not report-only. Every stream now travels through /api/hls, so
+// 'self' covers playback and no wildcard https: source is needed. script-src
+// still needs 'unsafe-inline'/'unsafe-eval': Next's bootstrap is inline and
+// Turbopack evals in dev. Tighten with a nonce if that ever becomes worth it.
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://image.tmdb.org",
-  `connect-src 'self' blob: data: https: ${RESOLVE_ORIGIN}`.trim(),
-  "media-src 'self' blob: data: https:",
+  `connect-src 'self' blob: data: ${RESOLVE_ORIGIN}`.trim(),
+  `media-src 'self' blob: data: ${RESOLVE_ORIGIN}`.trim(),
   "worker-src 'self' blob:",
   "font-src 'self' data:",
   "frame-ancestors 'self'",
@@ -42,7 +46,7 @@ const nextConfig: NextConfig = {
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-        { key: "Content-Security-Policy-Report-Only", value: CSP },
+        { key: "Content-Security-Policy", value: CSP },
       ],
     },
     {

@@ -17,7 +17,7 @@
 
 ## Playback
 
-The Expo app asks `/api/resolve` or `/api/resolve-vf` for a stream and plays the proxied HLS URL with `expo-video`. Provider extraction and browser-like request headers remain on the server. Playback progress is throttled and stored locally after consent.
+The Expo app asks `/api/resolve` or `/api/resolve-vf` for a stream and plays the returned URL with `expo-video`. Those URLs already point at the signed `/api/hls` proxy, so the client builds nothing itself. Provider extraction and browser-like request headers remain on the server. Playback progress is throttled and stored locally after consent.
 
 ## Local state
 

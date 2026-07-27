@@ -55,7 +55,3 @@ export async function resolveStream(media: StreamMedia, variant: AudioVariant): 
   };
 }
 
-export function proxiedHlsUrl(url: string): string {
-  const base = (process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://binje-stream.netlify.app").replace(/\/+$/, "");
-  return `${base}/api/hls?url=${encodeURIComponent(url)}`;
-}

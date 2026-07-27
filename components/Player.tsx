@@ -27,10 +27,8 @@ const LANGS: { id: Lang; label: string }[] = [
 
 export const RESOLVE_BASE = (process.env.NEXT_PUBLIC_RESOLVE_BASE || "/api").replace(/\/+$/, "");
 
-export function proxied(url: string) {
-  return `/api/hls?url=${encodeURIComponent(url)}`;
-}
-
+// Stream URLs arrive from the resolver already pointing at the signed
+// /api/hls proxy, so nothing here rewrites them.
 function createMasterPlaylist(sources: StreamSource[]) {
   const lines = ["#EXTM3U", "#EXT-X-VERSION:3"];
   for (const source of sources) {
@@ -38,7 +36,7 @@ function createMasterPlaylist(sources: StreamSource[]) {
     const bandwidth = Math.round(source.height * source.height * 5);
     lines.push(
       `#EXT-X-STREAM-INF:BANDWIDTH=${bandwidth},RESOLUTION=${width}x${source.height}`,
-      new URL(proxied(source.file), window.location.origin).href,
+      source.file,
     );
   }
   return `${lines.join("\n")}\n`;
@@ -119,7 +117,7 @@ export default function Player({
             }),
           );
         }
-        const src = masterUrl ?? proxied(data.url);
+        const src = masterUrl ?? data.url;
 
         if (hlsSupported) {
           hls = new Hls({ enableWorker: true });
@@ -249,7 +247,7 @@ export default function Player({
             key={track.file}
             kind="subtitles"
             label={track.label ?? `Track ${i + 1}`}
-            src={proxied(track.file)}
+            src={track.file}
             default={i === 0}
           />
         ))}

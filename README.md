@@ -83,9 +83,9 @@ STORAGE_URL_TTL_SECONDS=900      # optional signed-URL lifetime
 ```
 
 Without these, `/api/resolve` returns 503 and the player reports the title as
-unplayable. Credentials stay server-side: the resolver hands the browser plain object
-URLs and `/api/hls` signs each fetch, refusing anything that is not a media file inside
-the configured bucket and prefix.
+unplayable. Credentials stay server-side: the resolvers hand the browser signed
+`/api/hls` URLs and the proxy signs each storage fetch, refusing anything that is not a
+media file inside the configured bucket and prefix.
 
 Each title carries an `index.json` manifest at `movies/<tmdbId>/` or
 `tv/<tmdbId>/s<season>e<episode>/`:
@@ -104,8 +104,26 @@ Each title carries an `index.json` manifest at `movies/<tmdbId>/` or
 the bucket. Playback defaults to 1080p when present, otherwise the highest rendition. A
 missing manifest resolves as 404 and the player says the title cannot be played.
 
-`worker/resolve-worker.js` predates this and still targets the old third-party provider;
-it is unused by the app and safe to delete.
+### Stream proxy
+
+`/api/resolve` and `/api/resolve-vf` return stream URLs already wrapped in `/api/hls`
+and signed with an HMAC that expires after six hours. `/api/hls` refuses any target it
+did not mint, so the proxy cannot be used as an open relay for arbitrary hosts. The
+signing key is read from the first of these that is set:
+
+```
+HLS_SIGNING_SECRET=...            # optional, otherwise falls back below
+STORAGE_SECRET_ACCESS_KEY=...
+TMDB_API_KEY=...
+```
+
+Set `HLS_SIGNING_SECRET` explicitly if you want to rotate proxy tokens without touching
+storage or TMDB credentials. Rotating the key invalidates every signed URL already
+handed out, so players re-resolve.
+
+Unsigned requests are still accepted for objects inside your own bucket and prefix, so
+mobile builds released before signing keep playing. Remove that branch in
+`app/api/hls/route.ts` once those clients are gone.
 
 ### Mobile development
 
