@@ -28,8 +28,7 @@
         "backgroundColor": "#050506",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": true
+      }
     },
     "web": {
       "output": "static",
