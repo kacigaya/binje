@@ -1,6 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 import { NextRequest } from "next/server";
-import { GET, parseVideasyResult } from "./route";
+import { GET } from "./route";
+import { parseVideasyResult, resolveVideasyStream } from "@/lib/videasy";
+
+const originalFetch = globalThis.fetch;
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+});
 
 describe("parseVideasyResult", () => {
   test("selects Neon HLS and maps subtitles", () => {
@@ -76,4 +82,39 @@ describe("GET", () => {
 
     expect(response.status).toBe(400);
   });
+});
+
+test("resolves through the current provider contract", async () => {
+  const urls: string[] = [];
+  globalThis.fetch = mock(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    urls.push(url);
+    if (url.endsWith("/seed?mediaId=550")) {
+      return Response.json({ seed: "current-seed" });
+    }
+    if (url === "https://enc-dec.app/api/dec-videasy") {
+      return Response.json({
+        status: 200,
+        result: {
+          sources: [{ quality: "1080p", url: "https://example.com/video.m3u8" }],
+        },
+      });
+    }
+    return new Response("encrypted");
+  }) as unknown as typeof fetch;
+
+  const result = await resolveVideasyStream({
+    type: "movie",
+    id: "550",
+    title: "Fight Club",
+    year: "1999",
+    imdbId: "tt0137523",
+    season: "1",
+    episode: "1",
+  });
+
+  expect(result.url).toBe("https://example.com/video.m3u8");
+  expect(urls[0]).toBe("https://api.speedracelight.com/seed?mediaId=550");
+  expect(urls[1]).toStartWith("https://api.speedracelight.com/cdn/sources-with-title?");
+  expect(urls[2]).toBe("https://enc-dec.app/api/dec-videasy");
 });
