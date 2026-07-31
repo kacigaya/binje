@@ -9,6 +9,31 @@
    <em>Powered by TMDB API with optional Rotten Tomatoes scores via OMDb.</em>
 </p>
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/header/graph.svg?title=binje&subtitle=A+movie+and+TV+discovery+app+for+web,+Android,+and+iOS&logo=react&mode=dark" />
+    <img alt="binje" src="https://shieldcn.dev/header/graph.svg?title=binje&subtitle=A+movie+and+TV+discovery+app+for+web,+Android,+and+iOS&logo=react&mode=light" />
+  </picture>
+</p>
+
+<p align="center">
+  <a href="https://github.com/kacigaya/binje/stargazers">
+    <img alt="GitHub stars" src="https://shieldcn.dev/github/stars/kacigaya/binje.svg?variant=secondary" />
+  </a>
+  <a href="https://github.com/kacigaya/binje/commits">
+    <img alt="Last commit" src="https://shieldcn.dev/github/last-commit/kacigaya/binje.svg?variant=secondary" />
+  </a>
+  <a href="https://github.com/kacigaya/binje/releases">
+    <img alt="Release" src="https://shieldcn.dev/github/release/kacigaya/binje.svg?variant=secondary" />
+  </a>
+  <a href="https://github.com/kacigaya/binje/blob/main/LICENSE">
+    <img alt="License" src="https://shieldcn.dev/github/license/kacigaya/binje.svg?variant=secondary" />
+  </a>
+  <a href="https://github.com/kacigaya/binje/graphs/contributors">
+    <img alt="Contributors" src="https://shieldcn.dev/github/contributors/kacigaya/binje.svg?variant=secondary" />
+  </a>
+</p>
+
 ## Features
 
 - Browse trending and popular movies & TV shows
