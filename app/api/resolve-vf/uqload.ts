@@ -30,3 +30,18 @@ export function scrapeM3u8(embedHtml: string): string | null {
   const m = unpacked.match(/https?:\/\/[^"'\s\\)]+\.m3u8[^"'\s\\)]*/);
   return m ? m[0] : null;
 }
+
+export function preferredStreamPaths(meta: Record<string, unknown>): string[] {
+  const links = Array.isArray(meta.links) ? meta.links : [];
+  const uqload = links.find(
+    (link) =>
+      typeof link === "object" &&
+      link !== null &&
+      (link as { host?: { slug?: unknown } }).host?.slug === "uqload",
+  ) as { url?: unknown } | undefined;
+  const paths = [uqload?.url, ...Array.from({ length: 7 }, (_, i) => meta[`link${i + 1}`])];
+  return paths.filter(
+    (path, index): path is string =>
+      typeof path === "string" && path.length > 0 && paths.indexOf(path) === index,
+  );
+}

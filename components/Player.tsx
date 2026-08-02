@@ -19,7 +19,7 @@ const LANGS: { id: Lang; label: string }[] = [
   { id: "vf", label: "VF" },
 ];
 
-export const RESOLVE_BASE = (process.env.NEXT_PUBLIC_RESOLVE_BASE || "/api").replace(/\/+$/, "");
+export const RESOLVE_BASE = "/api";
 
 export function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;

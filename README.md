@@ -67,8 +67,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the app.
 Unprefixed URLs redirect to `/en` or `/fr` from the browser language; use the
 navbar language switch to change locale while keeping the current page.
 
-Production stream resolution is mirrored in `worker/resolve-worker.js`. Deploy that
-Worker separately after reviewing resolver changes; local development uses `/api/resolve`.
+Stream resolution uses the same-origin `/api/resolve` backend in development and production.
 
 ### Mobile development
 

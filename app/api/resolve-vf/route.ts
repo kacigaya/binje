@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { scrapeM3u8 } from "./uqload";
+import { preferredStreamPaths, scrapeM3u8 } from "./uqload";
 
 const FREMBED_ORIGIN = "https://frembed.casa";
 const BROWSER_USER_AGENT =
@@ -62,10 +62,9 @@ async function extract(
     headers: BASE_HEADERS,
     cache: "no-store",
     signal: AbortSignal.timeout(10000),
-  }).then((r) => r.json())) as Record<string, string | null>;
+  }).then((r) => r.json())) as Record<string, unknown>;
 
-  const paths = Array.from({ length: 7 }, (_, i) => meta[`link${i + 1}`])
-    .filter((p): p is string => Boolean(p));
+  const paths = preferredStreamPaths(meta);
   if (!paths.length) throw new Error("No VF servers available.");
 
   for (const path of paths) {

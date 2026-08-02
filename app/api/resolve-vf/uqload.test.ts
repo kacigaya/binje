@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { extractM3u8, scrapeM3u8, unpackPacked } from "./uqload";
+import { extractM3u8, preferredStreamPaths, scrapeM3u8, unpackPacked } from "./uqload";
 
 const PACKED =
   "eval(function(p,a,c,k,e,d){while(c--)if(k[c])p=p.replace(new RegExp(String.raw`\\b`+c.toString(a)+String.raw`\\b`,\"g\"),k[c]);return p}('0(\"1\").2({3:[{4:\"5://6.7.8/9/a.b?c=d&e=43200\"}]})',15,15,'jwplayer|vplayer|setup|sources|file|https|strm1|uqload|is|hls2|master|m3u8|t|abc|e'.split('|')))";
@@ -31,4 +31,21 @@ test("scrapeM3u8 grabs a plain in-page m3u8 (non-uqload hoster)", () => {
   expect(scrapeM3u8(PACKED)).toBe(
     "https://strm1.uqload.is/hls2/master.m3u8?t=abc&e=43200",
   );
+});
+
+test("prefers Frembed's current Uqload entry before legacy slots", () => {
+  expect(
+    preferredStreamPaths({
+      link1: "/api/stream?server=legacy-1",
+      link4: "/api/stream?server=legacy-4",
+      links: [
+        { host: { slug: "voe" }, url: "/api/stream?server=id:1" },
+        { host: { slug: "uqload" }, url: "/api/stream?server=id:2" },
+      ],
+    }),
+  ).toEqual([
+    "/api/stream?server=id:2",
+    "/api/stream?server=legacy-1",
+    "/api/stream?server=legacy-4",
+  ]);
 });

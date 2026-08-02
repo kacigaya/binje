@@ -1,15 +1,11 @@
 import type { NextConfig } from "next";
 
-const RESOLVE_ORIGIN = process.env.NEXT_PUBLIC_RESOLVE_BASE?.startsWith("http")
-  ? new URL(process.env.NEXT_PUBLIC_RESOLVE_BASE).origin
-  : "";
-
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://image.tmdb.org",
-  `connect-src 'self' blob: data: https: ${RESOLVE_ORIGIN}`.trim(),
+  "connect-src 'self' blob: data: https:",
   "media-src 'self' blob: data: https:",
   "worker-src 'self' blob:",
   "font-src 'self' data:",
