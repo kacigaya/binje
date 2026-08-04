@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Play, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { buttonClassName } from "@/components/ui/button";
+import { ACTION_BUTTON_CLASS, buttonClassName } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
 import { backdropUrl, logoUrl } from "@/lib/tmdb";
 import ExpandableOverview from "@/components/ExpandableOverview";
@@ -142,13 +142,12 @@ export default function Hero({ items }: HeroProps) {
               className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-xl"
             />
 
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
               <Link
                 href={localizedHref(locale, watchHref)}
                 className={buttonClassName({
                   size: "lg",
-                  className:
-                    "rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-8 h-12 text-base cursor-pointer",
+                  className: `${ACTION_BUTTON_CLASS} bg-accent-red text-white hover:bg-accent-red/90`,
                 })}
               >
                 <Play data-icon="inline-start" className="size-5 fill-white" />
@@ -159,8 +158,7 @@ export default function Hero({ items }: HeroProps) {
                 className={buttonClassName({
                   size: "lg",
                   variant: "outline",
-                  className:
-                    "rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-8 h-12 text-base cursor-pointer",
+                  className: `${ACTION_BUTTON_CLASS} border-white/20 bg-white/5 hover:bg-white/10 text-foreground`,
                 })}
               >
                 <Info data-icon="inline-start" className="size-5" />

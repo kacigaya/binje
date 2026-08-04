@@ -33,6 +33,11 @@ const sizes = {
 type ButtonVariant = keyof typeof variants
 type ButtonSize = keyof typeof sizes
 
+// Shared geometry for the primary media actions (Watch / Watchlist / Details)
+// so every pair renders at one width with its label centered.
+const ACTION_BUTTON_CLASS =
+  "w-full sm:w-56 justify-center gap-2 rounded-full h-12 px-6 text-base font-semibold cursor-pointer"
+
 function buttonClassName({
   variant = "default",
   size = "default",
@@ -63,5 +68,5 @@ function Button({
   )
 }
 
-export { Button, buttonClassName }
+export { ACTION_BUTTON_CLASS, Button, buttonClassName }
 export type { ButtonSize, ButtonVariant }

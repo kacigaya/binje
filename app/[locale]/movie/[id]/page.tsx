@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Play, Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { buttonClassName } from "@/components/ui/button";
+import { ACTION_BUTTON_CLASS, buttonClassName } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import WatchlistButton from "@/components/WatchlistButton";
@@ -184,8 +184,7 @@ export default async function MoviePage({
                 href={localizedHref(locale, `/watch/${movie.id}`)}
                 className={buttonClassName({
                   size: "lg",
-                  className:
-                    "w-full sm:w-auto rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer",
+                  className: `${ACTION_BUTTON_CLASS} bg-accent-red text-white hover:bg-accent-red/90`,
                 })}
               >
                 <Play data-icon="inline-start" className="size-5 fill-white" />
