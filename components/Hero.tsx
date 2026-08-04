@@ -150,7 +150,7 @@ export default function Hero({ items }: HeroProps) {
                   className: `${ACTION_BUTTON_CLASS} bg-accent-red text-white hover:bg-accent-red/90`,
                 })}
               >
-                <Play data-icon="inline-start" className="size-5 fill-white" />
+                <Play className="size-5 fill-white" />
                 {t("Watch Now")}
               </Link>
               <Link
@@ -161,7 +161,7 @@ export default function Hero({ items }: HeroProps) {
                   className: `${ACTION_BUTTON_CLASS} border-white/20 bg-white/5 hover:bg-white/10 text-foreground`,
                 })}
               >
-                <Info data-icon="inline-start" className="size-5" />
+                <Info className="size-5" />
                 {t("Details")}
               </Link>
             </div>

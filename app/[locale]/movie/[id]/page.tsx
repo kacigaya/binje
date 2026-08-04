@@ -187,7 +187,7 @@ export default async function MoviePage({
                   className: `${ACTION_BUTTON_CLASS} bg-accent-red text-white hover:bg-accent-red/90`,
                 })}
               >
-                <Play data-icon="inline-start" className="size-5 fill-white" />
+                <Play className="size-5 fill-white" />
                 {translate(locale, "Watch Now")}
               </Link>
               <WatchlistButton

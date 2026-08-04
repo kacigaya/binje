@@ -26,7 +26,7 @@ export default function NotFound() {
           className: "gap-2 rounded-full h-11 px-6 cursor-pointer",
         })}
       >
-        <Home data-icon="inline-start" className="size-4" />
+        <Home className="size-4" />
         Back to home
       </Link>
     </div>
