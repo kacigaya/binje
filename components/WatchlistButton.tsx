@@ -3,7 +3,6 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { Check, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { ACTION_BUTTON_CLASS, buttonClassName } from "@/components/ui/button";
 import {
   isInWatchlist,
   subscribeToWatchlist,
@@ -33,15 +32,11 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
         toast.success(t(added ? "Removed from watchlist" : "Added to watchlist"));
       }}
       aria-pressed={added}
-      className={buttonClassName({
-        variant: "outline",
-        size: "lg",
-        className: `${ACTION_BUTTON_CLASS} border ${
-          added
-            ? "border-accent-red/60 bg-accent-red/15 text-accent-red hover:bg-accent-red/25"
-            : "border-white/15 bg-white/8 text-foreground hover:bg-white/12"
-        }`,
-      })}
+      className={`inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full border h-12 px-7 text-base font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent-red/60 ${
+        added
+          ? "border-accent-red/60 bg-accent-red/15 text-accent-red hover:bg-accent-red/25"
+          : "border-white/15 bg-white/8 text-foreground hover:bg-white/12"
+      }`}
     >
       {added ? <Check className="size-5" /> : <Plus className="size-5" />}
       {t(added ? "In Watchlist" : "Add to Watchlist")}

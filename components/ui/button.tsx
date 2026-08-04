@@ -33,13 +33,6 @@ const sizes = {
 type ButtonVariant = keyof typeof variants
 type ButtonSize = keyof typeof sizes
 
-// Shared geometry for the primary media actions (Watch / Watchlist / Details):
-// one height, padding, and radius everywhere, width hugs the label.
-// The icon is taken out of flow and pinned left so the label sits at the
-// button's true center instead of being pushed right by the icon's width.
-const ACTION_BUTTON_CLASS =
-  "relative w-full sm:w-auto justify-center rounded-full h-12 px-12 text-base font-semibold cursor-pointer [&>svg]:absolute [&>svg]:left-5 [&>svg]:top-1/2 [&>svg]:-translate-y-1/2"
-
 function buttonClassName({
   variant = "default",
   size = "default",
@@ -70,5 +63,5 @@ function Button({
   )
 }
 
-export { ACTION_BUTTON_CLASS, Button, buttonClassName }
+export { Button, buttonClassName }
 export type { ButtonSize, ButtonVariant }
