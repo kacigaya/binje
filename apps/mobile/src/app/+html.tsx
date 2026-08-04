@@ -11,6 +11,13 @@ export default function Root({ children }: PropsWithChildren) {
           name="viewport"
           content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
         />
+        <title>b!nje</title>
+        <meta
+          name="description"
+          content="Discover and stream trending movies and TV shows. VO/VF audio, continue watching, watchlist, English and French."
+        />
+        <meta name="theme-color" content="#050506" />
+        <link rel="icon" href="/favicon.ico" />
         <ScrollViewStyleReset />
         <style
           dangerouslySetInnerHTML={{

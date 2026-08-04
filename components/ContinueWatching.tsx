@@ -5,10 +5,12 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import type { MouseEvent } from "react";
 import { useSyncExternalStore } from "react";
+import { toast } from "sonner";
 import {
   getPlayHistory,
   getPlayHistoryHref,
   removePlayHistoryItem,
+  savePlayHistory,
   subscribeToPlayHistory,
   type PlayHistoryItem,
 } from "@/lib/play-history";
@@ -32,7 +34,12 @@ export default function ContinueWatching() {
   function removeItem(event: MouseEvent<HTMLButtonElement>, item: PlayHistoryItem) {
     event.preventDefault();
     event.stopPropagation();
+    const previous = getPlayHistory();
     removePlayHistoryItem(item);
+    toast.success(t("Removed from continue watching"), {
+      description: item.title,
+      action: { label: t("Undo"), onClick: () => savePlayHistory(previous) },
+    });
   }
 
   if (items.length === 0) return null;
@@ -91,11 +98,22 @@ export default function ContinueWatching() {
                 : null;
 
             return (
-              <Link
+              <div
                 key={`${item.type}-${item.id}`}
-                href={localizedHref(locale, getPlayHistoryHref(item))}
-                className="group block w-56 sm:w-64 shrink-0"
+                className="group relative w-56 sm:w-64 shrink-0"
               >
+                <button
+                  type="button"
+                  onClick={(event) => removeItem(event, item)}
+                  aria-label={`${t("Remove from continue watching")}: ${item.title}`}
+                  className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-accent-red focus:outline-none focus:ring-2 focus:ring-accent-red/70"
+                >
+                  <X className="size-3.5" />
+                </button>
+                <Link
+                  href={localizedHref(locale, getPlayHistoryHref(item))}
+                  className="block"
+                >
                 <div className="relative aspect-video overflow-hidden rounded-xl bg-card transition-transform duration-200 group-hover:scale-[1.03] group-hover:ring-1 group-hover:ring-white/25">
                   {image && (
                     <Image
@@ -113,15 +131,6 @@ export default function ContinueWatching() {
                     </div>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={(event) => removeItem(event, item)}
-                    aria-label={`${t("Remove from continue watching")}: ${item.title}`}
-                    className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-accent-red focus:outline-none focus:ring-2 focus:ring-accent-red/70"
-                  >
-                    <X className="size-3.5" />
-                  </button>
-
                   {progress !== null && (
                     <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20">
                       <div
@@ -134,7 +143,8 @@ export default function ContinueWatching() {
                 <p className="mt-2 text-sm font-semibold text-foreground leading-tight truncate">
                   {item.title}
                 </p>
-              </Link>
+                </Link>
+              </div>
             );
           })}
         </div>

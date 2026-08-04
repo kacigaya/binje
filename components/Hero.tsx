@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Play, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonClassName } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
 import { backdropUrl, logoUrl } from "@/lib/tmdb";
 import ExpandableOverview from "@/components/ExpandableOverview";
@@ -143,24 +143,28 @@ export default function Hero({ items }: HeroProps) {
             />
 
             <div className="flex items-center gap-3 pt-2">
-              <Link href={localizedHref(locale, watchHref)}>
-                <Button
-                  size="lg"
-                  className="rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-8 h-12 text-base cursor-pointer"
-                >
-                  <Play className="size-5 fill-white" />
-                  {t("Watch Now")}
-                </Button>
+              <Link
+                href={localizedHref(locale, watchHref)}
+                className={buttonClassName({
+                  size: "lg",
+                  className:
+                    "rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-8 h-12 text-base cursor-pointer",
+                })}
+              >
+                <Play data-icon="inline-start" className="size-5 fill-white" />
+                {t("Watch Now")}
               </Link>
-              <Link href={localizedHref(locale, detailHref)}>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-8 h-12 text-base cursor-pointer"
-                >
-                  <Info className="size-5" />
-                  {t("Details")}
-                </Button>
+              <Link
+                href={localizedHref(locale, detailHref)}
+                className={buttonClassName({
+                  size: "lg",
+                  variant: "outline",
+                  className:
+                    "rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-8 h-12 text-base cursor-pointer",
+                })}
+              >
+                <Info data-icon="inline-start" className="size-5" />
+                {t("Details")}
               </Link>
             </div>
           </div>

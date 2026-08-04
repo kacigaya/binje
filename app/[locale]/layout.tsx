@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Toaster } from "sonner";
 import { Space_Grotesk, Outfit } from "next/font/google";
 import "../globals.css";
 import Navbar from "@/components/Navbar";
+import CommandMenu from "@/components/CommandMenu";
 import Footer from "@/components/Footer";
 import CookiesBanner from "@/components/CookiesBanner";
 import { isLocale, translate } from "@/lib/i18n";
@@ -74,9 +76,18 @@ export default async function RootLayout({
       </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground antialiased">
         <Navbar />
+        <CommandMenu />
         <main className="flex-1">{children}</main>
         <Footer />
         <CookiesBanner />
+        <Toaster
+          position="bottom-center"
+          theme="dark"
+          toastOptions={{
+            className:
+              "rounded-2xl border border-white/10 bg-background/95 text-foreground backdrop-blur",
+          }}
+        />
       </body>
     </html>
   );

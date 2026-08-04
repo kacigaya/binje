@@ -110,6 +110,23 @@ const FRENCH = {
   "Remove from watchlist": "Retirer de ma liste",
   "Remove from continue watching": "Retirer de la liste Continuer à regarder",
   "N/A": "N/D",
+  "Page not found": "Page introuvable",
+  "This page doesn't exist or has moved. Check the address or head back home.":
+    "Cette page n’existe pas ou a été déplacée. Vérifiez l’adresse ou revenez à l’accueil.",
+  "Back to home": "Retour à l’accueil",
+  "Search or jump to…": "Rechercher ou aller à…",
+  "Command menu": "Menu de commandes",
+  "Pages": "Pages",
+  "Results": "Résultats",
+  "Searching…": "Recherche…",
+  "Type at least 2 characters to search.":
+    "Saisissez au moins 2 caractères pour rechercher.",
+  "Added to watchlist": "Ajouté à ma liste",
+  "Removed from watchlist": "Retiré de ma liste",
+  "Removed from continue watching": "Retiré de Continuer à regarder",
+  Home: "Accueil",
+  Searching: "Recherche",
+  Undo: "Annuler",
 } as const;
 
 export type TranslationKey = keyof typeof FRENCH;

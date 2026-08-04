@@ -5,10 +5,12 @@ import Link from "next/link";
 import { Bookmark, Star, X } from "lucide-react";
 import type { MouseEvent } from "react";
 import { useSyncExternalStore } from "react";
+import { toast } from "sonner";
 import {
   getWatchlist,
   getWatchlistHref,
   removeFromWatchlist,
+  saveWatchlist,
   subscribeToWatchlist,
   type WatchlistItem,
 } from "@/lib/watchlist";
@@ -29,7 +31,12 @@ export default function Watchlist() {
   function removeItem(event: MouseEvent<HTMLButtonElement>, item: WatchlistItem) {
     event.preventDefault();
     event.stopPropagation();
+    const previous = getWatchlist();
     removeFromWatchlist(item);
+    toast.success(t("Removed from watchlist"), {
+      description: item.title,
+      action: { label: t("Undo"), onClick: () => saveWatchlist(previous) },
+    });
   }
 
   if (items.length === 0) {
@@ -55,11 +62,19 @@ export default function Watchlist() {
           : t("N/A");
 
         return (
-          <Link
-            key={`${item.type}-${item.id}`}
-            href={localizedHref(locale, getWatchlistHref(item))}
-            className="group block"
-          >
+          <div key={`${item.type}-${item.id}`} className="group relative">
+            <button
+              type="button"
+              onClick={(event) => removeItem(event, item)}
+              aria-label={`${t("Remove from watchlist")}: ${item.title}`}
+              className="absolute right-2 bottom-2 z-10 flex size-8 items-center justify-center rounded-full bg-black/70 text-white/85 backdrop-blur-sm transition-colors hover:bg-accent-red hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-red/70"
+            >
+              <X className="size-4" />
+            </button>
+            <Link
+              href={localizedHref(locale, getWatchlistHref(item))}
+              className="block"
+            >
             <div className="relative overflow-hidden rounded-xl bg-card transition-transform duration-200 group-hover:scale-[1.04] group-hover:ring-1 group-hover:ring-white/25">
               <div className="relative aspect-2/3 overflow-hidden rounded-xl">
                 <Image
@@ -80,15 +95,6 @@ export default function Watchlist() {
                   {t(item.type === "tv" ? "TV" : "Movie")}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={(event) => removeItem(event, item)}
-                  aria-label={`${t("Remove from watchlist")}: ${item.title}`}
-                  className="absolute right-2 bottom-2 z-10 flex size-8 items-center justify-center rounded-full bg-black/70 text-white/85 backdrop-blur-sm transition-colors hover:bg-accent-red hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-red/70"
-                >
-                  <X className="size-4" />
-                </button>
-
                 <div className="absolute bottom-0 left-0 right-0 p-3 pr-11">
                   <p className="text-sm font-semibold text-white leading-tight line-clamp-2">
                     {item.title}
@@ -101,7 +107,8 @@ export default function Watchlist() {
                 </div>
               </div>
             </div>
-          </Link>
+            </Link>
+          </div>
         );
       })}
     </div>

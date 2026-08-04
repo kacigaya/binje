@@ -6,11 +6,11 @@ export const fr: Record<keyof typeof en, string> = {
   trendingMovies: 'Films tendance', trendingTV: 'Séries tendance', popularMovies: 'Films populaires', popularTV: 'Séries populaires',
   topRated: 'Les mieux notés', nowPlaying: 'Actuellement au cinéma', upcoming: 'Prochainement', airingToday: 'Diffusées aujourd’hui', onTheAir: 'En cours de diffusion',
   continueWatching: 'Continuer à regarder', director: 'Réalisation', createdBy: 'Créé par', watchNow: 'Regarder', details: 'Détails', overview: 'Synopsis', cast: 'Distribution', seasons: 'Saisons', episodes: 'Épisodes',
-  addToWatchlist: 'Ajouter à ma liste', removeFromWatchlist: 'Retirer de ma liste', myWatchlist: 'Ma liste', emptyWatchlist: 'Votre liste est vide',
+  addToWatchlist: 'Ajouter à ma liste', removeFromWatchlist: 'Retirer de ma liste', addedToWatchlist: 'Ajouté à ma liste', removedFromWatchlist: 'Retiré de ma liste', undo: 'Annuler', myWatchlist: 'Ma liste', emptyWatchlist: 'Votre liste est vide',
   privacy: 'Confidentialité', privacyPolicy: 'Politique de confidentialité', consentTitle: 'Nous utilisons le stockage local', consentBody: 'Nous enregistrons votre historique sur cet appareil pour reprendre là où vous vous êtes arrêté. Aucun suivi.', accept: 'Accepter', dismiss: 'Fermer', allowStorage: 'Autoriser cookies et stockage local',
   errorTitle: 'Une erreur est survenue', errorBody: 'Impossible de charger le contenu. Le problème est peut-être temporaire. Veuillez réessayer.', retry: 'Réessayer', loading: 'Chargement…',
   back: 'Retour', quality: 'Qualité', auto: 'Auto',
   nowWatching: 'Lecture en cours', watching: 'En lecture', noPreview: 'Aucun aperçu', noEpisodes: 'Aucun aperçu d’épisode disponible.',
-  noResults: 'Aucun résultat', noPoster: 'Aucune affiche', searchPlaceholder: 'Rechercher des films et séries…', season: 'Saison', episode: 'Épisode', previous: 'Précédent', next: 'Suivant',
+  noResults: 'Aucun résultat', browseEmptyBody: 'Rien pour le moment. Essayez une autre catégorie ou revenez plus tard.', noPoster: 'Aucune affiche', searchPlaceholder: 'Rechercher des films et séries…', season: 'Saison', episode: 'Épisode', previous: 'Précédent', next: 'Suivant',
   streamUnavailable: 'Flux indisponible. Réessayez plus tard.', language: 'Langue', english: 'Anglais', french: 'Français', clearHistory: 'Effacer l’historique', removeHistory: 'Retirer de la liste Continuer à regarder',
 };

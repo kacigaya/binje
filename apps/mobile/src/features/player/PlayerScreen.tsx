@@ -10,6 +10,7 @@ import { getMediaDetails, getSeason } from "../../api/media";
 import { BackButton } from "../../components/BackButton";
 import { RtRating, TmdbRating } from "../../components/Badges";
 import { useLocale } from "../../providers/LocaleProvider";
+import { useToast } from "../../providers/ToastProvider";
 import { upsertPlayHistory, updatePlayHistoryProgress } from "../../storage/playHistory";
 import { colors, fonts, spacing } from "../../theme";
 import { createProgressWriter } from "./progressWriter";
@@ -28,6 +29,7 @@ export function PlayerScreen({
   initialEpisode?: number;
 }) {
   const { locale, t } = useLocale();
+  const toast = useToast();
   const [variant, setVariant] = useState<AudioVariant>("vo");
   const [season, setSeason] = useState(initialSeason ?? 1);
   const [episode, setEpisode] = useState(initialEpisode ?? 1);
@@ -112,7 +114,10 @@ export function PlayerScreen({
         if (!cancelled) player.play();
       })
       .catch((error: unknown) => {
-        if (!cancelled) setStreamError(error instanceof Error ? error.message : "Stream unavailable.");
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : t("streamUnavailable");
+        setStreamError(message);
+        toast.show({ message });
       })
       .finally(() => {
         if (!cancelled) setResolving(false);
@@ -122,7 +127,7 @@ export function PlayerScreen({
       player.pause();
       void progressWriter.flush();
     };
-  }, [details.data, episode, id, player, progressWriter, season, type, variant]);
+  }, [details.data, episode, id, player, progressWriter, season, t, toast, type, variant]);
 
   const qualityHeights = [...new Set((stream?.sources ?? []).map((source) => source.height))].sort((a, b) => b - a);
 

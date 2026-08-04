@@ -3,24 +3,33 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { Search, Film, X, Clapperboard, Tv, Bookmark, Menu } from "lucide-react";
-import { useState, useRef, SyntheticEvent, useEffect, useCallback } from "react";
+import {
+  ArrowRight,
+  Bookmark,
+  Clapperboard,
+  Film,
+  Loader2,
+  Menu,
+  Search,
+  Tv,
+  X,
+} from "lucide-react";
+import {
+  useState,
+  useRef,
+  SyntheticEvent,
+  useEffect,
+  useCallback,
+  useTransition,
+} from "react";
 import { localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
-
-interface SearchSuggestion {
-  id: number;
-  media_type: "movie" | "tv";
-  title?: string;
-  name?: string;
-  poster_path: string | null;
-  release_date?: string;
-  first_air_date?: string;
-}
-
-interface SearchSuggestionsResponse {
-  results?: SearchSuggestion[];
-}
+import {
+  MIN_SUGGESTION_QUERY_LENGTH,
+  suggestionHref,
+  useSearchSuggestions,
+  type SearchSuggestion,
+} from "@/lib/use-search-suggestions";
 
 const navLinks = [
   { href: "/movies", label: "Movies", icon: Clapperboard },
@@ -35,8 +44,14 @@ export default function Navbar() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { suggestions, loading } = useSearchSuggestions({
+    query,
+    locale,
+    enabled: open,
+  });
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -45,44 +60,7 @@ export default function Navbar() {
   const close = useCallback(() => {
     setOpen(false);
     setQuery("");
-    setSuggestions([]);
   }, []);
-
-  useEffect(() => {
-    const trimmedQuery = query.trim();
-
-    if (!open || trimmedQuery.length < 2) {
-      return;
-    }
-
-    const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `/api/search?q=${encodeURIComponent(trimmedQuery)}&lang=${locale}`,
-          { signal: controller.signal },
-        );
-
-        if (!res.ok) {
-          setSuggestions([]);
-          return;
-        }
-
-        const data: SearchSuggestionsResponse = await res.json();
-        setSuggestions((data.results ?? []).slice(0, 3));
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-        setSuggestions([]);
-      }
-    }, 250);
-
-    return () => {
-      window.clearTimeout(timer);
-      controller.abort();
-    };
-  }, [locale, open, query]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -97,26 +75,22 @@ export default function Navbar() {
 
   function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (query.trim()) {
-      router.push(localizedHref(locale, `/search?q=${encodeURIComponent(query.trim())}`));
-      close();
-    }
-  }
+    const trimmedQuery = query.trim();
+    if (trimmedQuery.length < MIN_SUGGESTION_QUERY_LENGTH) return;
 
-  function handleQueryChange(value: string) {
-    setQuery(value);
-    if (value.trim().length < 2) {
-      setSuggestions([]);
-    }
+    startTransition(() => {
+      router.push(
+        localizedHref(locale, `/search?q=${encodeURIComponent(trimmedQuery)}`),
+      );
+      close();
+    });
   }
 
   function openSuggestion(suggestion: SearchSuggestion) {
-    const href =
-      suggestion.media_type === "tv"
-        ? `/tv/${suggestion.id}`
-        : `/movie/${suggestion.id}`;
-    router.push(localizedHref(locale, href));
-    close();
+    startTransition(() => {
+      router.push(localizedHref(locale, suggestionHref(suggestion)));
+      close();
+    });
   }
 
   return (
@@ -197,12 +171,33 @@ export default function Navbar() {
                     <input
                       ref={inputRef}
                       type="text"
+                      required
+                      minLength={MIN_SUGGESTION_QUERY_LENGTH}
+                      disabled={pending}
                       placeholder={t("Search movies & TV...")}
                       aria-label={t("Search movies & TV...")}
                       value={query}
-                      onChange={(event) => handleQueryChange(event.target.value)}
-                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition"
+                      onChange={(event) => setQuery(event.target.value)}
+                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition disabled:opacity-60"
                     />
+                    <button
+                      type="submit"
+                      disabled={pending || query.trim().length < MIN_SUGGESTION_QUERY_LENGTH}
+                      aria-label={t("Search movies & TV...")}
+                      className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      {pending ? (
+                        <Loader2
+                          aria-hidden="true"
+                          className="size-4 animate-spin motion-reduce:animate-none"
+                        />
+                      ) : (
+                        <ArrowRight aria-hidden="true" className="size-4" />
+                      )}
+                    </button>
+                    <span role="status" aria-live="polite" className="sr-only">
+                      {pending ? t("Searching…") : loading ? t("Searching…") : ""}
+                    </span>
                     {suggestions.length > 0 && (
                       <div className="absolute right-0 top-12 w-72 overflow-hidden rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
                         {suggestions.map((suggestion) => {

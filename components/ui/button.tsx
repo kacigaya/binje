@@ -33,6 +33,18 @@ const sizes = {
 type ButtonVariant = keyof typeof variants
 type ButtonSize = keyof typeof sizes
 
+function buttonClassName({
+  variant = "default",
+  size = "default",
+  className,
+}: {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  className?: string
+} = {}) {
+  return cn(base, variants[variant], sizes[size], className)
+}
+
 function Button({
   className,
   variant = "default",
@@ -45,10 +57,11 @@ function Button({
   return (
     <button
       data-slot="button"
-      className={cn(base, variants[variant], sizes[size], className)}
+      className={buttonClassName({ variant, size, className })}
       {...props}
     />
   )
 }
 
-export { Button }
+export { Button, buttonClassName }
+export type { ButtonSize, ButtonVariant }

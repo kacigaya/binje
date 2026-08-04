@@ -2,6 +2,7 @@
 
 import Hls from "hls.js";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Select } from "@/components/ui/select";
 import { fetchResolve } from "@/lib/resolve-client";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
@@ -159,6 +160,15 @@ export default function Player({
     };
   }, [sourceUrl]);
 
+  useEffect(() => {
+    if (!error) return;
+    toast.error(
+      lang === "vf"
+        ? t("No VF stream for this title.")
+        : t("Stream unavailable. Try again later."),
+    );
+  }, [error, lang, t]);
+
   function changeQuality(index: number) {
     setQuality(index);
     if (hlsRef.current) hlsRef.current.nextLevel = index;
@@ -234,7 +244,11 @@ export default function Player({
         ))}
       </video>
       {(loading || error) && (
-        <div className="absolute inset-0 flex items-center justify-center text-sm text-white/70 pointer-events-none">
+        <div
+          role="status"
+          aria-live="polite"
+          className="absolute inset-0 flex items-center justify-center text-sm text-white/70 pointer-events-none"
+        >
           {error
             ? lang === "vf"
               ? t("No VF stream for this title.")

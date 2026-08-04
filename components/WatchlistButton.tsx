@@ -2,6 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import { Check, Plus } from "lucide-react";
+import { toast } from "sonner";
 import {
   isInWatchlist,
   subscribeToWatchlist,
@@ -26,7 +27,10 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
   return (
     <button
       type="button"
-      onClick={() => toggleWatchlist(item)}
+      onClick={() => {
+        toggleWatchlist(item);
+        toast.success(t(added ? "Removed from watchlist" : "Added to watchlist"));
+      }}
       aria-pressed={added}
       className={`inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full border h-12 px-7 text-base font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent-red/60 ${
         added
