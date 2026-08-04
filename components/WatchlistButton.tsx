@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { Check, Plus } from "lucide-react";
+import { Check, Plus } from "lucide";
+import { MorphIcon } from "morphicons/react";
 import { toast } from "sonner";
 import {
   isInWatchlist,
@@ -38,7 +39,7 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
           : "border-white/15 bg-white/8 text-foreground hover:bg-white/12"
       }`}
     >
-      {added ? <Check className="size-5" /> : <Plus className="size-5" />}
+      <MorphIcon icon={added ? Check : Plus} spring="snappy" className="size-5" />
       {t(added ? "In Watchlist" : "Add to Watchlist")}
     </button>
   );
