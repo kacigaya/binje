@@ -11,9 +11,12 @@ import {
   Loader2,
   Search,
   Tv,
-  X,
 } from "lucide-react";
-import { Menu as MorphMenu, X as MorphX } from "lucide";
+import {
+  Menu as MorphMenu,
+  Search as MorphSearch,
+  X as MorphX,
+} from "lucide";
 import { MorphIcon } from "morphicons/react";
 import {
   useState,
@@ -154,9 +157,9 @@ export default function Navbar() {
           )}
 
           {!pathname.startsWith(`/${locale}/search`) && (
-            <div className="flex items-center">
-              {open ? (
-                <form onSubmit={handleSubmit} className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              {open && (
+                <form onSubmit={handleSubmit} className="flex items-center">
                   <div className="relative">
                     <Search
                       aria-hidden="true"
@@ -242,28 +245,28 @@ export default function Navbar() {
                       </div>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={close}
-                    className="flex items-center justify-center size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
-                    aria-label={t("Close search")}
-                  >
-                    <X className="size-4" />
-                  </button>
                 </form>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(true);
-                    setMenuOpen(false);
-                  }}
-                  className="flex items-center justify-center size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
-                  aria-label={t("Open search")}
-                >
-                  <Search className="size-5" />
-                </button>
               )}
+              <button
+                type="button"
+                onClick={() => {
+                  if (open) {
+                    close();
+                    return;
+                  }
+                  setOpen(true);
+                  setMenuOpen(false);
+                }}
+                className="flex items-center justify-center size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
+                aria-label={t(open ? "Close search" : "Open search")}
+                aria-expanded={open}
+              >
+                <MorphIcon
+                  icon={open ? MorphX : MorphSearch}
+                  spring="snappy"
+                  className="size-5"
+                />
+              </button>
             </div>
           )}
         </div>
