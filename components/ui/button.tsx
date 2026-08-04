@@ -33,10 +33,10 @@ const sizes = {
 type ButtonVariant = keyof typeof variants
 type ButtonSize = keyof typeof sizes
 
-// Shared geometry for the primary media actions (Watch / Watchlist / Details)
-// so every pair renders at one width with its label centered.
+// Shared geometry for the primary media actions (Watch / Watchlist / Details):
+// one height, padding, and radius everywhere, width hugs the label.
 const ACTION_BUTTON_CLASS =
-  "w-full sm:w-56 justify-center gap-2 rounded-full h-12 px-6 text-base font-semibold cursor-pointer"
+  "w-full sm:w-auto justify-center gap-2 rounded-full h-12 px-8 text-base font-semibold cursor-pointer"
 
 function buttonClassName({
   variant = "default",
