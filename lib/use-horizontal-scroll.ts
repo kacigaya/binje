@@ -35,7 +35,9 @@ export function useHorizontalScroll(refreshKey?: unknown) {
       el.removeEventListener("scroll", onScroll);
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [onScroll]);
+    // refreshKey re-attaches the listener when the scroller remounts as a new
+    // node (e.g. the episode strip after a season switch renders a skeleton).
+  }, [onScroll, refreshKey]);
 
   const scroll = useCallback(
     (direction: "left" | "right") => {
