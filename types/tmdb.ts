@@ -126,20 +126,6 @@ export interface Credits {
   crew: CrewMember[];
 }
 
-export interface MovieResponse {
-  page: number;
-  results: Movie[];
-  total_pages: number;
-  total_results: number;
-}
-
-export interface TVShowResponse {
-  page: number;
-  results: TVShow[];
-  total_pages: number;
-  total_results: number;
-}
-
 export interface TMDBImageAsset {
   aspect_ratio: number;
   file_path: string;

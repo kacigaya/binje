@@ -2,11 +2,10 @@
 
 import { useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
-import { DEFAULT_LOCALE, isLocale, translate } from "@/lib/i18n";
+import { localeOrDefault, translate } from "@/lib/i18n";
 
 export function useLocale() {
-  const value = useParams<{ locale?: string }>().locale ?? DEFAULT_LOCALE;
-  return isLocale(value) ? value : DEFAULT_LOCALE;
+  return localeOrDefault(useParams<{ locale?: string }>().locale ?? null);
 }
 
 export function useTranslations() {

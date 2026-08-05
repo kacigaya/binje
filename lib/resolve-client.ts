@@ -5,17 +5,17 @@ export type ResolveResult = {
   sources?: { file: string; height: number }[];
 };
 
-const cache = new Map<string, Promise<ResolveResult>>();
+const RESOLVE_CACHE = new Map<string, Promise<ResolveResult>>();
 
 export function fetchResolve(url: string): Promise<ResolveResult> {
-  let pending = cache.get(url);
+  let pending = RESOLVE_CACHE.get(url);
   if (!pending) {
     pending = fetch(url).then((response) => {
       if (!response.ok) throw new Error("resolve failed");
       return response.json() as Promise<ResolveResult>;
     });
-    pending.catch(() => cache.delete(url));
-    cache.set(url, pending);
+    pending.catch(() => RESOLVE_CACHE.delete(url));
+    RESOLVE_CACHE.set(url, pending);
   }
   return pending;
 }

@@ -8,7 +8,7 @@ import {
   getTrending,
   getTrendingTV,
   movieToMedia,
-  pickMovieLogo,
+  pickLogo,
   tvToMedia,
 } from "@/lib/tmdb";
 import { translate, type Locale } from "@/lib/i18n";
@@ -31,7 +31,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: L
         getMovieImages(movie.id, locale).catch(() => null),
         getMovieDetails(movie.id, locale).catch(() => null),
       ]);
-      const logo = images ? pickMovieLogo(images.logos, locale) : null;
+      const logo = images ? pickLogo(images.logos, locale) : null;
       const rottenTomatoesScore = await getRottenTomatoesScore(
         details?.imdb_id,
       );

@@ -19,6 +19,7 @@ import {
   posterUrl,
   backdropUrl,
   profileUrl,
+  parseTmdbId,
 } from "@/lib/tmdb";
 import { localizedHref, translate, type Locale } from "@/lib/i18n";
 
@@ -28,8 +29,8 @@ export async function generateMetadata({
   params: Promise<{ locale: Locale; id: string }>;
 }): Promise<Metadata> {
   const { locale, id } = await params;
-  const movieId = parseInt(id, 10);
-  if (!Number.isFinite(movieId) || movieId <= 0) return {};
+  const movieId = parseTmdbId(id);
+  if (movieId === null) return {};
   const movie = await getMovieDetails(movieId, locale);
   const image = backdropUrl(movie.backdrop_path, "w1280");
   return {
@@ -52,8 +53,8 @@ export default async function MoviePage({
   params: Promise<{ locale: Locale; id: string }>;
 }) {
   const { locale, id } = await params;
-  const movieId = parseInt(id, 10);
-  if (!Number.isFinite(movieId) || movieId <= 0) notFound();
+  const movieId = parseTmdbId(id);
+  if (movieId === null) notFound();
 
   const moviePromise = getMovieDetails(movieId, locale);
   const [movie, credits, similar, rottenTomatoesScore] = await Promise.all([

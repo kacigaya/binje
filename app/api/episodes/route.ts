@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSeasonEpisodes } from "@/lib/tmdb";
-import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n";
+import { localeOrDefault } from "@/lib/i18n";
 
 function getPositiveInt(value: string | null): number | null {
   const parsed = Number(value);
@@ -13,8 +13,7 @@ export async function GET(request: NextRequest) {
   const showId = getPositiveInt(params.get("showId"));
   const seasonRaw = Number(params.get("season"));
   const season = Number.isInteger(seasonRaw) && seasonRaw >= 0 ? seasonRaw : null;
-  const requestedLocale = params.get("lang") ?? "";
-  const locale = isLocale(requestedLocale) ? requestedLocale : DEFAULT_LOCALE;
+  const locale = localeOrDefault(params.get("lang"));
 
   if (!showId || season === null) {
     return NextResponse.json(

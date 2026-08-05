@@ -135,6 +135,11 @@ export function isLocale(value: string): value is Locale {
   return (LOCALES as readonly string[]).includes(value);
 }
 
+/** Read a `lang` query param, falling back to the default locale instead of erroring. */
+export function localeOrDefault(value: string | null): Locale {
+  return value && isLocale(value) ? value : DEFAULT_LOCALE;
+}
+
 export function translate(locale: Locale, text: TranslationKey): string {
   return locale === "fr" ? FRENCH[text] : text;
 }

@@ -35,7 +35,7 @@ import {
   type SearchSuggestion,
 } from "@/lib/use-search-suggestions";
 
-const navLinks = [
+const NAV_LINKS = [
   { href: "/movies", label: "Movies", icon: Clapperboard },
   { href: "/tv-shows", label: "TV Shows", icon: Tv },
   { href: "/watchlist", label: "Watchlist", icon: Bookmark },
@@ -116,7 +116,7 @@ export default function Navbar() {
         <div className="flex items-center gap-2 sm:gap-4">
           {!open && (
             <div className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => {
+              {NAV_LINKS.map((link) => {
                 const href = localizedHref(locale, link.href);
                 const active = pathname === href;
                 const Icon = link.icon;
@@ -283,7 +283,7 @@ export default function Navbar() {
         >
           <div className="min-h-0 overflow-hidden">
             <div className="flex flex-col gap-1 px-4 py-3 sm:px-6">
-              {navLinks.map((link) => {
+              {NAV_LINKS.map((link) => {
                 const href = localizedHref(locale, link.href);
                 const active = pathname === href;
                 const Icon = link.icon;

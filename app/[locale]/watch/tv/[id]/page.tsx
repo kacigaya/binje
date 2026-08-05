@@ -11,7 +11,8 @@ import {
   getSeasonEpisodes,
   backdropUrl,
   logoUrl,
-  pickTVLogo,
+  pickLogo,
+  parseTmdbId,
 } from "@/lib/tmdb";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
 import ExpandableOverview from "@/components/ExpandableOverview";
@@ -29,8 +30,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, id } = await params;
   const { s, e } = await searchParams;
-  const showId = parseInt(id, 10);
-  if (!Number.isFinite(showId) || showId <= 0) return {};
+  const showId = parseTmdbId(id);
+  if (showId === null) return {};
   const show = await getTVDetails(showId, locale);
   const season = s ? parseInt(s, 10) : 1;
   const episode = e ? parseInt(e, 10) : 1;
@@ -59,8 +60,8 @@ export default async function WatchTVPage({
 }) {
   const { locale, id } = await params;
   const { s, e } = await searchParams;
-  const showId = parseInt(id, 10);
-  if (!Number.isFinite(showId) || showId <= 0) notFound();
+  const showId = parseTmdbId(id);
+  if (showId === null) notFound();
   const showPromise = getTVDetails(showId, locale);
   const [show, images, rottenTomatoesScore] = await Promise.all([
     showPromise,
@@ -69,7 +70,7 @@ export default async function WatchTVPage({
       getRottenTomatoesScore(external_ids.imdb_id),
     ),
   ]);
-  const logo = pickTVLogo(images.logos, locale);
+  const logo = pickLogo(images.logos, locale);
   const showLogoUrl = logoUrl(logo?.file_path ?? null);
   const contentRating = getTVContentRating(show);
 

@@ -1,10 +1,9 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import MediaCard from "@/components/MediaCard";
+import ScrollArrows from "@/components/ScrollArrows";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import type { MediaItem } from "@/types/tmdb";
-import { useTranslations } from "@/lib/use-locale";
 
 export default function Carousel({
   title,
@@ -15,7 +14,6 @@ export default function Carousel({
   items: MediaItem[];
   priority?: boolean;
 }) {
-  const { t } = useTranslations();
   const { scrollRef, canScrollLeft, canScrollRight, scroll } =
     useHorizontalScroll(items);
 
@@ -28,20 +26,12 @@ export default function Carousel({
         {title}
       </h2>
 
-      <div className="group/carousel relative">
-        {canScrollLeft && (
-          <>
-            <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-12 bg-linear-to-r from-background to-transparent" />
-            <button
-              type="button"
-              onClick={() => scroll("left")}
-              className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
-              aria-label={t("Scroll left")}
-            >
-              <ChevronLeft className="size-8 text-foreground" />
-            </button>
-          </>
-        )}
+      <div className="group/scroll relative">
+        <ScrollArrows
+          canScrollLeft={canScrollLeft}
+          canScrollRight={canScrollRight}
+          scroll={scroll}
+        />
 
         <div
           ref={scrollRef}
@@ -55,20 +45,6 @@ export default function Carousel({
             />
           ))}
         </div>
-
-        {canScrollRight && (
-          <>
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-12 bg-linear-to-l from-background to-transparent" />
-            <button
-              type="button"
-              onClick={() => scroll("right")}
-              className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
-              aria-label={t("Scroll right")}
-            >
-              <ChevronRight className="size-8 text-foreground" />
-            </button>
-          </>
-        )}
       </div>
     </section>
   );

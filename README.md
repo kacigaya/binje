@@ -36,7 +36,7 @@
 - Data: TMDB (movies/TV), OMDb (optional Rotten Tomatoes scores)
 - Player: hls.js with Videasy Yoru HQ/Neon fallback through enc-dec.app and `/api/hls`
 - Language: TypeScript
-- Testing: Bun test, Playwright
+- Testing: Bun test
 - Mobile: Expo Router, React Native, expo-video, TanStack Query, AsyncStorage
 
 ## Getting started

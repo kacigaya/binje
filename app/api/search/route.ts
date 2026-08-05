@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchMulti } from "@/lib/tmdb";
-import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n";
+import { localeOrDefault } from "@/lib/i18n";
 
 const MIN_QUERY_LENGTH = 2;
 const MAX_QUERY_LENGTH = 200;
@@ -8,8 +8,7 @@ const MAX_QUERY_LENGTH = 200;
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim();
   const page = parseInt(request.nextUrl.searchParams.get("page") || "1", 10);
-  const requestedLocale = request.nextUrl.searchParams.get("lang") ?? "";
-  const locale = isLocale(requestedLocale) ? requestedLocale : DEFAULT_LOCALE;
+  const locale = localeOrDefault(request.nextUrl.searchParams.get("lang"));
 
   if (!q || q.length < MIN_QUERY_LENGTH) {
     return NextResponse.json({ results: [], page: 1, totalPages: 0 });

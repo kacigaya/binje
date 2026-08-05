@@ -6,6 +6,7 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight, Play, Clock } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import Player from "@/components/Player";
+import ScrollArrows from "@/components/ScrollArrows";
 import { Button } from "@/components/ui/button";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { stillUrl } from "@/lib/tmdb";
@@ -203,33 +204,12 @@ export default function TVPlayer({
             {t("No episode previews available.")}
           </p>
         ) : (
-          <div className="group/episodes relative">
-            {canScrollLeft && (
-              <>
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-12 bg-linear-to-r from-background to-transparent" />
-                <button
-                  type="button"
-                  onClick={() => scrollEpisodes("left")}
-                  aria-label={t("Scroll left")}
-                  className="absolute left-0 top-0 bottom-0 z-20 flex w-12 items-center justify-center opacity-0 group-hover/episodes:opacity-100 transition-opacity cursor-pointer"
-                >
-                  <ChevronLeft className="size-8 text-foreground" />
-                </button>
-              </>
-            )}
-            {canScrollRight && (
-              <>
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-12 bg-linear-to-l from-background to-transparent" />
-                <button
-                  type="button"
-                  onClick={() => scrollEpisodes("right")}
-                  aria-label={t("Scroll right")}
-                  className="absolute right-0 top-0 bottom-0 z-20 flex w-12 items-center justify-center opacity-0 group-hover/episodes:opacity-100 transition-opacity cursor-pointer"
-                >
-                  <ChevronRight className="size-8 text-foreground" />
-                </button>
-              </>
-            )}
+          <div className="group/scroll relative">
+            <ScrollArrows
+              canScrollLeft={canScrollLeft}
+              canScrollRight={canScrollRight}
+              scroll={scrollEpisodes}
+            />
 
             <div
               ref={scrollRef}

@@ -1,7 +1,5 @@
 import type {
-  MovieResponse,
   MovieDetails,
-  TVShowResponse,
   TVShowDetails,
   Credits,
   Movie,
@@ -32,6 +30,22 @@ async function tmdbFetch<T>(
   );
   if (!res.ok) throw new Error(`TMDB API error: ${res.status}`);
   return res.json();
+}
+
+async function fetchList<T>(
+  endpoint: string,
+  locale: Locale,
+  revalidate = 3600,
+): Promise<T[]> {
+  const data = await tmdbFetch<{ results: T[] }>(endpoint, revalidate, locale);
+  return data.results;
+}
+
+/** Strict TMDB id parse for route params. Returns null for anything that is not a positive integer. */
+export function parseTmdbId(value: string): number | null {
+  if (!/^\d+$/.test(value)) return null;
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
 const IMAGE_BASE = "https://image.tmdb.org/t/p";
@@ -87,36 +101,30 @@ export function tvToMedia(t: TVShow): MediaItem {
   };
 }
 
-export async function getTrending(locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
-  const data = await tmdbFetch<MovieResponse>("/trending/movie/week", 3600, locale);
-  return data.results;
+export function getTrending(locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
+  return fetchList<Movie>("/trending/movie/week", locale);
 }
 
-export async function getPopular(locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
-  const data = await tmdbFetch<MovieResponse>("/movie/popular", 3600, locale);
-  return data.results;
+export function getPopular(locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
+  return fetchList<Movie>("/movie/popular", locale);
 }
 
-export async function getTopRated(locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
-  const data = await tmdbFetch<MovieResponse>("/movie/top_rated", 3600, locale);
-  return data.results;
+export function getTopRated(locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
+  return fetchList<Movie>("/movie/top_rated", locale);
 }
 
-export async function getNowPlaying(locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
-  const data = await tmdbFetch<MovieResponse>("/movie/now_playing", 3600, locale);
-  return data.results;
+export function getNowPlaying(locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
+  return fetchList<Movie>("/movie/now_playing", locale);
 }
 
-export async function getUpcoming(locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
-  const data = await tmdbFetch<MovieResponse>("/movie/upcoming", 3600, locale);
-  return data.results;
+export function getUpcoming(locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
+  return fetchList<Movie>("/movie/upcoming", locale);
 }
 
-export async function getMoviesByGenre(genreId: number, locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
-  const data = await tmdbFetch<MovieResponse>(
-    `/discover/movie?with_genres=${genreId}&sort_by=popularity.desc`, 3600, locale,
+export function getMoviesByGenre(genreId: number, locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
+  return fetchList<Movie>(
+    `/discover/movie?with_genres=${genreId}&sort_by=popularity.desc`, locale,
   );
-  return data.results;
 }
 
 export async function getMovieDetails(id: number, locale: Locale = DEFAULT_LOCALE): Promise<MovieDetails> {
@@ -141,7 +149,7 @@ export async function getMovieImages(id: number, locale: Locale = DEFAULT_LOCALE
   return tmdbFetch<MovieImagesResponse>(`/movie/${id}/images?include_image_language=${locale},en,null`, 86400, locale);
 }
 
-export function pickMovieLogo(
+export function pickLogo(
   logos: TMDBImageAsset[],
   locale: Locale = DEFAULT_LOCALE,
 ): TMDBImageAsset | null {
@@ -158,41 +166,34 @@ export async function getMovieCredits(id: number, locale: Locale = DEFAULT_LOCAL
   return tmdbFetch<Credits>(`/movie/${id}/credits`, 86400, locale);
 }
 
-export async function getSimilarMovies(id: number, locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
-  const data = await tmdbFetch<MovieResponse>(`/movie/${id}/similar`, 3600, locale);
-  return data.results;
+export function getSimilarMovies(id: number, locale: Locale = DEFAULT_LOCALE): Promise<Movie[]> {
+  return fetchList<Movie>(`/movie/${id}/similar`, locale);
 }
 
-export async function getTrendingTV(locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
-  const data = await tmdbFetch<TVShowResponse>("/trending/tv/week", 3600, locale);
-  return data.results;
+export function getTrendingTV(locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
+  return fetchList<TVShow>("/trending/tv/week", locale);
 }
 
-export async function getPopularTV(locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
-  const data = await tmdbFetch<TVShowResponse>("/tv/popular", 3600, locale);
-  return data.results;
+export function getPopularTV(locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
+  return fetchList<TVShow>("/tv/popular", locale);
 }
 
-export async function getTopRatedTV(locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
-  const data = await tmdbFetch<TVShowResponse>("/tv/top_rated", 3600, locale);
-  return data.results;
+export function getTopRatedTV(locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
+  return fetchList<TVShow>("/tv/top_rated", locale);
 }
 
-export async function getAiringTodayTV(locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
-  const data = await tmdbFetch<TVShowResponse>("/tv/airing_today", 3600, locale);
-  return data.results;
+export function getAiringTodayTV(locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
+  return fetchList<TVShow>("/tv/airing_today", locale);
 }
 
-export async function getOnTheAirTV(locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
-  const data = await tmdbFetch<TVShowResponse>("/tv/on_the_air", 3600, locale);
-  return data.results;
+export function getOnTheAirTV(locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
+  return fetchList<TVShow>("/tv/on_the_air", locale);
 }
 
-export async function getTVByGenre(genreId: number, locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
-  const data = await tmdbFetch<TVShowResponse>(
-    `/discover/tv?with_genres=${genreId}&sort_by=popularity.desc`, 3600, locale,
+export function getTVByGenre(genreId: number, locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
+  return fetchList<TVShow>(
+    `/discover/tv?with_genres=${genreId}&sort_by=popularity.desc`, locale,
   );
-  return data.results;
 }
 
 export async function getTVDetails(id: number, locale: Locale = DEFAULT_LOCALE): Promise<TVShowDetails> {
@@ -212,23 +213,12 @@ export async function getTVImages(id: number, locale: Locale = DEFAULT_LOCALE): 
   return tmdbFetch<TVImagesResponse>(`/tv/${id}/images?include_image_language=${locale},en,null`, 86400, locale);
 }
 
-export function pickTVLogo(logos: TMDBImageAsset[], locale: Locale = DEFAULT_LOCALE): TMDBImageAsset | null {
-  return (
-    logos.find((logo) => logo.iso_639_1 === locale) ??
-    logos.find((logo) => logo.iso_639_1 === "en") ??
-    logos.find((logo) => logo.iso_639_1 === null) ??
-    logos[0] ??
-    null
-  );
-}
-
 export async function getTVCredits(id: number, locale: Locale = DEFAULT_LOCALE): Promise<Credits> {
   return tmdbFetch<Credits>(`/tv/${id}/credits`, 86400, locale);
 }
 
-export async function getSimilarTV(id: number, locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
-  const data = await tmdbFetch<TVShowResponse>(`/tv/${id}/similar`, 3600, locale);
-  return data.results;
+export function getSimilarTV(id: number, locale: Locale = DEFAULT_LOCALE): Promise<TVShow[]> {
+  return fetchList<TVShow>(`/tv/${id}/similar`, locale);
 }
 
 export async function getSeasonEpisodes(

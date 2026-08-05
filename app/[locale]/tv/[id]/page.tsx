@@ -19,6 +19,7 @@ import {
   posterUrl,
   backdropUrl,
   profileUrl,
+  parseTmdbId,
 } from "@/lib/tmdb";
 import { localizedHref, translate, type Locale } from "@/lib/i18n";
 
@@ -28,8 +29,8 @@ export async function generateMetadata({
   params: Promise<{ locale: Locale; id: string }>;
 }): Promise<Metadata> {
   const { locale, id } = await params;
-  const showId = parseInt(id, 10);
-  if (!Number.isFinite(showId) || showId <= 0) return {};
+  const showId = parseTmdbId(id);
+  if (showId === null) return {};
   const show = await getTVDetails(showId, locale);
   const image = backdropUrl(show.backdrop_path, "w1280");
   return {
@@ -52,8 +53,8 @@ export default async function TVShowPage({
   params: Promise<{ locale: Locale; id: string }>;
 }) {
   const { locale, id } = await params;
-  const showId = parseInt(id, 10);
-  if (!Number.isFinite(showId) || showId <= 0) notFound();
+  const showId = parseTmdbId(id);
+  if (showId === null) notFound();
 
   const showPromise = getTVDetails(showId, locale);
   const [show, credits, similar, rottenTomatoesScore] = await Promise.all([

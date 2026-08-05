@@ -13,8 +13,7 @@ import {
   getTVDetails,
   getTVImages,
   logoUrl,
-  pickMovieLogo,
-  pickTVLogo,
+  pickLogo,
 } from "@/lib/tmdb";
 import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 import { mobileError, mobileJson } from "../_utils";
@@ -35,7 +34,7 @@ async function enrichFeatured(summary: MobileMediaSummary, lang: Locale): Promis
     (isMovie ? homeDependencies.getMovieImages(summary.id, lang) : homeDependencies.getTVImages(summary.id, lang)).catch(() => null),
     (isMovie ? homeDependencies.getMovieDetails(summary.id, lang) : homeDependencies.getTVDetails(summary.id, lang)).catch(() => null),
   ]);
-  const logo = images ? (isMovie ? pickMovieLogo(images.logos, lang) : pickTVLogo(images.logos, lang)) : null;
+  const logo = images ? pickLogo(images.logos, lang) : null;
   const imdbId = details ? (isMovie ? (details as { imdb_id?: string | null }).imdb_id : (details as { external_ids?: { imdb_id?: string | null } }).external_ids?.imdb_id) : null;
   const rottenTomatoesScore = await homeDependencies.getRottenTomatoesScore(imdbId).catch(() => null);
   const contentRating = details

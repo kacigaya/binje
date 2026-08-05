@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { X } from "lucide-react";
 import type { MouseEvent } from "react";
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import {
   subscribeToPlayHistory,
   type PlayHistoryItem,
 } from "@/lib/play-history";
+import ScrollArrows from "@/components/ScrollArrows";
 import { backdropUrl, posterUrl } from "@/lib/tmdb";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { localizedHref } from "@/lib/i18n";
@@ -53,33 +54,12 @@ export default function ContinueWatching() {
         {t("Continue Watching")}
       </h2>
 
-      <div className="group/carousel relative">
-        {canScrollLeft && (
-          <>
-            <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-12 bg-linear-to-r from-background to-transparent" />
-            <button
-              type="button"
-              onClick={() => scroll("left")}
-              className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
-              aria-label={t("Scroll left")}
-            >
-              <ChevronLeft className="size-8 text-foreground" />
-            </button>
-          </>
-        )}
-        {canScrollRight && (
-          <>
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-12 bg-linear-to-l from-background to-transparent" />
-            <button
-              type="button"
-              onClick={() => scroll("right")}
-              className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center opacity-0 group-hover/carousel:opacity-100 transition-opacity cursor-pointer"
-              aria-label={t("Scroll right")}
-            >
-              <ChevronRight className="size-8 text-foreground" />
-            </button>
-          </>
-        )}
+      <div className="group/scroll relative">
+        <ScrollArrows
+          canScrollLeft={canScrollLeft}
+          canScrollRight={canScrollRight}
+          scroll={scroll}
+        />
 
         <div
           ref={scrollRef}
