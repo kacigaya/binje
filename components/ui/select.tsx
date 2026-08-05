@@ -41,12 +41,12 @@ function Select<T extends string | number>({
       </BaseSelect.Trigger>
       <BaseSelect.Portal>
         <BaseSelect.Positioner sideOffset={6} className="z-50 outline-none">
-          <BaseSelect.Popup className="max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-background/95 py-1 text-sm text-foreground shadow-lg shadow-black/40 backdrop-blur">
+          <BaseSelect.Popup className="max-h-72 overflow-y-auto rounded-2xl border border-white/10 bg-background/95 p-1 text-sm text-foreground shadow-lg shadow-black/40 backdrop-blur">
             {items.map((item) => (
               <BaseSelect.Item
                 key={String(item.value)}
                 value={item.value}
-                className="flex cursor-pointer items-center justify-between gap-2 px-3 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-red/60 data-highlighted:bg-white/10 data-highlighted:ring-2 data-highlighted:ring-inset data-highlighted:ring-accent-red/40"
+                className="flex cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-red/60 data-highlighted:bg-white/10"
               >
                 <BaseSelect.ItemText>{item.label}</BaseSelect.ItemText>
                 <BaseSelect.ItemIndicator>
