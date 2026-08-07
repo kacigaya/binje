@@ -2,7 +2,7 @@
 
 This standalone Worker mirrors the resolver for diagnostics. Production clients
 use the same-origin Next.js API because the current provider rejects the
-Worker's egress. Segment proxying remains on Netlify `/api/hls`.
+Worker's egress. Segment proxying remains on the Next.js `/api/hls` route.
 
 ## Deploy
 

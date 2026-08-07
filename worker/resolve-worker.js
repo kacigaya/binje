@@ -8,6 +8,7 @@ const PLAYER_ORIGIN = "https://player.videasy.to";
 const SOURCE_API = "https://api.speedracelight.com";
 const DECRYPT_API = "https://enc-dec.app/api/dec-videasy";
 const ALLOWED_ORIGINS = [
+  "https://binje.gayakaci.duckdns.org",
   "https://binje-stream.netlify.app",
   "http://localhost:3000",
 ];
