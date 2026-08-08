@@ -36,7 +36,7 @@ export function normalizeBaseUrl(value: string): string {
 
 function configuredBaseUrl(): string {
   return normalizeBaseUrl(
-    process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://binje.gayakaci.duckdns.org",
+    process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://binje.duckdns.org",
   );
 }
 
