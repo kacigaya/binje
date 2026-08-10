@@ -19,13 +19,14 @@ describe("rate-limit", () => {
     expect(isRateLimited("203.0.113.10", "/api/resolve")).toBe(false);
   });
 
-  test("prefers the Netlify client IP over x-forwarded-for", () => {
+  test("uses the proxy-appended x-forwarded-for entry and ignores spoofable headers", () => {
     const headers = new Headers({
       "x-nf-client-connection-ip": "198.51.100.1",
-      "x-forwarded-for": "198.51.100.2, 10.0.0.1",
+      "x-forwarded-for": "198.51.100.2, 203.0.113.7",
     });
-    expect(clientIp(headers)).toBe("198.51.100.1");
-    expect(clientIp(new Headers({ "x-forwarded-for": "198.51.100.2, 10.0.0.1" }))).toBe("198.51.100.2");
+    expect(clientIp(headers)).toBe("203.0.113.7");
+    expect(clientIp(new Headers({ "x-forwarded-for": "198.51.100.2" }))).toBe("198.51.100.2");
+    expect(clientIp(new Headers({ "x-nf-client-connection-ip": "198.51.100.1" }))).toBe("unknown");
     expect(clientIp(new Headers())).toBe("unknown");
   });
 });

@@ -13,8 +13,12 @@ export function bucketFor(pathname: string): [string, number] {
   return LIMITS.find(([prefix]) => pathname.startsWith(prefix)) ?? ["/api", DEFAULT_LIMIT];
 }
 
+// Only the right-most x-forwarded-for entry is trustworthy: it is the one the
+// reverse proxy in front of this app appended. Everything to its left, and any
+// other client-supplied IP header, is spoofable.
 export function clientIp(headers: Headers): string {
-  return headers.get("x-nf-client-connection-ip") ?? headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const forwarded = headers.get("x-forwarded-for")?.split(",") ?? [];
+  return forwarded[forwarded.length - 1]?.trim() || "unknown";
 }
 
 export function isRateLimited(ip: string, pathname: string): boolean {

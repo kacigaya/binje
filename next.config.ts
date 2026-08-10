@@ -1,8 +1,14 @@
 import type { NextConfig } from "next";
 
+// Next's dev overlay and HMR runtime need eval; production builds do not.
+const SCRIPT_SRC =
+  process.env.NODE_ENV === "production"
+    ? "script-src 'self' 'unsafe-inline'"
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
+
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  SCRIPT_SRC,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://image.tmdb.org",
   "connect-src 'self' blob: data: https:",
@@ -39,15 +45,17 @@ const nextConfig: NextConfig = {
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-        { key: "Content-Security-Policy-Report-Only", value: CSP },
+        { key: "Content-Security-Policy", value: CSP },
       ],
     },
     {
       source: "/api/mobile/:path*",
       headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
     },
+    // /api/hls is deliberately absent: the segment proxy is same-origin only,
+    // so no third-party page can drive it from a browser.
     {
-      source: "/api/(search|resolve|resolve-vf|hls|episodes)",
+      source: "/api/(search|resolve|resolve-vf|episodes)",
       headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
     },
   ],

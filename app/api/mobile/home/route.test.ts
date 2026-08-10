@@ -12,7 +12,7 @@ beforeEach(() => {
 });
 const movie = { id: 1, title: "M", overview: "", poster_path: null, backdrop_path: null, release_date: "", vote_average: 8 } as never;
 describe("mobile home route", () => {
-  test("returns camelCase sections with cache headers", async () => { homeDependencies.getTrending = async () => [movie]; homeDependencies.getTrendingTV = async () => []; const response = await GET(new NextRequest("http://localhost/api/mobile/home?lang=fr")); expect(response.status).toBe(200); expect((await response.json()).trendingMovies[0].mediaType).toBe("movie"); expect(response.headers.get("cache-control")).toContain("s-maxage"); expect(response.headers.get("netlify-vary")).toBe("query"); });
+  test("returns camelCase sections with cache headers", async () => { homeDependencies.getTrending = async () => [movie]; homeDependencies.getTrendingTV = async () => []; const response = await GET(new NextRequest("http://localhost/api/mobile/home?lang=fr")); expect(response.status).toBe(200); expect((await response.json()).trendingMovies[0].mediaType).toBe("movie"); expect(response.headers.get("cache-control")).toContain("s-maxage"); });
   test("enriches featured items with logo, RT score, and content rating", async () => {
     homeDependencies.getTrending = async () => [movie];
     homeDependencies.getTrendingTV = async () => [];

@@ -3,7 +3,6 @@ import { ApiValidationError } from "@/lib/api-validation";
 
 export const MOBILE_CACHE_HEADERS = {
   "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-  "Netlify-Vary": "query",
 };
 export function mobileJson(data: unknown, status = 200, cache = status === 200) {
   return NextResponse.json(data, { status, headers: cache ? MOBILE_CACHE_HEADERS : { "Cache-Control": "no-store" } });

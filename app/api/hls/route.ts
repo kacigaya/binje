@@ -1,6 +1,8 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
+import { Agent } from "undici";
+import { allowStreamHost, isAllowedStreamHost } from "@/lib/hls-hosts";
 
 const PLAYER_ORIGIN = "https://player.videasy.to";
 const BROWSER_USER_AGENT =
@@ -56,28 +58,62 @@ function isBlockedIP(ip: string) {
   );
 }
 
+// WHATWG URL keeps the brackets on IPv6 literals; isIP and dns.lookup reject
+// them, so strip them before either sees the host.
+function bareHostname(url: URL) {
+  return url.hostname.replace(/^\[|\]$/g, "");
+}
+
 async function isSafeHost(url: URL) {
-  if (isIP(url.hostname)) return !isBlockedIP(url.hostname);
-  if (url.hostname === "localhost" || url.hostname.endsWith(".localhost")) return false;
+  const hostname = bareHostname(url);
+  if (isIP(hostname)) return !isBlockedIP(hostname);
+  if (hostname === "localhost" || hostname.endsWith(".localhost")) return false;
 
   try {
-    const addresses = await lookup(url.hostname, { all: true });
+    const addresses = await lookup(hostname, { all: true });
     return addresses.length > 0 && addresses.every((addr) => !isBlockedIP(addr.address));
   } catch {
     return false;
   }
 }
 
+// The pre-flight check above and fetch would otherwise resolve the hostname
+// twice, so a DNS-rebinding answer could return a public IP to the check and a
+// private one to the connection. This dispatcher validates the addresses the
+// socket actually connects to.
+const dispatcher = new Agent({
+  connect: {
+    lookup(hostname, options, callback) {
+      void (async () => {
+        try {
+          const addresses = await lookup(hostname, { all: true, verbatim: true });
+          const safe = addresses.filter(
+            (addr) =>
+              !isBlockedIP(addr.address) && (!options.family || options.family === addr.family),
+          );
+          if (safe.length === 0) throw new Error("Blocked address.");
+          if (options.all) callback(null, safe);
+          else callback(null, safe[0].address as never, safe[0].family);
+        } catch (error) {
+          callback(error as NodeJS.ErrnoException, []);
+        }
+      })();
+    },
+  },
+});
+
 async function safeFetch(start: URL, init: RequestInit) {
   let current = start;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const response = await fetch(current, { ...init, redirect: "manual" });
+    const response = await fetch(current, { ...init, redirect: "manual", dispatcher } as RequestInit);
     if (response.status < 300 || response.status >= 400) return response;
 
     const location = response.headers.get("location");
     const next = location ? getTargetUrl(new URL(location, current).toString()) : null;
     if (!next || !(await isSafeHost(next))) throw new Error("Blocked redirect target.");
+    // The hop came from an already-allowed host, so trust it for later segments.
+    allowStreamHost(next);
     current = next;
   }
 
@@ -85,6 +121,7 @@ async function safeFetch(start: URL, init: RequestInit) {
 }
 
 function proxiedUrl(url: string | URL, requestUrl: string) {
+  allowStreamHost(url);
   const proxyUrl = new URL("/api/hls", requestUrl);
   proxyUrl.searchParams.set("url", String(url));
   return `${proxyUrl.pathname}${proxyUrl.search}`;
@@ -109,7 +146,7 @@ function rewritePlaylist(text: string, targetUrl: URL, requestUrl: string) {
 export async function GET(request: NextRequest) {
   const targetUrl = getTargetUrl(request.nextUrl.searchParams.get("url"));
   if (!targetUrl) return NextResponse.json({ error: "Invalid HLS URL." }, { status: 400 });
-  if (!(await isSafeHost(targetUrl))) {
+  if (!isAllowedStreamHost(targetUrl) || !(await isSafeHost(targetUrl))) {
     return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
   }
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { allowStreamHost } from "@/lib/hls-hosts";
 import { preferredStreamPaths, scrapeM3u8 } from "./uqload";
 
 const FREMBED_ORIGIN = "https://frembed.casa";
@@ -92,6 +93,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await extract(type, id!, season, episode);
+    allowStreamHost(result.url);
     return NextResponse.json(result, {
       headers: { "cache-control": "no-store" },
     });

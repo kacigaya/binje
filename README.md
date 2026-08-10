@@ -101,6 +101,18 @@ public/         # Static assets
 tests/          # Playwright tests
 ```
 
+## Security notes
+
+- `/api/hls` is not a general URL proxy. It only fetches hosts that `/api/resolve`,
+  `/api/resolve-vf`, or a rewritten playlist handed out (6 hour in-memory TTL), so a
+  segment request always has to follow a resolve on the same instance.
+- The allowlist is per-instance and lost on restart; playback then needs a new resolve.
+- Rate limiting keys on the right-most `X-Forwarded-For` entry, i.e. the one the reverse
+  proxy in front of the app appends. Per-client limits therefore require that proxy to
+  append the real client IP and to drop client-supplied forwarding headers.
+- The CSP is enforced (not report-only); `unsafe-eval` is only added in development,
+  where the Next dev runtime needs it.
+
 ## Privacy
 
 b!nje uses your browser's `localStorage` to remember your watch history. No tracking, no

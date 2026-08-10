@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { allowStreamHosts } from "@/lib/hls-hosts";
 import { resolveVideasyStream } from "@/lib/videasy";
 
 export const runtime = "nodejs";
@@ -38,6 +39,11 @@ export async function GET(request: NextRequest) {
       season,
       episode,
     });
+    allowStreamHosts([
+      result.url,
+      ...result.tracks.map((track) => track.file),
+      ...(result.sources ?? []).map((source) => source.file),
+    ]);
     return NextResponse.json(result, {
       headers: { "cache-control": "no-store" },
     });
