@@ -14,6 +14,7 @@ import {
   getTVByGenre,
   tvToMedia,
 } from "@/lib/tmdb";
+import type { TVShow } from "@/types/tmdb";
 import { translate, type Locale } from "@/lib/i18n";
 
 export const revalidate = 3600;
@@ -26,16 +27,21 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 export default async function TVShowsPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   const trendingPromise = getTrendingTV(locale);
+  // Every rail starts fetching now and is awaited later, inside its own
+  // Suspense boundary. If the trending await below throws first, nothing ever
+  // awaits these, and an unhandled rejection takes the process down, so each
+  // one absorbs its own failure and renders as an empty rail.
+  const rail = (request: Promise<TVShow[]>) => request.catch((): TVShow[] => []);
   const sections = [
-    ["Popular TV Shows", getPopularTV(locale)],
-    ["Top Rated TV Shows", getTopRatedTV(locale)],
-    ["Airing Today", getAiringTodayTV(locale)],
-    ["On The Air", getOnTheAirTV(locale)],
-    ["Action & Adventure", getTVByGenre(10759, locale)],
-    ["Comedy", getTVByGenre(35, locale)],
-    ["Drama", getTVByGenre(18, locale)],
-    ["Sci-Fi & Fantasy", getTVByGenre(10765, locale)],
-    ["Documentary", getTVByGenre(99, locale)],
+    ["Popular TV Shows", rail(getPopularTV(locale))],
+    ["Top Rated TV Shows", rail(getTopRatedTV(locale))],
+    ["Airing Today", rail(getAiringTodayTV(locale))],
+    ["On The Air", rail(getOnTheAirTV(locale))],
+    ["Action & Adventure", rail(getTVByGenre(10759, locale))],
+    ["Comedy", rail(getTVByGenre(35, locale))],
+    ["Drama", rail(getTVByGenre(18, locale))],
+    ["Sci-Fi & Fantasy", rail(getTVByGenre(10765, locale))],
+    ["Documentary", rail(getTVByGenre(99, locale))],
   ] as const;
   const trending = await trendingPromise;
 

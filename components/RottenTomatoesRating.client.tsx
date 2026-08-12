@@ -36,7 +36,11 @@ export default function RottenTomatoesRating({
         scores.set(imdbId, nextScore);
         if (!cancelled) setResult({ imdbId, score: nextScore });
       })
-      .catch(() => undefined);
+      // Remember the miss too: the hero rotates back to the same title every
+      // few seconds, and a failing id would otherwise refetch forever.
+      .catch(() => {
+        if (!controller.signal.aborted) scores.set(imdbId, null);
+      });
 
     return () => {
       cancelled = true;

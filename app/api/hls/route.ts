@@ -21,15 +21,20 @@ const MAX_DNS_ENTRIES = 200;
 const SEGMENT_CACHE_CONTROL = "public, max-age=3600, immutable";
 const PLAYLIST_CACHE_CONTROL = "public, max-age=30";
 
-type DnsEntry = { addresses: LookupAddress[]; expiresAt: number };
+// The pending lookup is what gets cached, not its result: a cold cache under a
+// segment burst would otherwise fire one resolution per in-flight request.
+type DnsEntry = { addresses: Promise<LookupAddress[]>; expiresAt: number };
 const dnsCache = new Map<string, DnsEntry>();
 
-async function cachedLookup(hostname: string): Promise<LookupAddress[]> {
+function cachedLookup(hostname: string): Promise<LookupAddress[]> {
   const now = Date.now();
   const hit = dnsCache.get(hostname);
   if (hit && now < hit.expiresAt) return hit.addresses;
 
-  const addresses = await lookup(hostname, { all: true, verbatim: true });
+  const addresses = lookup(hostname, { all: true, verbatim: true });
+  addresses.catch(() => {
+    if (dnsCache.get(hostname)?.addresses === addresses) dnsCache.delete(hostname);
+  });
   if (dnsCache.size >= MAX_DNS_ENTRIES) {
     for (const [key, entry] of dnsCache) if (now > entry.expiresAt) dnsCache.delete(key);
     for (const key of dnsCache.keys()) {

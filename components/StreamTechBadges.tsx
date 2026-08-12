@@ -9,6 +9,24 @@ type Info = StreamTech & { height: number | null };
 // pulls hls.js in, and it would land in the detail page bundle for three
 // decorative badges.
 
+// A value left by an older build, or a truncated one, would otherwise throw on
+// every mount and the badges would never come back for that title.
+function readCachedInfo(cacheKey: string): Info | null {
+  const cached = window.sessionStorage.getItem(cacheKey);
+  if (!cached) return null;
+  try {
+    const parsed: unknown = JSON.parse(cached);
+    // Valid JSON of the wrong shape would render nothing and never retry.
+    if (typeof parsed !== "object" || parsed === null || !("height" in parsed)) {
+      throw new Error("Unexpected cached shape.");
+    }
+    return parsed as Info;
+  } catch {
+    window.sessionStorage.removeItem(cacheKey);
+    return null;
+  }
+}
+
 export default function StreamTechBadges({
   type,
   tmdbId,
@@ -64,10 +82,9 @@ export default function StreamTechBadges({
 
     (async () => {
       try {
-        const cached = window.sessionStorage.getItem(cacheKey);
+        const cached = readCachedInfo(cacheKey);
         if (cached) {
-          const parsed = JSON.parse(cached) as Info;
-          if (!cancelled) setInfo(parsed);
+          if (!cancelled) setInfo(cached);
           return;
         }
 

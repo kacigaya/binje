@@ -8,5 +8,9 @@ export default async function AsyncCarousel({
   title: string;
   items: Promise<MediaItem[]>;
 }) {
-  return <LazyCarousel title={title} items={await items} />;
+  const resolved = await items;
+  // A rail whose upstream call failed arrives empty; a bare heading over an
+  // empty strip reads as a bug, so drop the section instead.
+  if (resolved.length === 0) return null;
+  return <LazyCarousel title={title} items={resolved} />;
 }

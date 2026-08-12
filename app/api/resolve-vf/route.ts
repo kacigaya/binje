@@ -82,7 +82,7 @@ async function extract(
 // playability check, so repeat viewers of the same episode reuse the answer.
 // Short window: the hoster URLs expire.
 const VF_TTL_MS = 10 * 60 * 1000;
-const vfCache = createTtlCache<{ url: string; tracks: [] }>(VF_TTL_MS);
+const vfCache = createTtlCache<Awaited<ReturnType<typeof extract>>>(VF_TTL_MS);
 
 function cachedExtract(
   type: "movie" | "tv",
