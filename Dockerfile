@@ -18,8 +18,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # never land in an image layer or in `docker history`.
 RUN --mount=type=secret,id=TMDB_API_KEY \
     --mount=type=secret,id=OMDB_API_KEY \
+    --mount=type=secret,id=NEXT_PUBLIC_SITE_URL \
     TMDB_API_KEY="$(cat /run/secrets/TMDB_API_KEY)" \
     OMDB_API_KEY="$(cat /run/secrets/OMDB_API_KEY)" \
+    NEXT_PUBLIC_SITE_URL="$(cat /run/secrets/NEXT_PUBLIC_SITE_URL)" \
     bun run build
 
 FROM node:22-alpine AS runner
