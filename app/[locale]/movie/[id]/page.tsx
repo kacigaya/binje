@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import WatchlistButton from "@/components/WatchlistButton";
 import StreamTechBadges from "@/components/StreamTechBadges";
-import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
+import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import {
   getMovieDetails,
   getMovieContentRating,
@@ -57,11 +57,10 @@ export default async function MoviePage({
   if (movieId === null) notFound();
 
   const moviePromise = getMovieDetails(movieId, locale);
-  const [movie, credits, similar, rottenTomatoesScore] = await Promise.all([
+  const [movie, credits, similar] = await Promise.all([
     moviePromise,
     getMovieCredits(movieId, locale),
     getSimilarMovies(movieId, locale),
-    moviePromise.then(({ imdb_id }) => getRottenTomatoesScore(imdb_id)),
   ]);
 
   const backdrop = backdropUrl(movie.backdrop_path, "w1280");
@@ -139,19 +138,7 @@ export default async function MoviePage({
                 />
                 {movie.vote_average.toFixed(1)}
               </div>
-              {rottenTomatoesScore !== null && (
-                <div className="flex items-center gap-1.5 font-semibold text-accent-red">
-                  <Image
-                    src="/rotten-tomatoes.svg"
-                    alt=""
-                    width={16}
-                    height={16}
-                    aria-hidden="true"
-                    className="size-4 shrink-0"
-                  />
-                  {rottenTomatoesScore}%
-                </div>
-              )}
+              <RottenTomatoesRating imdbId={movie.imdb_id} />
               {contentRating && (
                 <div className="font-semibold text-accent-red">{contentRating}</div>
               )}

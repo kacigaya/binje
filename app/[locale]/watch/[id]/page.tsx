@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Clock, Calendar } from "lucide-react";
-import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
+import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import StreamTechBadges from "@/components/StreamTechBadges";
 import { Badge } from "@/components/ui/badge";
 import Player from "@/components/Player";
@@ -53,10 +53,9 @@ export default async function WatchPage({
   const movieId = parseTmdbId(id);
   if (movieId === null) notFound();
   const moviePromise = getMovieDetails(movieId, locale);
-  const [movie, images, rottenTomatoesScore] = await Promise.all([
+  const [movie, images] = await Promise.all([
     moviePromise,
     getMovieImages(movieId, locale),
-    moviePromise.then(({ imdb_id }) => getRottenTomatoesScore(imdb_id)),
   ]);
   const logo = pickLogo(images.logos, locale);
   const movieLogoUrl = logoUrl(logo?.file_path ?? null);
@@ -126,19 +125,7 @@ export default async function WatchPage({
               />
               {movie.vote_average.toFixed(1)}
             </div>
-            {rottenTomatoesScore !== null && (
-              <div className="flex items-center gap-1.5 font-semibold text-accent-red">
-                <Image
-                  src="/rotten-tomatoes.svg"
-                  alt=""
-                  width={16}
-                  height={16}
-                  aria-hidden="true"
-                  className="size-4 shrink-0"
-                />
-                {rottenTomatoesScore}%
-              </div>
-            )}
+            <RottenTomatoesRating imdbId={movie.imdb_id} />
             {contentRating && (
               <div className="font-semibold text-accent-red">{contentRating}</div>
             )}

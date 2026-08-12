@@ -4,12 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import LazyCarousel from "@/components/LazyCarousel";
 import {
-  getAiringTodayTV,
-  getOnTheAirTV,
-  getPopularTV,
-  getTopRatedTV,
   getTrendingTV,
-  getTVByGenre,
   tvToMedia,
 } from "@/lib/tmdb";
 import { translate, type Locale } from "@/lib/i18n";
@@ -23,29 +18,18 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 
 export default async function TVShowsPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
-  const [
-    trending,
-    popular,
-    topRated,
-    airingToday,
-    onTheAir,
-    actionAdventure,
-    comedy,
-    drama,
-    scifiFantasy,
-    documentary,
-  ] = await Promise.all([
-    getTrendingTV(locale),
-    getPopularTV(locale),
-    getTopRatedTV(locale),
-    getAiringTodayTV(locale),
-    getOnTheAirTV(locale),
-    getTVByGenre(10759, locale),
-    getTVByGenre(35, locale),
-    getTVByGenre(18, locale),
-    getTVByGenre(10765, locale),
-    getTVByGenre(99, locale),
-  ]);
+  const trending = await getTrendingTV(locale);
+  const sections = [
+    ["Popular TV Shows", "popular"],
+    ["Top Rated TV Shows", "top-rated"],
+    ["Airing Today", "airing-today"],
+    ["On The Air", "on-the-air"],
+    ["Action & Adventure", "genre-10759"],
+    ["Comedy", "genre-35"],
+    ["Drama", "genre-18"],
+    ["Sci-Fi & Fantasy", "genre-10765"],
+    ["Documentary", "genre-99"],
+  ] as const;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 pb-16 pt-24 sm:pt-28">
@@ -67,18 +51,13 @@ export default async function TVShowsPage({ params }: { params: Promise<{ locale
         items={trending.map(tvToMedia)}
         priority
       />
-      <LazyCarousel title={translate(locale, "Popular TV Shows")} items={popular.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "Top Rated TV Shows")} items={topRated.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "Airing Today")} items={airingToday.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "On The Air")} items={onTheAir.map(tvToMedia)} />
-      <LazyCarousel
-        title={translate(locale, "Action & Adventure")}
-        items={actionAdventure.map(tvToMedia)}
-      />
-      <LazyCarousel title={translate(locale, "Comedy")} items={comedy.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "Drama")} items={drama.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "Sci-Fi & Fantasy")} items={scifiFantasy.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "Documentary")} items={documentary.map(tvToMedia)} />
+      {sections.map(([title, category]) => (
+        <LazyCarousel
+          key={title}
+          title={translate(locale, title)}
+          src={`/api/browse?type=tv&category=${category}&lang=${locale}`}
+        />
+      ))}
     </div>
   );
 }

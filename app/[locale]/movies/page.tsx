@@ -4,12 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import LazyCarousel from "@/components/LazyCarousel";
 import {
-  getMoviesByGenre,
-  getNowPlaying,
-  getPopular,
-  getTopRated,
   getTrending,
-  getUpcoming,
   movieToMedia,
 } from "@/lib/tmdb";
 import { translate, type Locale } from "@/lib/i18n";
@@ -23,29 +18,18 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 
 export default async function MoviesPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
-  const [
-    trending,
-    popular,
-    topRated,
-    nowPlaying,
-    upcoming,
-    action,
-    comedy,
-    drama,
-    horror,
-    scifi,
-  ] = await Promise.all([
-    getTrending(locale),
-    getPopular(locale),
-    getTopRated(locale),
-    getNowPlaying(locale),
-    getUpcoming(locale),
-    getMoviesByGenre(28, locale),
-    getMoviesByGenre(35, locale),
-    getMoviesByGenre(18, locale),
-    getMoviesByGenre(27, locale),
-    getMoviesByGenre(878, locale),
-  ]);
+  const trending = await getTrending(locale);
+  const sections = [
+    ["Popular Movies", "popular"],
+    ["Top Rated Movies", "top-rated"],
+    ["Now Playing", "now-playing"],
+    ["Upcoming", "upcoming"],
+    ["Action", "genre-28"],
+    ["Comedy", "genre-35"],
+    ["Drama", "genre-18"],
+    ["Horror", "genre-27"],
+    ["Sci-Fi", "genre-878"],
+  ] as const;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 pb-16 pt-24 sm:pt-28">
@@ -67,15 +51,13 @@ export default async function MoviesPage({ params }: { params: Promise<{ locale:
         items={trending.map(movieToMedia)}
         priority
       />
-      <LazyCarousel title={translate(locale, "Popular Movies")} items={popular.map(movieToMedia)} />
-      <LazyCarousel title={translate(locale, "Top Rated Movies")} items={topRated.map(movieToMedia)} />
-      <LazyCarousel title={translate(locale, "Now Playing")} items={nowPlaying.map(movieToMedia)} />
-      <LazyCarousel title={translate(locale, "Upcoming")} items={upcoming.map(movieToMedia)} />
-      <LazyCarousel title={translate(locale, "Action")} items={action.map(movieToMedia)} />
-      <LazyCarousel title={translate(locale, "Comedy")} items={comedy.map(movieToMedia)} />
-      <LazyCarousel title={translate(locale, "Drama")} items={drama.map(movieToMedia)} />
-      <LazyCarousel title={translate(locale, "Horror")} items={horror.map(movieToMedia)} />
-      <LazyCarousel title={translate(locale, "Sci-Fi")} items={scifi.map(movieToMedia)} />
+      {sections.map(([title, category]) => (
+        <LazyCarousel
+          key={title}
+          title={translate(locale, title)}
+          src={`/api/browse?type=movie&category=${category}&lang=${locale}`}
+        />
+      ))}
     </div>
   );
 }

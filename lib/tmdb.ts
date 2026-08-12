@@ -292,6 +292,31 @@ export async function searchMulti(
   };
 }
 
+/** Lightweight exact-match search for typeahead UIs: one query and one page. */
+export async function searchSuggestions(
+  query: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<MultiSearchResponse> {
+  const cleanQuery = query.trim().replace(/\s+/g, " ");
+  if (!cleanQuery) {
+    return { page: 1, results: [], total_pages: 0, total_results: 0 };
+  }
+
+  const data = await tmdbFetch<MultiSearchResponse>(
+    `/search/multi?query=${encodeURIComponent(cleanQuery)}&page=1`,
+    600,
+    locale,
+  );
+  const results = rankSearchResults(
+    data.results.filter((result) =>
+      result.media_type === "movie" || result.media_type === "tv",
+    ),
+    cleanQuery,
+  );
+
+  return { ...data, results, total_results: results.length };
+}
+
 function generateQueryVariations(query: string): string[] {
   const cleanQuery = query.trim().replace(/\s+/g, " ");
   const collapsed = normalizeForMatch(cleanQuery);

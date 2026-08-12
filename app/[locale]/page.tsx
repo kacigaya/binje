@@ -12,9 +12,9 @@ import {
   tvToMedia,
 } from "@/lib/tmdb";
 import { translate, type Locale } from "@/lib/i18n";
-import { getRottenTomatoesScore } from "@/lib/rotten-tomatoes";
 
 export const revalidate = 3600;
+const FEATURED_ITEM_COUNT = 5;
 
 export default async function HomePage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
@@ -24,7 +24,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: L
   ]);
 
   const featuredItems = await Promise.all(
-    trending.map(async (movie) => {
+    trending.slice(0, FEATURED_ITEM_COUNT).map(async (movie) => {
       const item = movieToMedia(movie);
 
       const [images, details] = await Promise.all([
@@ -32,13 +32,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: L
         getMovieDetails(movie.id, locale).catch(() => null),
       ]);
       const logo = images ? pickLogo(images.logos, locale) : null;
-      const rottenTomatoesScore = await getRottenTomatoesScore(
-        details?.imdb_id,
-      );
-
       return {
         ...item,
-        rottenTomatoesScore,
+        imdbId: details?.imdb_id ?? null,
         contentRating: details ? getMovieContentRating(details) : null,
         ...(logo && {
           logo_path: logo.file_path,

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { getMovieContentRating, getTVContentRating, normalizeForMatch } from "@/lib/tmdb";
+import { getMovieContentRating, getTVContentRating, normalizeForMatch, searchSuggestions } from "@/lib/tmdb";
 import type { MovieDetails, TVShowDetails } from "@/types/tmdb";
 
 test("normalizes French accents for search matching", () => {
@@ -26,4 +26,27 @@ test("reads and formats French content ratings", () => {
   expect(getTVContentRating(show)).toBe("Tous publics");
   expect(getTVContentRating(numericShow)).toBe("+16");
   expect(getTVContentRating(missing)).toBeNull();
+});
+
+test("search suggestions use one upstream page", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls: string[] = [];
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    calls.push(String(input));
+    return Response.json({
+      page: 1,
+      results: [{ id: 1, media_type: "movie", title: "Dune", poster_path: null }],
+      total_pages: 4,
+      total_results: 70,
+    });
+  }) as typeof fetch;
+
+  try {
+    const response = await searchSuggestions("Dune", "en");
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain("query=Dune&page=1");
+    expect(response.results).toHaveLength(1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
