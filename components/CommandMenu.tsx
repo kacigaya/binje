@@ -27,10 +27,10 @@ const PAGES: { href: string; label: TranslationKey; icon: typeof Film }[] = [
   { href: "/watchlist", label: "Watchlist", icon: Bookmark },
 ];
 
-export default function CommandMenu() {
+export default function CommandMenu({ initialOpen = false }: { initialOpen?: boolean }) {
   const { locale, t } = useTranslations();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
   const [query, setQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 

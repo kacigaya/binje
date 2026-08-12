@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { allowStreamHost } from "@/lib/hls-hosts";
+import { createTtlCache } from "@/lib/ttl-cache";
 import { preferredStreamPaths, scrapeM3u8 } from "./uqload";
 
 const FREMBED_ORIGIN = "https://frembed.casa";
@@ -77,6 +78,22 @@ async function extract(
   throw new Error("No VF server returned a stream.");
 }
 
+// Walking the hoster list costs one request per candidate server plus a
+// playability check, so repeat viewers of the same episode reuse the answer.
+// Short window: the hoster URLs expire.
+const VF_TTL_MS = 10 * 60 * 1000;
+const vfCache = createTtlCache<{ url: string; tracks: [] }>(VF_TTL_MS);
+
+function cachedExtract(
+  type: "movie" | "tv",
+  id: string,
+  season: string,
+  episode: string,
+) {
+  const key = type === "tv" ? `tv:${id}:${season}:${episode}` : `movie:${id}`;
+  return vfCache.get(key, () => extract(type, id, season, episode));
+}
+
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams;
   const type = q.get("type");
@@ -92,10 +109,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await extract(type, id!, season, episode);
+    const result = await cachedExtract(type, id!, season, episode);
     allowStreamHost(result.url);
     return NextResponse.json(result, {
-      headers: { "cache-control": "no-store" },
+      headers: { "cache-control": "private, max-age=300" },
     });
   } catch {
     return NextResponse.json(

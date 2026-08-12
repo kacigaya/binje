@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { allowStreamHosts } from "@/lib/hls-hosts";
-import { cachedResolveVideasyStream } from "@/lib/resolve-cache";
+import { getStreamTech } from "@/lib/stream-tech";
 
 export const runtime = "nodejs";
-export const maxDuration = 20;
+export const maxDuration = 30;
 
+const EMPTY = { height: null, video: null, audio: null };
+
+// The browser used to run this probe itself: a resolve, a master playlist, a
+// variant playlist and a 128 KB segment read, on every detail page view. It is
+// one cached JSON response now.
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
   const type = query.get("type");
@@ -30,29 +34,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await cachedResolveVideasyStream({
-      type,
-      id: id!,
-      title,
-      year,
-      imdbId,
-      season,
-      episode,
-    });
-    allowStreamHosts([
-      result.url,
-      ...result.tracks.map((track) => track.file),
-      ...(result.sources ?? []).map((source) => source.file),
-    ]);
-    // Private and short: the URLs are signed and single-viewer, but a reload or
-    // a detail-page-to-watch-page hop should not pay for the chain twice.
-    return NextResponse.json(result, {
-      headers: { "cache-control": "private, max-age=300" },
+    const tech = await getStreamTech({ type, id: id!, title, year, imdbId, season, episode });
+    return NextResponse.json(tech, {
+      headers: { "cache-control": "public, max-age=21600" },
     });
   } catch {
-    return NextResponse.json(
-      { error: "Failed to resolve stream." },
-      { status: 502 },
-    );
+    // Badges are decorative, so a failed probe is a 200 with nothing in it.
+    // The short window keeps a broken title from re-probing on every view.
+    return NextResponse.json(EMPTY, {
+      headers: { "cache-control": "public, max-age=300" },
+    });
   }
 }

@@ -9,15 +9,11 @@ import {
   Clapperboard,
   Film,
   Loader2,
+  Menu,
   Search,
   Tv,
+  X,
 } from "lucide-react";
-import {
-  Menu as MorphMenu,
-  Search as MorphSearch,
-  X as MorphX,
-} from "lucide";
-import { MorphIcon } from "morphicons/react";
 import {
   useState,
   useRef,
@@ -148,11 +144,7 @@ export default function Navbar() {
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
             >
-              <MorphIcon
-                icon={menuOpen ? MorphX : MorphMenu}
-                spring="snappy"
-                className="size-5"
-              />
+              {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
           )}
 
@@ -261,11 +253,7 @@ export default function Navbar() {
                 aria-label={t(open ? "Close search" : "Open search")}
                 aria-expanded={open}
               >
-                <MorphIcon
-                  icon={open ? MorphX : MorphSearch}
-                  spring="snappy"
-                  className="size-5"
-                />
+                {open ? <X className="size-5" /> : <Search className="size-5" />}
               </button>
             </div>
           )}

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Tv } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
-import LazyCarousel from "@/components/LazyCarousel";
+import AsyncCarousel from "@/components/AsyncCarousel";
+import CarouselSkeleton from "@/components/CarouselSkeleton";
 import {
   getAiringTodayTV,
   getOnTheAirTV,
@@ -23,29 +25,19 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 
 export default async function TVShowsPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
-  const [
-    trending,
-    popular,
-    topRated,
-    airingToday,
-    onTheAir,
-    actionAdventure,
-    comedy,
-    drama,
-    scifiFantasy,
-    documentary,
-  ] = await Promise.all([
-    getTrendingTV(locale),
-    getPopularTV(locale),
-    getTopRatedTV(locale),
-    getAiringTodayTV(locale),
-    getOnTheAirTV(locale),
-    getTVByGenre(10759, locale),
-    getTVByGenre(35, locale),
-    getTVByGenre(18, locale),
-    getTVByGenre(10765, locale),
-    getTVByGenre(99, locale),
-  ]);
+  const trendingPromise = getTrendingTV(locale);
+  const sections = [
+    ["Popular TV Shows", getPopularTV(locale)],
+    ["Top Rated TV Shows", getTopRatedTV(locale)],
+    ["Airing Today", getAiringTodayTV(locale)],
+    ["On The Air", getOnTheAirTV(locale)],
+    ["Action & Adventure", getTVByGenre(10759, locale)],
+    ["Comedy", getTVByGenre(35, locale)],
+    ["Drama", getTVByGenre(18, locale)],
+    ["Sci-Fi & Fantasy", getTVByGenre(10765, locale)],
+    ["Documentary", getTVByGenre(99, locale)],
+  ] as const;
+  const trending = await trendingPromise;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 pb-16 pt-24 sm:pt-28">
@@ -67,18 +59,14 @@ export default async function TVShowsPage({ params }: { params: Promise<{ locale
         items={trending.map(tvToMedia)}
         priority
       />
-      <LazyCarousel title={translate(locale, "Popular TV Shows")} items={popular.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "Top Rated TV Shows")} items={topRated.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "Airing Today")} items={airingToday.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "On The Air")} items={onTheAir.map(tvToMedia)} />
-      <LazyCarousel
-        title={translate(locale, "Action & Adventure")}
-        items={actionAdventure.map(tvToMedia)}
-      />
-      <LazyCarousel title={translate(locale, "Comedy")} items={comedy.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "Drama")} items={drama.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "Sci-Fi & Fantasy")} items={scifiFantasy.map(tvToMedia)} />
-      <LazyCarousel title={translate(locale, "Documentary")} items={documentary.map(tvToMedia)} />
+      {sections.map(([title, items]) => (
+        <Suspense key={title} fallback={<CarouselSkeleton />}>
+          <AsyncCarousel
+            title={translate(locale, title)}
+            items={items.then((shows) => shows.map(tvToMedia))}
+          />
+        </Suspense>
+      ))}
     </div>
   );
 }

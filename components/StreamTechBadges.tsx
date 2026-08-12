@@ -1,18 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { RESOLVE_BASE, proxied } from "@/components/Player";
-import { fetchResolve } from "@/lib/resolve-client";
-import { parseTsCodecs, type StreamTech } from "@/lib/stream-probe";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { StreamTech } from "@/lib/stream-probe";
 
 type Info = StreamTech & { height: number | null };
 
-function firstNonComment(playlist: string) {
-  return playlist
-    .split("\n")
-    .map((line) => line.trim())
-    .find((line) => line && !line.startsWith("#"));
-}
+// Nothing from @/components/Player is imported here on purpose: that module
+// pulls hls.js in, and it would land in the detail page bundle for three
+// decorative badges.
 
 export default function StreamTechBadges({
   type,
@@ -28,12 +23,54 @@ export default function StreamTechBadges({
   imdbId?: string | null;
 }) {
   const [info, setInfo] = useState<Info | null>(null);
+  const [shouldProbe, setShouldProbe] = useState(false);
+  const sentinelRef = useRef<HTMLSpanElement>(null);
+  const cacheKey = useMemo(
+    () => `binje:stream-tech:${type}:${tmdbId}`,
+    [tmdbId, type],
+  );
 
   useEffect(() => {
+    const element = sentinelRef.current;
+    if (!element) return;
+
+    // Safari has no requestIdleCallback, so fall back to a plain timer. Both
+    // handles are plain numbers; the flag records which one to cancel.
+    const idle = typeof window.requestIdleCallback === "function";
+    let idleId: number | undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+        idleId = idle
+          ? window.requestIdleCallback(() => setShouldProbe(true), { timeout: 5000 })
+          : window.setTimeout(() => setShouldProbe(true), 2500);
+      },
+      { rootMargin: "100px" },
+    );
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+      if (idleId === undefined) return;
+      if (idle) window.cancelIdleCallback(idleId);
+      else window.clearTimeout(idleId);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!shouldProbe) return;
     let cancelled = false;
 
     (async () => {
       try {
+        const cached = window.sessionStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as Info;
+          if (!cancelled) setInfo(parsed);
+          return;
+        }
+
         const params = new URLSearchParams({
           type,
           id: String(tmdbId),
@@ -45,36 +82,14 @@ export default function StreamTechBadges({
           params.set("season", "1");
           params.set("episode", "1");
         }
-        const data = await fetchResolve(
-          `${RESOLVE_BASE}/resolve?${params.toString()}`,
-        );
+        // The resolve chain, both playlists and the 128 KB transport-stream
+        // read all happen server-side now, behind a shared six-hour cache.
+        const response = await fetch(`/api/stream-tech?${params.toString()}`);
+        if (!response.ok) return;
+        const nextInfo = (await response.json()) as Info;
 
-        let height = data.sources?.length
-          ? Math.max(...data.sources.map((s) => s.height))
-          : null;
-        const topFile = data.sources?.length
-          ? data.sources.reduce((a, b) => (b.height > a.height ? b : a)).file
-          : data.url;
-
-        let playlist = await fetch(proxied(topFile)).then((r) => r.text());
-        if (playlist.includes("#EXT-X-STREAM-INF")) {
-          const heights = [...playlist.matchAll(/RESOLUTION=\d+x(\d+)/g)].map(
-            (m) => Number(m[1]),
-          );
-          if (height === null && heights.length) height = Math.max(...heights);
-          const variant = firstNonComment(playlist);
-          if (!variant) return;
-          playlist = await fetch(variant).then((r) => r.text());
-        }
-
-        const segment = firstNonComment(playlist);
-        if (!segment) return;
-        const buffer = await fetch(segment, {
-          headers: { range: "bytes=0-131071" },
-        }).then((r) => r.arrayBuffer());
-
-        const tech = parseTsCodecs(new Uint8Array(buffer));
-        if (!cancelled) setInfo({ height, ...tech });
+        window.sessionStorage.setItem(cacheKey, JSON.stringify(nextInfo));
+        if (!cancelled) setInfo(nextInfo);
       } catch {
         // Silent: badges simply don't render when the stream can't be probed.
       }
@@ -83,18 +98,18 @@ export default function StreamTechBadges({
     return () => {
       cancelled = true;
     };
-  }, [imdbId, title, tmdbId, type, year]);
+  }, [cacheKey, imdbId, shouldProbe, title, tmdbId, type, year]);
 
-  if (!info) return null;
+  if (!info) return <span ref={sentinelRef} aria-hidden="true" />;
 
   const badges: string[] = [];
   if (info.height) badges.push(info.height >= 2160 ? "4K" : `${info.height}p`);
   if (info.video) badges.push(info.video === "HEVC" ? "HDR" : "SDR");
   if (info.audio) badges.push(info.audio);
-  if (badges.length === 0) return null;
+  if (badges.length === 0) return <span ref={sentinelRef} aria-hidden="true" />;
 
   return (
-    <>
+    <span ref={sentinelRef} className="contents">
       {badges.map((badge) => (
         <span
           key={badge}
@@ -103,6 +118,6 @@ export default function StreamTechBadges({
           {badge}
         </span>
       ))}
-    </>
+    </span>
   );
 }

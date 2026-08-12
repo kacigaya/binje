@@ -1,3 +1,4 @@
+import type { LookupAddress } from "node:dns";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
@@ -9,6 +10,36 @@ const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
 const FETCH_TIMEOUT_MS = 12000;
 const MAX_REDIRECTS = 4;
+// A single viewer pulls hundreds of segments a minute, and every one of them
+// used to resolve the host twice: once in the pre-flight check and once in the
+// dispatcher below. The window is short enough that a rebinding answer still
+// expires quickly, and both call sites share it so they cannot disagree.
+const DNS_TTL_MS = 60_000;
+const MAX_DNS_ENTRIES = 200;
+// Segment URLs are content-addressed and signed, so the bytes behind one never
+// change. Playlists do change, but slowly enough to survive a seek.
+const SEGMENT_CACHE_CONTROL = "public, max-age=3600, immutable";
+const PLAYLIST_CACHE_CONTROL = "public, max-age=30";
+
+type DnsEntry = { addresses: LookupAddress[]; expiresAt: number };
+const dnsCache = new Map<string, DnsEntry>();
+
+async function cachedLookup(hostname: string): Promise<LookupAddress[]> {
+  const now = Date.now();
+  const hit = dnsCache.get(hostname);
+  if (hit && now < hit.expiresAt) return hit.addresses;
+
+  const addresses = await lookup(hostname, { all: true, verbatim: true });
+  if (dnsCache.size >= MAX_DNS_ENTRIES) {
+    for (const [key, entry] of dnsCache) if (now > entry.expiresAt) dnsCache.delete(key);
+    for (const key of dnsCache.keys()) {
+      if (dnsCache.size < MAX_DNS_ENTRIES) break;
+      dnsCache.delete(key);
+    }
+  }
+  dnsCache.set(hostname, { addresses, expiresAt: now + DNS_TTL_MS });
+  return addresses;
+}
 
 function getTargetUrl(value: string | null) {
   if (!value) return null;
@@ -70,7 +101,7 @@ async function isSafeHost(url: URL) {
   if (hostname === "localhost" || hostname.endsWith(".localhost")) return false;
 
   try {
-    const addresses = await lookup(hostname, { all: true });
+    const addresses = await cachedLookup(hostname);
     return addresses.length > 0 && addresses.every((addr) => !isBlockedIP(addr.address));
   } catch {
     return false;
@@ -86,7 +117,7 @@ const dispatcher = new Agent({
     lookup(hostname, options, callback) {
       void (async () => {
         try {
-          const addresses = await lookup(hostname, { all: true, verbatim: true });
+          const addresses = await cachedLookup(hostname);
           const safe = addresses.filter(
             (addr) =>
               !isBlockedIP(addr.address) && (!options.family || options.family === addr.family),
@@ -184,11 +215,18 @@ export async function GET(request: NextRequest) {
 
   if (response.ok && (contentType.includes("mpegurl") || targetUrl.pathname.endsWith(".m3u8"))) {
     responseHeaders.set("content-type", "application/vnd.apple.mpegurl");
+    responseHeaders.set("cache-control", PLAYLIST_CACHE_CONTROL);
     responseHeaders.delete("content-length");
     return new NextResponse(await response.text().then((text) => rewritePlaylist(text, targetUrl, request.nextUrl.href)), {
       status: response.status,
       headers: responseHeaders,
     });
+  }
+
+  // Only cache bodies the upstream actually delivered: an error page must not
+  // stick to a segment URL for an hour.
+  if (response.status === 200 || response.status === 206) {
+    responseHeaders.set("cache-control", SEGMENT_CACHE_CONTROL);
   }
 
   return new NextResponse(response.body, {
