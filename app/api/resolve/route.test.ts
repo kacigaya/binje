@@ -84,7 +84,10 @@ describe("GET", () => {
   });
 });
 
-test("resolves through the current provider contract", async () => {
+const ENCRYPTED_RESULT =
+  "TC8Q0fxV82eu5QP2PWcIhWO1wI5jFul4y53kFE34R7tk-33TTMRpqBtyIlLrU_5wL1wicN8A57XGYPXZRvSpO2bSOBVkhQZCgGqxb4yVvhpcFtCErTJE-PzLFg";
+
+test("decrypts the current provider response locally", async () => {
   const urls: string[] = [];
   globalThis.fetch = mock(async (input: RequestInfo | URL) => {
     const url = String(input);
@@ -92,15 +95,7 @@ test("resolves through the current provider contract", async () => {
     if (url.endsWith("/seed?mediaId=550")) {
       return Response.json({ seed: "current-seed" });
     }
-    if (url === "https://enc-dec.app/api/dec-videasy") {
-      return Response.json({
-        status: 200,
-        result: {
-          sources: [{ quality: "1080p", url: "https://example.com/video.m3u8" }],
-        },
-      });
-    }
-    return new Response("encrypted");
+    return new Response(ENCRYPTED_RESULT);
   }) as unknown as typeof fetch;
 
   const result = await resolveVideasyStream({
@@ -116,5 +111,25 @@ test("resolves through the current provider contract", async () => {
   expect(result.url).toBe("https://example.com/video.m3u8");
   expect(urls[0]).toBe("https://api.speedracelight.com/seed?mediaId=550");
   expect(urls[1]).toStartWith("https://api.speedracelight.com/cdn/sources-with-title?");
-  expect(urls[2]).toBe("https://enc-dec.app/api/dec-videasy");
+  expect(urls).toHaveLength(2);
+});
+
+test("rejects a corrupt encrypted provider response", async () => {
+  globalThis.fetch = mock(async (input: RequestInfo | URL) =>
+    String(input).endsWith("/seed?mediaId=550")
+      ? Response.json({ seed: "current-seed" })
+      : new Response("not-a-valid-payload"),
+  ) as unknown as typeof fetch;
+
+  await expect(
+    resolveVideasyStream({
+      type: "movie",
+      id: "550",
+      title: "Fight Club",
+      year: "1999",
+      imdbId: "tt0137523",
+      season: "1",
+      episode: "1",
+    }),
+  ).rejects.toThrow("Invalid encrypted Videasy response.");
 });

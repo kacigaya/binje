@@ -1,8 +1,9 @@
 const PLAYER_ORIGIN = "https://player.videasy.to";
 const SOURCE_API = "https://api.speedracelight.com";
-const DECRYPT_API = "https://enc-dec.app/api/dec-videasy";
 const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
+const GOLDEN_RATIO = 0x9e3779b9;
+const PAYLOAD_MARKER = new Uint8Array([0x6d, 0x76, 0x6d, 0x31]);
 
 type Track = { file: string; label?: string };
 type StreamSource = { file: string; height: number };
@@ -14,6 +15,89 @@ const BASE_HEADERS = {
   referer: `${PLAYER_ORIGIN}/`,
   "user-agent": BROWSER_USER_AGENT,
 };
+
+function mix(value: number) {
+  value >>>= 0;
+  value ^= value >>> 16;
+  value = Math.imul(value, 0x85ebca6b) >>> 0;
+  value ^= value >>> 13;
+  value = Math.imul(value, 0xc2b2ae35) >>> 0;
+  return (value ^ (value >>> 16)) >>> 0;
+}
+
+function rotateLeft(value: number, shift: number) {
+  value >>>= 0;
+  shift &= 31;
+  return shift === 0 ? value : ((value << shift) | (value >>> (32 - shift))) >>> 0;
+}
+
+function seedHash(seed: string) {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < seed.length; index++) {
+    hash = Math.imul(hash ^ seed.charCodeAt(index), 0x01000193) >>> 0;
+  }
+  return mix(hash);
+}
+
+function decodePayload(value: string) {
+  const encoded = value.trim();
+  if (!encoded || !/^[A-Za-z0-9_-]+$/.test(encoded) || encoded.length % 4 === 1) {
+    throw new Error("Invalid encrypted Videasy response.");
+  }
+  return Uint8Array.from(Buffer.from(encoded, "base64url"));
+}
+
+// Videasy's enc=2 response uses the same lightweight stream cipher in its web
+// player. The marker makes a stale seed or altered payload fail closed.
+function decryptVideasyPayload(value: string, seed: string, mediaId: string) {
+  const encrypted = decodePayload(value);
+  const slots: number[] = Array(61);
+  let accumulator = mix(seedHash(seed) ^ mix((Number(mediaId) >>> 0) ^ GOLDEN_RATIO));
+
+  for (let index = 0; index < 8; index++) {
+    const slot = accumulator % slots.length;
+    accumulator = rotateLeft((accumulator + GOLDEN_RATIO) >>> 0, 7 + (7 & index));
+    slots[slot] = (accumulator ^ mix(accumulator)) >>> 0;
+    accumulator = mix((accumulator + slot) >>> 0);
+  }
+  accumulator = mix((0xa5a5a5a5 ^ accumulator) >>> 0);
+
+  const decrypted = new Uint8Array(encrypted.length);
+  let offset = 0;
+  let counter = 0;
+  while (offset < encrypted.length) {
+    const slot = accumulator % slots.length;
+    const slotValue = slots[slot] >>> 0;
+    const definedMask = -Number(slot in slots);
+    const keyed = (slotValue ^ Math.imul(GOLDEN_RATIO, counter + 1)) >>> 0;
+    let word = ((accumulator ^ keyed) | (accumulator & keyed & definedMask)) >>> 0;
+    word = (
+      rotateLeft((word + accumulator) >>> 0, slot) ^
+      rotateLeft(accumulator, Math.imul(slot, 7))
+    ) >>> 0;
+    accumulator = mix((word + GOLDEN_RATIO) >>> 0);
+    slots[slot] = accumulator;
+    counter++;
+
+    for (let shift = 0; shift < 32 && offset < encrypted.length; shift += 8) {
+      decrypted[offset] = encrypted[offset] ^ ((accumulator >>> shift) & 0xff);
+      offset++;
+    }
+  }
+
+  if (PAYLOAD_MARKER.some((byte, index) => decrypted[index] !== byte)) {
+    throw new Error("Invalid encrypted Videasy response.");
+  }
+
+  try {
+    const json = new TextDecoder("utf-8", { fatal: true }).decode(
+      decrypted.subarray(PAYLOAD_MARKER.length),
+    );
+    return JSON.parse(json) as unknown;
+  } catch {
+    throw new Error("Invalid encrypted Videasy response.");
+  }
+}
 
 function qualityHeight(value: unknown) {
   if (typeof value !== "string") return null;
@@ -86,22 +170,9 @@ async function resolveServer(
   );
   if (!encryptedResponse.ok) throw new Error("Videasy source failed.");
 
-  const decryptedResponse = await fetch(DECRYPT_API, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      text: await encryptedResponse.text(),
-      id: mediaId,
-      seed: seedData.seed,
-    }),
-  });
-  if (!decryptedResponse.ok) throw new Error("Videasy decrypt failed.");
-  const decrypted = (await decryptedResponse.json()) as {
-    status?: unknown;
-    result?: unknown;
-  };
-  if (decrypted.status !== 200) throw new Error("Videasy decrypt failed.");
-  return parseVideasyResult(decrypted.result);
+  return parseVideasyResult(
+    decryptVideasyPayload(await encryptedResponse.text(), seedData.seed, mediaId),
+  );
 }
 
 export async function resolveVideasyStream({
