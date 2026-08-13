@@ -86,6 +86,8 @@ describe("GET", () => {
 
 const ENCRYPTED_RESULT =
   "TC8Q0fxV82eu5QP2PWcIhWO1wI5jFul4y53kFE34R7tk-33TTMRpqBtyIlLrU_5wL1wicN8A57XGYPXZRvSpO2bSOBVkhQZCgGqxb4yVvhpcFtCErTJE-PzLFg";
+const ENCRYPTED_720P_RESULT =
+  "TC8Q0fxV82eu5QP2PWcIhWO1xIluWLou2suqRg_yUKRxoTCcSdpgpEI_JwmoEb1kbUAyMJxBtajWL_rfX6L9aCCAZQt5lA4njjWfNsySogxEGtfK8ho7vw";
 
 test("decrypts the current provider response locally", async () => {
   const urls: string[] = [];
@@ -114,12 +116,146 @@ test("decrypts the current provider response locally", async () => {
   expect(urls).toHaveLength(2);
 });
 
+test("retries a transient CDN failure", async () => {
+  let seedAttempts = 0;
+  let sourceAttempts = 0;
+  globalThis.fetch = mock(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/seed?")) {
+      seedAttempts++;
+      return Response.json({ seed: "current-seed" });
+    }
+    sourceAttempts++;
+    return sourceAttempts === 1
+      ? new Response(null, { status: 503 })
+      : new Response(ENCRYPTED_RESULT);
+  }) as unknown as typeof fetch;
+
+  const result = await resolveVideasyStream({
+    type: "movie",
+    id: "550",
+    title: "Fight Club",
+    year: "1999",
+    imdbId: "tt0137523",
+    season: "1",
+    episode: "1",
+  });
+
+  expect(result.url).toBe("https://example.com/video.m3u8");
+  expect(seedAttempts).toBe(1);
+  expect(sourceAttempts).toBe(2);
+});
+
+test("retries a transient seed failure", async () => {
+  let seedAttempts = 0;
+  let sourceAttempts = 0;
+  globalThis.fetch = mock(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/seed?")) {
+      seedAttempts++;
+      return seedAttempts < 3
+        ? new Response(null, { status: 503 })
+        : Response.json({ seed: "current-seed" });
+    }
+    sourceAttempts++;
+    return new Response(ENCRYPTED_RESULT);
+  }) as unknown as typeof fetch;
+
+  const result = await resolveVideasyStream({
+    type: "movie",
+    id: "550",
+    title: "Fight Club",
+    year: "1999",
+    imdbId: "tt0137523",
+    season: "1",
+    episode: "1",
+  });
+
+  expect(result.url).toBe("https://example.com/video.m3u8");
+  expect(seedAttempts).toBe(3);
+  expect(sourceAttempts).toBe(1);
+});
+
+test("does not retry a permanent CDN failure before falling back", async () => {
+  let cdnAttempts = 0;
+  let vsrcAttempts = 0;
+  globalThis.fetch = mock(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/seed?")) return Response.json({ seed: "current-seed" });
+    if (url.includes("/cdn/")) {
+      cdnAttempts++;
+      return new Response(null, { status: 404 });
+    }
+    vsrcAttempts++;
+    return new Response(ENCRYPTED_RESULT);
+  }) as unknown as typeof fetch;
+
+  const result = await resolveVideasyStream({
+    type: "movie",
+    id: "550",
+    title: "Fight Club",
+    year: "1999",
+    imdbId: "tt0137523",
+    season: "1",
+    episode: "1",
+  });
+
+  expect(result.url).toBe("https://example.com/video.m3u8");
+  expect(cdnAttempts).toBe(1);
+  expect(vsrcAttempts).toBe(1);
+});
+
+test("upgrades a lower-quality CDN stream with the fallback server", async () => {
+  globalThis.fetch = mock(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/seed?")) return Response.json({ seed: "current-seed" });
+    return new Response(url.includes("/cdn/") ? ENCRYPTED_720P_RESULT : ENCRYPTED_RESULT);
+  }) as unknown as typeof fetch;
+
+  const result = await resolveVideasyStream({
+    type: "movie",
+    id: "550",
+    title: "Fight Club",
+    year: "1999",
+    imdbId: "tt0137523",
+    season: "1",
+    episode: "1",
+  });
+
+  expect(result.url).toBe("https://example.com/video.m3u8");
+});
+
+test("rejects when both source servers permanently fail", async () => {
+  let sourceAttempts = 0;
+  globalThis.fetch = mock(async (input: RequestInfo | URL) => {
+    if (String(input).includes("/seed?")) return Response.json({ seed: "current-seed" });
+    sourceAttempts++;
+    return new Response(null, { status: 404 });
+  }) as unknown as typeof fetch;
+
+  await expect(
+    resolveVideasyStream({
+      type: "movie",
+      id: "550",
+      title: "Fight Club",
+      year: "1999",
+      imdbId: "tt0137523",
+      season: "1",
+      episode: "1",
+    }),
+  ).rejects.toThrow("Videasy source rejected the request.");
+  expect(sourceAttempts).toBe(2);
+});
+
 test("rejects a corrupt encrypted provider response", async () => {
-  globalThis.fetch = mock(async (input: RequestInfo | URL) =>
-    String(input).endsWith("/seed?mediaId=550")
-      ? Response.json({ seed: "current-seed" })
-      : new Response("not-a-valid-payload"),
-  ) as unknown as typeof fetch;
+  let sourceAttempts = 0;
+  globalThis.fetch = mock(async (input: RequestInfo | URL) => {
+    if (String(input).endsWith("/seed?mediaId=550")) {
+      return Response.json({ seed: "current-seed" });
+    }
+    sourceAttempts++;
+    return new Response("not-a-valid-payload");
+  }) as unknown as typeof fetch;
 
   await expect(
     resolveVideasyStream({
@@ -132,4 +268,33 @@ test("rejects a corrupt encrypted provider response", async () => {
       episode: "1",
     }),
   ).rejects.toThrow("Invalid encrypted Videasy response.");
+  expect(sourceAttempts).toBe(2);
+});
+
+test("keeps a playable CDN stream when the fallback server fails", async () => {
+  let vsrcAttempts = 0;
+  globalThis.fetch = mock(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/seed?")) return Response.json({ seed: "current-seed" });
+    if (url.includes("/cdn/")) return new Response(ENCRYPTED_720P_RESULT);
+    vsrcAttempts++;
+    return new Response(null, { status: 503 });
+  }) as unknown as typeof fetch;
+
+  const result = await resolveVideasyStream({
+    type: "movie",
+    id: "550",
+    title: "Fight Club",
+    year: "1999",
+    imdbId: "tt0137523",
+    season: "1",
+    episode: "1",
+  });
+
+  expect(result).toEqual({
+    url: "https://example.com/720.m3u8",
+    tracks: [],
+    sources: [{ file: "https://example.com/720.m3u8", height: 720 }],
+  });
+  expect(vsrcAttempts).toBe(3);
 });

@@ -4,6 +4,8 @@ const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 const GOLDEN_RATIO = 0x9e3779b9;
 const PAYLOAD_MARKER = new Uint8Array([0x6d, 0x76, 0x6d, 0x31]);
+const RETRY_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 200;
 
 type Track = { file: string; label?: string };
 type StreamSource = { file: string; height: number };
@@ -15,6 +17,17 @@ const BASE_HEADERS = {
   referer: `${PLAYER_ORIGIN}/`,
   "user-agent": BROWSER_USER_AGENT,
 };
+
+class TransientVideasyError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "TransientVideasyError";
+  }
+}
+
+function isTransientStatus(status: number) {
+  return status === 408 || status === 429 || status >= 500;
+}
 
 function mix(value: number) {
   value >>>= 0;
@@ -154,25 +167,75 @@ export function parseVideasyResult(value: unknown): ResolverResult {
 async function resolveServer(
   server: "cdn" | "vsrc",
   parameters: URLSearchParams,
+  seed: string,
   mediaId: string,
 ) {
-  const seedResponse = await fetch(`${SOURCE_API}/seed?mediaId=${mediaId}`, {
-    headers: BASE_HEADERS,
+  parameters.set("seed", seed);
+  let encryptedResponse: Response;
+  try {
+    encryptedResponse = await fetch(
+      `${SOURCE_API}/${server}/sources-with-title?${parameters}`,
+      { headers: BASE_HEADERS },
+    );
+  } catch (error) {
+    throw new TransientVideasyError("Videasy source failed.", { cause: error });
+  }
+  if (!encryptedResponse.ok) {
+    if (isTransientStatus(encryptedResponse.status)) {
+      throw new TransientVideasyError("Videasy source failed.");
+    }
+    throw new Error("Videasy source rejected the request.");
+  }
+
+  let encryptedPayload: string;
+  try {
+    encryptedPayload = await encryptedResponse.text();
+  } catch (error) {
+    throw new TransientVideasyError("Videasy source failed.", { cause: error });
+  }
+
+  return parseVideasyResult(decryptVideasyPayload(encryptedPayload, seed, mediaId));
+}
+
+async function retryTransient<T>(operation: () => Promise<T>) {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < RETRY_ATTEMPTS; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!(error instanceof TransientVideasyError)) throw error;
+      lastError = error;
+      if (attempt + 1 < RETRY_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * 2 ** attempt));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
+async function resolveSeed(mediaId: string) {
+  return retryTransient(async () => {
+    let response: Response;
+    try {
+      response = await fetch(`${SOURCE_API}/seed?mediaId=${mediaId}`, {
+        headers: BASE_HEADERS,
+      });
+    } catch (error) {
+      throw new TransientVideasyError("Videasy seed failed.", { cause: error });
+    }
+    if (!response.ok) {
+      if (isTransientStatus(response.status)) {
+        throw new TransientVideasyError("Videasy seed failed.");
+      }
+      throw new Error("Videasy seed rejected the request.");
+    }
+
+    const data = (await response.json()) as { seed?: unknown };
+    if (typeof data.seed !== "string") throw new Error("No Videasy seed.");
+    return data.seed;
   });
-  if (!seedResponse.ok) throw new Error("Videasy seed failed.");
-  const seedData = (await seedResponse.json()) as { seed?: unknown };
-  if (typeof seedData.seed !== "string") throw new Error("No Videasy seed.");
-
-  parameters.set("seed", seedData.seed);
-  const encryptedResponse = await fetch(
-    `${SOURCE_API}/${server}/sources-with-title?${parameters}`,
-    { headers: BASE_HEADERS },
-  );
-  if (!encryptedResponse.ok) throw new Error("Videasy source failed.");
-
-  return parseVideasyResult(
-    decryptVideasyPayload(await encryptedResponse.text(), seedData.seed, mediaId),
-  );
 }
 
 export async function resolveVideasyStream({
@@ -205,9 +268,16 @@ export async function resolveVideasyStream({
     parameters.set("episodeId", episode);
   }
 
-  const highQuality = await resolveServer("cdn", parameters, id).catch(() =>
-    resolveServer("cdn", parameters, id).catch(() => null),
-  );
-  if (highQuality?.sources?.some(({ height }) => height >= 1080)) return highQuality;
-  return resolveServer("vsrc", parameters, id);
+  const seed = await resolveSeed(id);
+  const cdnResult = await retryTransient(() =>
+    resolveServer("cdn", parameters, seed, id),
+  ).catch(() => null);
+  if (cdnResult?.sources?.some(({ height }) => height >= 1080)) return cdnResult;
+
+  try {
+    return await retryTransient(() => resolveServer("vsrc", parameters, seed, id));
+  } catch (error) {
+    if (cdnResult) return cdnResult;
+    throw error;
+  }
 }
