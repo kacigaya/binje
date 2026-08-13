@@ -25,7 +25,10 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   images: {
-    formats: ["image/avif", "image/webp"],
+    // WebP only. TMDB already serves right-sized JPEGs, so AVIF bought a few
+    // KB per poster in exchange for the slowest encoder in the optimizer, on a
+    // box that also proxies HLS segments.
+    formats: ["image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1280, 1920, 2048],
     imageSizes: [92, 154, 185, 300, 342, 500, 780],
     minimumCacheTTL: 60 * 60 * 24 * 30,

@@ -162,6 +162,7 @@ export interface MediaItem {
   logo_path?: string | null;
   logo_width?: number;
   logo_height?: number;
+  imdbId?: string | null;
   rottenTomatoesScore?: number | null;
   contentRating?: string | null;
 }

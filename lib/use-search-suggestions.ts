@@ -57,7 +57,7 @@ export function useSearchSuggestions({
     const timer = window.setTimeout(async () => {
       try {
         const res = await fetch(
-          `/api/search?q=${encodeURIComponent(trimmedQuery)}&lang=${locale}`,
+          `/api/search?q=${encodeURIComponent(trimmedQuery)}&lang=${locale}&mode=suggestions`,
           { signal: controller.signal },
         );
 

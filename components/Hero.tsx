@@ -1,19 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
+import Image, { type ImageLoaderProps } from "next/image";
 import Link from "next/link";
 import { Play, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
-import { backdropUrl, logoUrl } from "@/lib/tmdb";
+import { logoUrl } from "@/lib/tmdb";
 import ExpandableOverview from "@/components/ExpandableOverview";
 import { localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
+import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 
 interface HeroProps {
   items: MediaItem[];
+}
+
+function tmdbBackdropLoader({ src, width }: ImageLoaderProps) {
+  const size = width <= 780 ? "w780" : "w1280";
+  return `https://image.tmdb.org/t/p/${size}${src}`;
 }
 
 export default function Hero({ items }: HeroProps) {
@@ -40,7 +46,7 @@ export default function Hero({ items }: HeroProps) {
   const activeItem = safeItems[normalizedIndex];
   if (!activeItem) return null;
 
-  const backdrop = backdropUrl(activeItem.backdrop_path, "w1280");
+  const backdrop = activeItem.backdrop_path;
   const logo = logoUrl(activeItem.logo_path ?? null);
   const detailHref =
     activeItem.media_type === "tv"
@@ -59,6 +65,7 @@ export default function Hero({ items }: HeroProps) {
       {backdrop && (
         <Image
           src={backdrop}
+          loader={tmdbBackdropLoader}
           alt={activeItem.title}
           fill
           priority
@@ -108,22 +115,7 @@ export default function Hero({ items }: HeroProps) {
                 />
                 <span className="text-sm tabular-nums">{rating}</span>
               </div>
-              {activeItem.rottenTomatoesScore !== null &&
-                activeItem.rottenTomatoesScore !== undefined && (
-                  <div className="flex items-center gap-1.5 text-accent-red font-semibold">
-                    <Image
-                      src="/rotten-tomatoes.svg"
-                      alt=""
-                      width={16}
-                      height={16}
-                      aria-hidden="true"
-                      className="size-4 shrink-0"
-                    />
-                    <span className="text-sm">
-                      {activeItem.rottenTomatoesScore}%
-                    </span>
-                  </div>
-                )}
+              <RottenTomatoesRating imdbId={activeItem.imdbId} />
               {activeItem.contentRating && (
                 <span className="text-sm font-semibold text-accent-red">
                   {activeItem.contentRating}
