@@ -34,7 +34,7 @@
 - UI: React 19, Tailwind CSS 4, shadcn tokens, Lucide icons
 - Styling: clsx, tailwind-merge
 - Data: TMDB (movies/TV), OMDb (optional Rotten Tomatoes scores)
-- Player: hls.js with Videasy Yoru HQ/Neon fallback through enc-dec.app and `/api/hls`
+- Player: hls.js with Videasy Yoru HQ/Neon fallback, server-side stream decryption, and `/api/hls`
 - Language: TypeScript
 - Testing: Bun test
 - Mobile: Expo Router, React Native, expo-video, TanStack Query, AsyncStorage
