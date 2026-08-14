@@ -28,6 +28,34 @@
 - Responsive dark theme (Tailwind v4, shadcn tokens, red accent)
 - Expo SDK 57 mobile client with native navigation, local watchlist/history, and HLS playback
 
+## Screenshots
+
+### Desktop
+
+![Home page with rotating hero and trending carousels](public/screenshots/home-desktop.jpg)
+
+Home: auto-rotating hero with TMDB rating and content certification, followed by trending carousels.
+
+![Movie detail page for Fight Club](public/screenshots/movie-desktop.jpg)
+
+Movie detail: poster, TMDB and Rotten Tomatoes scores, runtime, stream tech badges, watchlist button.
+
+![TV show detail page for Breaking Bad](public/screenshots/tv-desktop.jpg)
+
+TV detail: season and episode counts alongside the same ratings and playback badges.
+
+![Search results for the query dune](public/screenshots/search-desktop.jpg)
+
+Search: fuzzy, year-aware results with All / Movies / TV Shows filters.
+
+### Mobile web
+
+| Home | Movie | TV | Search |
+| --- | --- | --- | --- |
+| <img src="public/screenshots/home-mobile.jpg" alt="Home page on a phone viewport" width="180"> | <img src="public/screenshots/movie-mobile.jpg" alt="Movie detail page on a phone viewport" width="180"> | <img src="public/screenshots/tv-mobile.jpg" alt="TV show detail page on a phone viewport" width="180"> | <img src="public/screenshots/search-mobile.jpg" alt="Search results on a phone viewport" width="180"> |
+
+Posters, backdrops, and logos in these screenshots come from TMDB.
+
 ## Tech stack
 
 - Framework: Next.js 16 (Turbopack, App Router)
