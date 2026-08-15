@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Cookie, Film, ShieldCheck } from "lucide-react";
+import { CONSENT_STORAGE_KEY } from "@/lib/consent";
 import { localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -47,7 +48,12 @@ export default function Footer() {
           <button
             type="button"
             onClick={() => {
-              window.localStorage.removeItem("binje:cookie-consent");
+              // Storage access can be denied outright; reload anyway so the
+              // button never looks dead.
+              try {
+                window.localStorage.removeItem(CONSENT_STORAGE_KEY);
+              } catch {
+              }
               window.location.reload();
             }}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"

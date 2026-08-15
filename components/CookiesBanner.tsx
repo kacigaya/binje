@@ -84,7 +84,15 @@ export default function CookiesBanner() {
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-end">
+      <div className="mt-3 flex items-center justify-end gap-2">
+        <Button
+          onClick={dismiss}
+          size="sm"
+          variant="secondary"
+          className="h-8 px-4 text-xs font-semibold"
+        >
+          {t("Refuse")}
+        </Button>
         <Button
           onClick={accept}
           size="sm"
