@@ -15,6 +15,7 @@ import {
   type PlayHistoryItem,
 } from "@/lib/play-history";
 import ScrollArrows from "@/components/ScrollArrows";
+import { formatPlaybackTime } from "@/lib/format-time";
 import { backdropUrl, posterUrl } from "@/lib/tmdb";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { localizedHref } from "@/lib/i18n";
@@ -76,6 +77,16 @@ export default function ContinueWatching() {
               item.progress < 1
                 ? item.progress
                 : null;
+            // Entries saved before playback started, or before these fields
+            // existed, carry no timings and get no badge.
+            const timings =
+              typeof item.positionSeconds === "number" &&
+              Number.isFinite(item.positionSeconds) &&
+              typeof item.durationSeconds === "number" &&
+              Number.isFinite(item.durationSeconds) &&
+              item.durationSeconds > 0
+                ? `${formatPlaybackTime(item.positionSeconds)} / ${formatPlaybackTime(item.durationSeconds)}`
+                : null;
 
             return (
               <div
@@ -108,6 +119,12 @@ export default function ContinueWatching() {
                   {item.type === "tv" && item.season && item.episode && (
                     <div className="absolute top-1.5 left-1.5 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-[11px] font-semibold text-white">
                       S{item.season}E{item.episode}
+                    </div>
+                  )}
+
+                  {timings && (
+                    <div className="absolute bottom-2 right-1.5 rounded-md bg-black/70 backdrop-blur-sm px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-white">
+                      {timings}
                     </div>
                   )}
 

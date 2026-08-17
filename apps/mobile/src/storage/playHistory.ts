@@ -26,3 +26,7 @@ export async function updatePlayHistoryProgress(input:PlayHistoryProgressInput){
 export async function removePlayHistoryItem(item:Pick<PlayHistoryItem,'type'|'id'>){return savePlayHistory((await getPlayHistory()).filter(v=>mediaKey(v)!==mediaKey(item)));}
 export async function clearPlayHistory(){if(await getConsent()!=='accepted')return false;await store.set([]);return true;}
 export const subscribeToPlayHistory=store.subscribe;
+/** Clock-style playback time: `6:51` under an hour, `1:50:28` past it. */
+export function formatPlaybackTime(totalSeconds:number){const s=Math.max(0,Math.floor(totalSeconds));const h=Math.floor(s/3600);const m=Math.floor(s%3600/60);const pad=(v:number)=>String(v).padStart(2,'0');return h>0?`${h}:${pad(m)}:${pad(s%60)}`:`${m}:${pad(s%60)}`;}
+/** Elapsed / total for a history entry, or null when it has never been played. */
+export function formatPlaybackTimings(item:Pick<PlayHistoryItem,'positionSeconds'|'durationSeconds'>){const p=item.positionSeconds;const d=item.durationSeconds;if(typeof p!=='number'||!Number.isFinite(p)||typeof d!=='number'||!Number.isFinite(d)||d<=0)return null;return `${formatPlaybackTime(p)} / ${formatPlaybackTime(d)}`;}
