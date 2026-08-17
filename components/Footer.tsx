@@ -86,6 +86,19 @@ export default function Footer() {
           </Link>
         </div>
       </div>
+
+      <div className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">
+        <p className="text-center text-xs leading-relaxed text-muted-foreground">
+          {t("b!nje hosts no files on its servers. All content is provided by unaffiliated third parties. For any claim, see our")}{" "}
+          <Link
+            href={localizedHref(locale, "/dmca")}
+            className="text-foreground underline decoration-accent-red/60 underline-offset-2 hover:decoration-accent-red transition-colors"
+          >
+            {t("DMCA page")}
+          </Link>
+          .
+        </p>
+      </div>
     </footer>
   );
 }

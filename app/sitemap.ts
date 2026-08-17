@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { LOCALES } from "@/lib/i18n";
 import { SITE_URL } from "@/lib/site";
 
-const PATHS = ["", "/movies", "/tv-shows", "/search", "/watchlist", "/privacy"];
+const PATHS = ["", "/movies", "/tv-shows", "/search", "/watchlist", "/privacy", "/dmca"];
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return LOCALES.flatMap((locale) =>

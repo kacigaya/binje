@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { localizedHref, preferredLocale } from "@/lib/i18n";
+import { localizedHref, preferredLocale, translate } from "@/lib/i18n";
 
 describe("i18n", () => {
   test("selects supported language by quality", () => {
@@ -12,5 +12,17 @@ describe("i18n", () => {
     expect(localizedHref("fr", "/movie/12?play=1")).toBe("/fr/movie/12?play=1");
     expect(localizedHref("en", "/")).toBe("/en");
     expect(localizedHref("fr", "https://example.com")).toBe("https://example.com");
+  });
+
+  // An unknown key falls through to the English identity, so a missing French
+  // entry looks like working English rather than an error.
+  test("translates consent and DMCA copy to French", () => {
+    expect(translate("fr", "Refuse")).toBe("Refuser");
+    expect(translate("fr", "DMCA Policy")).toBe("Politique DMCA");
+    expect(translate("fr", "DMCA page")).toBe("page DMCA");
+    expect(
+      translate("fr", "b!nje hosts no files on its servers. All content is provided by unaffiliated third parties. For any claim, see our"),
+    ).toContain("n’héberge aucun fichier");
+    expect(translate("en", "DMCA Policy")).toBe("DMCA Policy");
   });
 });

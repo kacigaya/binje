@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ExtLink, Section } from "@/components/legal";
 import { translate, type Locale } from "@/lib/i18n";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
@@ -7,6 +7,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   return {
     title: translate(locale, "Privacy Policy"),
     description: translate(locale, "How b!nje handles your data: local watch history, no tracking, no third-party cookies."),
+    // The locale layout canonicalises everything to `/${locale}` by default.
+    alternates: { canonical: `/${locale}/privacy` },
   };
 }
 
@@ -71,45 +73,6 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
       </div>
 
     </div>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h2
-        className="mb-2 text-base font-semibold text-foreground"
-        style={{ fontFamily: "var(--font-heading)" }}
-      >
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-function ExtLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="text-foreground underline decoration-accent-red/60 underline-offset-2 hover:decoration-accent-red transition-colors"
-    >
-      {children}
-    </Link>
   );
 }
 

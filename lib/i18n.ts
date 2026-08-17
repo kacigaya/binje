@@ -74,6 +74,15 @@ const FRENCH = {
   Contact: "Contact",
   Cookies: "Cookies",
   Privacy: "Confidentialité",
+  "DMCA Policy": "Politique DMCA",
+  "DMCA page": "page DMCA",
+  "b!nje hosts no files on its servers. All content is provided by unaffiliated third parties. For any claim, see our":
+    "b!nje n’héberge aucun fichier sur ses serveurs. Tous les contenus sont fournis par des tiers non affiliés. Pour toute réclamation, consultez notre",
+  "b!nje hosts no files. How to report content you own the rights to.":
+    "b!nje n’héberge aucun fichier. Comment signaler un contenu dont vous détenez les droits.",
+  "No files are hosted here": "Aucun fichier n’est hébergé ici",
+  "Sending a claim": "Envoyer une réclamation",
+  "What your claim must contain": "Ce que votre réclamation doit contenir",
   "Cookie consent": "Consentement aux cookies",
   Dismiss: "Fermer",
   "We use local storage": "Nous utilisons le stockage local",
