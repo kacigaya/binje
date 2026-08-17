@@ -1,6 +1,14 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRef } from "react";
+import {
+  ChevronLeftIcon,
+  type ChevronLeftIconHandle,
+} from "@/components/ui/chevron-left";
+import {
+  ChevronRightIcon,
+  type ChevronRightIconHandle,
+} from "@/components/ui/chevron-right";
 import { useTranslations } from "@/lib/use-locale";
 
 /**
@@ -17,6 +25,10 @@ export default function ScrollArrows({
   scroll: (direction: "left" | "right") => void;
 }) {
   const { t } = useTranslations();
+  // The buttons are far wider than their icon, so the animation is driven from
+  // the button instead of the icon's own hover.
+  const leftIcon = useRef<ChevronLeftIconHandle>(null);
+  const rightIcon = useRef<ChevronRightIconHandle>(null);
 
   return (
     <>
@@ -26,10 +38,12 @@ export default function ScrollArrows({
           <button
             type="button"
             onClick={() => scroll("left")}
+            onMouseEnter={() => leftIcon.current?.startAnimation()}
+            onMouseLeave={() => leftIcon.current?.stopAnimation()}
             className="absolute left-0 top-0 bottom-0 z-20 w-12 flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity cursor-pointer"
             aria-label={t("Scroll left")}
           >
-            <ChevronLeft className="size-8 text-foreground" />
+            <ChevronLeftIcon ref={leftIcon} size={32} className="text-foreground" />
           </button>
         </>
       )}
@@ -40,10 +54,12 @@ export default function ScrollArrows({
           <button
             type="button"
             onClick={() => scroll("right")}
+            onMouseEnter={() => rightIcon.current?.startAnimation()}
+            onMouseLeave={() => rightIcon.current?.stopAnimation()}
             className="absolute right-0 top-0 bottom-0 z-20 w-12 flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity cursor-pointer"
             aria-label={t("Scroll right")}
           >
-            <ChevronRight className="size-8 text-foreground" />
+            <ChevronRightIcon ref={rightIcon} size={32} className="text-foreground" />
           </button>
         </>
       )}

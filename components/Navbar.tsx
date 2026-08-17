@@ -4,16 +4,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import {
-  ArrowRight,
   Bookmark,
   Clapperboard,
   Film,
   Loader2,
-  Menu,
   Search,
   Tv,
-  X,
 } from "lucide-react";
+import { Menu as MenuNode, Search as SearchNode, X as XNode } from "lucide";
+import { MorphIcon } from "morphicons/react";
+import {
+  ArrowRightIcon,
+  type ArrowRightIconHandle,
+} from "@/components/ui/arrow-right";
 import {
   useState,
   useRef,
@@ -46,6 +49,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  const submitIcon = useRef<ArrowRightIconHandle>(null);
 
   const { suggestions, loading } = useSearchSuggestions({
     query,
@@ -144,7 +148,7 @@ export default function Navbar() {
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
             >
-              {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+              <MorphIcon icon={menuOpen ? XNode : MenuNode} size={20} reducedMotion="user" />
             </button>
           )}
 
@@ -172,6 +176,8 @@ export default function Navbar() {
                     <button
                       type="submit"
                       disabled={pending || query.trim().length < MIN_SUGGESTION_QUERY_LENGTH}
+                      onMouseEnter={() => submitIcon.current?.startAnimation()}
+                      onMouseLeave={() => submitIcon.current?.stopAnimation()}
                       aria-label={t("Search movies & TV...")}
                       className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:opacity-40 disabled:pointer-events-none"
                     >
@@ -181,7 +187,7 @@ export default function Navbar() {
                           className="size-4 animate-spin motion-reduce:animate-none"
                         />
                       ) : (
-                        <ArrowRight aria-hidden="true" className="size-4" />
+                        <ArrowRightIcon ref={submitIcon} aria-hidden="true" size={16} />
                       )}
                     </button>
                     <span role="status" aria-live="polite" className="sr-only">
@@ -253,7 +259,7 @@ export default function Navbar() {
                 aria-label={t(open ? "Close search" : "Open search")}
                 aria-expanded={open}
               >
-                {open ? <X className="size-5" /> : <Search className="size-5" />}
+                <MorphIcon icon={open ? XNode : SearchNode} size={20} reducedMotion="user" />
               </button>
             </div>
           )}
