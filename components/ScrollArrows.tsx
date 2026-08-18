@@ -40,6 +40,8 @@ export default function ScrollArrows({
             onClick={() => scroll("left")}
             onMouseEnter={() => leftIcon.current?.startAnimation()}
             onMouseLeave={() => leftIcon.current?.stopAnimation()}
+            onFocus={() => leftIcon.current?.startAnimation()}
+            onBlur={() => leftIcon.current?.stopAnimation()}
             className="absolute left-0 top-0 bottom-0 z-20 w-12 flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity cursor-pointer"
             aria-label={t("Scroll left")}
           >
@@ -56,6 +58,8 @@ export default function ScrollArrows({
             onClick={() => scroll("right")}
             onMouseEnter={() => rightIcon.current?.startAnimation()}
             onMouseLeave={() => rightIcon.current?.stopAnimation()}
+            onFocus={() => rightIcon.current?.startAnimation()}
+            onBlur={() => rightIcon.current?.stopAnimation()}
             className="absolute right-0 top-0 bottom-0 z-20 w-12 flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity cursor-pointer"
             aria-label={t("Scroll right")}
           >

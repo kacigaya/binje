@@ -3,20 +3,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import {
-  Bookmark,
-  Clapperboard,
-  Film,
-  Loader2,
-  Search,
-  Tv,
-} from "lucide-react";
+import { Film, Loader2, Search } from "lucide-react";
 import { Menu as MenuNode, Search as SearchNode, X as XNode } from "lucide";
 import { MorphIcon } from "morphicons/react";
 import {
   ArrowRightIcon,
   type ArrowRightIconHandle,
 } from "@/components/ui/arrow-right";
+import { BookmarkIcon } from "@/components/ui/bookmark";
+import { ClapIcon } from "@/components/ui/clap";
+import { TvIcon } from "@/components/ui/tv";
 import {
   useState,
   useRef,
@@ -24,6 +20,10 @@ import {
   useEffect,
   useCallback,
   useTransition,
+  type ForwardRefExoticComponent,
+  type HTMLAttributes,
+  type ReactNode,
+  type RefAttributes,
 } from "react";
 import { localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
@@ -34,11 +34,65 @@ import {
   type SearchSuggestion,
 } from "@/lib/use-search-suggestions";
 
-const NAV_LINKS = [
-  { href: "/movies", label: "Movies", icon: Clapperboard },
-  { href: "/tv-shows", label: "TV Shows", icon: Tv },
-  { href: "/watchlist", label: "Watchlist", icon: Bookmark },
-] as const;
+/** The three nav icons share this shape, so one ref type drives all of them. */
+type NavIconHandle = {
+  startAnimation: () => void;
+  stopAnimation: () => void;
+};
+
+type NavIcon = ForwardRefExoticComponent<
+  HTMLAttributes<HTMLDivElement> & { size?: number } & RefAttributes<NavIconHandle>
+>;
+
+const NAV_LINKS: readonly {
+  href: string;
+  label: "Movies" | "TV Shows" | "Watchlist";
+  icon: NavIcon;
+}[] = [
+  { href: "/movies", label: "Movies", icon: ClapIcon },
+  { href: "/tv-shows", label: "TV Shows", icon: TvIcon },
+  { href: "/watchlist", label: "Watchlist", icon: BookmarkIcon },
+];
+
+/**
+ * A nav entry whose icon animates from the link's hover: the link is far wider
+ * than the glyph, so the icon's own hover would miss most of the target.
+ */
+function NavLink({
+  href,
+  icon: Icon,
+  iconSize,
+  className,
+  onClick,
+  tabIndex,
+  children,
+}: {
+  href: string;
+  icon: NavIcon;
+  iconSize: number;
+  className: string;
+  onClick?: () => void;
+  tabIndex?: number;
+  children: ReactNode;
+}) {
+  const icon = useRef<NavIconHandle>(null);
+
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      tabIndex={tabIndex}
+      onMouseEnter={() => icon.current?.startAnimation()}
+      onMouseLeave={() => icon.current?.stopAnimation()}
+      onFocus={() => icon.current?.startAnimation()}
+      onBlur={() => icon.current?.stopAnimation()}
+      className={className}
+    >
+      <Icon ref={icon} size={iconSize} />
+      {children}
+    </Link>
+  );
+}
 
 export default function Navbar() {
   const { locale, t } = useTranslations();
@@ -119,21 +173,21 @@ export default function Navbar() {
               {NAV_LINKS.map((link) => {
                 const href = localizedHref(locale, link.href);
                 const active = pathname === href;
-                const Icon = link.icon;
 
                 return (
-                  <Link
+                  <NavLink
                     key={link.href}
                     href={href}
+                    icon={link.icon}
+                    iconSize={16}
                     className={`flex items-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
                       active
                         ? "bg-white/10 text-foreground"
                         : "text-muted-foreground hover:bg-white/8 hover:text-foreground"
                     }`}
                   >
-                    <Icon className="size-4" />
                     {t(link.label)}
-                  </Link>
+                  </NavLink>
                 );
               })}
             </div>
@@ -178,6 +232,8 @@ export default function Navbar() {
                       disabled={pending || query.trim().length < MIN_SUGGESTION_QUERY_LENGTH}
                       onMouseEnter={() => submitIcon.current?.startAnimation()}
                       onMouseLeave={() => submitIcon.current?.stopAnimation()}
+                      onFocus={() => submitIcon.current?.startAnimation()}
+                      onBlur={() => submitIcon.current?.stopAnimation()}
                       aria-label={t("Search movies & TV...")}
                       className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:opacity-40 disabled:pointer-events-none"
                     >
@@ -280,12 +336,13 @@ export default function Navbar() {
               {NAV_LINKS.map((link) => {
                 const href = localizedHref(locale, link.href);
                 const active = pathname === href;
-                const Icon = link.icon;
 
                 return (
-                  <Link
+                  <NavLink
                     key={link.href}
                     href={href}
+                    icon={link.icon}
+                    iconSize={20}
                     onClick={() => setMenuOpen(false)}
                     tabIndex={menuOpen ? 0 : -1}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition duration-200 ${
@@ -296,9 +353,8 @@ export default function Navbar() {
                       menuOpen ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
                     }`}
                   >
-                    <Icon className="size-5" />
                     {t(link.label)}
-                  </Link>
+                  </NavLink>
                 );
               })}
             </div>
