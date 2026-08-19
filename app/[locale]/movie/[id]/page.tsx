@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
+import WatchNowLink from "@/components/WatchNowLink";
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
-import { Play, Clock, Calendar } from "lucide-react";
+import { Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -168,17 +168,15 @@ export default async function MoviePage({
             </div>
 
             <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mt-2">
-              <Link
+              <WatchNowLink
                 href={localizedHref(locale, `/watch/${movie.id}`)}
+                label={translate(locale, "Watch Now")}
                 className={buttonClassName({
                   size: "lg",
                   className:
                     "w-full sm:w-auto rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer",
                 })}
-              >
-                <Play className="size-5 fill-white" />
-                {translate(locale, "Watch Now")}
-              </Link>
+              />
               <WatchlistButton
                 item={{
                   type: "movie",

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { RotateCCWIcon } from "@/components/ui/rotate-ccw";
+import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -17,6 +19,7 @@ export default function RouteError({
   message?: string;
 }) {
   const { t } = useTranslations();
+  const [retryIcon, retryFeedback] = useAnimatedIcon();
   const localizedTitle = title === "Something went wrong" ? t(title) : title;
   const localizedMessage = message.startsWith("We couldn't load")
     ? t("We couldn't load the content. This might be temporary. Please try again.")
@@ -41,10 +44,11 @@ export default function RouteError({
       </div>
       <Button
         onClick={reset}
+        {...retryFeedback}
         variant="outline"
         className="gap-2 rounded-full cursor-pointer"
       >
-        <RotateCcw className="size-4" />
+        <RotateCCWIcon ref={retryIcon} size={16} />
         {t("Try Again")}
       </Button>
     </div>

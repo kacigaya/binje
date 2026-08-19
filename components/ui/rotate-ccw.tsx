@@ -1,35 +1,22 @@
 "use client";
 
-import type { Variants } from "motion/react";
 import { motion, useAnimation, useReducedMotion } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface BookmarkIconHandle {
+export interface RotateCCWIconHandle {
   startAnimation: () => void;
   stopAnimation: () => void;
 }
 
-interface BookmarkIconProps extends HTMLAttributes<HTMLDivElement> {
+interface RotateCCWIconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
-const BOOKMARK_VARIANTS: Variants = {
-  normal: { scaleY: 1, scaleX: 1 },
-  animate: {
-    scaleY: [1, 1.3, 0.9, 1.05, 1],
-    scaleX: [1, 0.9, 1.1, 0.95, 1],
-    transition: {
-      duration: 0.6,
-      ease: "easeOut",
-    },
-  },
-};
-
-const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
-  ({ className, size = 28, onMouseEnter, onMouseLeave, ...props }, ref) => {
+const RotateCCWIcon = forwardRef<RotateCCWIconHandle, RotateCCWIconProps>(
+  ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const controls = useAnimation();
     // The rest of the app honours prefers-reduced-motion; these icons must too.
     const reduced = useReducedMotion();
@@ -47,22 +34,16 @@ const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
 
     const handleMouseEnter = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          if (!reduced) controls.start("animate");
-        }
+        if (isControlledRef.current) onMouseEnter?.(e);
+        else { if (!reduced) controls.start("animate"); }
       },
       [controls, onMouseEnter, reduced]
     );
 
     const handleMouseLeave = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start("normal");
-        }
+        if (isControlledRef.current) onMouseLeave?.(e);
+        else controls.start("normal");
       },
       [controls, onMouseLeave]
     );
@@ -75,29 +56,31 @@ const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
         onMouseLeave={handleMouseLeave}
         {...props}
       >
-        <svg
+        <motion.svg
+          animate={controls}
           fill="none"
           height={size}
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="2"
+          transition={{ type: "spring", stiffness: 250, damping: 25 }}
+          variants={{
+            normal: { rotate: "0deg" },
+            animate: { rotate: "-50deg" },
+          }}
           viewBox="0 0 24 24"
           width={size}
           xmlns="http://www.w3.org/2000/svg"
         >
-          <motion.path
-            animate={controls}
-            d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"
-            style={{ originY: 0.5, originX: 0.5 }}
-            variants={BOOKMARK_VARIANTS}
-          />
-        </svg>
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+        </motion.svg>
       </div>
     );
   }
 );
 
-BookmarkIcon.displayName = "BookmarkIcon";
+RotateCCWIcon.displayName = "RotateCCWIcon";
 
-export { BookmarkIcon };
+export { RotateCCWIcon };

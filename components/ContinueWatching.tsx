@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { X } from "lucide-react";
 import type { MouseEvent } from "react";
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -14,6 +13,7 @@ import {
   subscribeToPlayHistory,
   type PlayHistoryItem,
 } from "@/lib/play-history";
+import RemoveButton from "@/components/RemoveButton";
 import ScrollArrows from "@/components/ScrollArrows";
 import { formatPlaybackTime } from "@/lib/format-time";
 import { backdropUrl, posterUrl } from "@/lib/tmdb";
@@ -93,14 +93,12 @@ export default function ContinueWatching() {
                 key={`${item.type}-${item.id}`}
                 className="group relative w-56 sm:w-64 shrink-0"
               >
-                <button
-                  type="button"
+                <RemoveButton
                   onClick={(event) => removeItem(event, item)}
-                  aria-label={`${t("Remove from continue watching")}: ${item.title}`}
+                  label={`${t("Remove from continue watching")}: ${item.title}`}
+                  iconSize={14}
                   className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-accent-red focus:outline-none focus:ring-2 focus:ring-accent-red/70"
-                >
-                  <X className="size-3.5" />
-                </button>
+                />
                 <Link
                   href={localizedHref(locale, getPlayHistoryHref(item))}
                   className="block"

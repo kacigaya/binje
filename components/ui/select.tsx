@@ -1,7 +1,9 @@
 "use client";
 
 import { Select as BaseSelect } from "@base-ui/react/select";
-import { Check, ChevronDown } from "lucide-react";
+import { Check } from "lucide-react";
+import { ChevronDownIcon } from "@/components/ui/chevron-down";
+import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { cn } from "@/lib/utils";
 
 type SelectItem<T> = { value: T; label: string };
@@ -19,6 +21,8 @@ function Select<T extends string | number>({
   ariaLabel: string;
   className?: string;
 }) {
+  const [chevronIcon, chevronFeedback] = useAnimatedIcon();
+
   return (
     <BaseSelect.Root
       value={value}
@@ -29,6 +33,7 @@ function Select<T extends string | number>({
     >
       <BaseSelect.Trigger
         aria-label={ariaLabel}
+        {...chevronFeedback}
         className={cn(
           "flex cursor-pointer items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60",
           className,
@@ -36,7 +41,7 @@ function Select<T extends string | number>({
       >
         <BaseSelect.Value />
         <BaseSelect.Icon>
-          <ChevronDown className="size-3.5 text-white/70" />
+          <ChevronDownIcon ref={chevronIcon} size={14} className="text-white/70" />
         </BaseSelect.Icon>
       </BaseSelect.Trigger>
       <BaseSelect.Portal>

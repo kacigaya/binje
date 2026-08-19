@@ -7,29 +7,34 @@ import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface BookmarkIconHandle {
+export interface PlayIconHandle {
   startAnimation: () => void;
   stopAnimation: () => void;
 }
 
-interface BookmarkIconProps extends HTMLAttributes<HTMLDivElement> {
+interface PlayIconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
-const BOOKMARK_VARIANTS: Variants = {
-  normal: { scaleY: 1, scaleX: 1 },
+const PATH_VARIANTS: Variants = {
+  normal: {
+    x: 0,
+    rotate: 0,
+  },
   animate: {
-    scaleY: [1, 1.3, 0.9, 1.05, 1],
-    scaleX: [1, 0.9, 1.1, 0.95, 1],
+    x: [0, -1, 2, 0],
+    rotate: [0, -10, 0, 0],
     transition: {
-      duration: 0.6,
-      ease: "easeOut",
+      duration: 0.5,
+      times: [0, 0.2, 0.5, 1],
+      stiffness: 260,
+      damping: 20,
     },
   },
 };
 
-const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
-  ({ className, size = 28, onMouseEnter, onMouseLeave, ...props }, ref) => {
+const PlayIcon = forwardRef<PlayIconHandle, PlayIconProps>(
+  ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const controls = useAnimation();
     // The rest of the app honours prefers-reduced-motion; these icons must too.
     const reduced = useReducedMotion();
@@ -37,6 +42,7 @@ const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
 
     useImperativeHandle(ref, () => {
       isControlledRef.current = true;
+
       return {
         startAnimation: () => {
           if (!reduced) controls.start("animate");
@@ -66,7 +72,6 @@ const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
       },
       [controls, onMouseLeave]
     );
-
     return (
       <div
         className={cn(className)}
@@ -75,7 +80,7 @@ const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
         onMouseLeave={handleMouseLeave}
         {...props}
       >
-        <svg
+        <motion.svg
           fill="none"
           height={size}
           stroke="currentColor"
@@ -86,18 +91,18 @@ const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
           width={size}
           xmlns="http://www.w3.org/2000/svg"
         >
-          <motion.path
+          <motion.polygon
+            fill="currentColor"
             animate={controls}
-            d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"
-            style={{ originY: 0.5, originX: 0.5 }}
-            variants={BOOKMARK_VARIANTS}
+            points="6 3 20 12 6 21 6 3"
+            variants={PATH_VARIANTS}
           />
-        </svg>
+        </motion.svg>
       </div>
     );
   }
 );
 
-BookmarkIcon.displayName = "BookmarkIcon";
+PlayIcon.displayName = "PlayIcon";
 
-export { BookmarkIcon };
+export { PlayIcon };

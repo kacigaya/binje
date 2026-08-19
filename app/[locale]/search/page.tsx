@@ -2,7 +2,9 @@
 
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Search, X, Star } from "lucide-react";
+import { Search, Star } from "lucide-react";
+import { XIcon } from "@/components/ui/x";
+import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import Image from "next/image";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,6 +61,7 @@ function SearchContent() {
   const initialType = parseFilterType(searchParams.get("type"));
 
   const [query, setQuery] = useState(initialQuery);
+  const [clearIcon, clearFeedback] = useAnimatedIcon();
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -125,10 +128,11 @@ function SearchContent() {
           <button
             type="button"
             onClick={() => setQuery("")}
+            {...clearFeedback}
             aria-label={t("Clear search")}
             className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
-            <X className="size-5" />
+            <XIcon ref={clearIcon} size={20} />
           </button>
         )}
       </div>

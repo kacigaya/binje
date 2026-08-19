@@ -7,29 +7,38 @@ import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface BookmarkIconHandle {
+export interface CheckIconHandle {
   startAnimation: () => void;
   stopAnimation: () => void;
 }
 
-interface BookmarkIconProps extends HTMLAttributes<HTMLDivElement> {
+interface CheckIconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
-const BOOKMARK_VARIANTS: Variants = {
-  normal: { scaleY: 1, scaleX: 1 },
-  animate: {
-    scaleY: [1, 1.3, 0.9, 1.05, 1],
-    scaleX: [1, 0.9, 1.1, 0.95, 1],
+const PATH_VARIANTS: Variants = {
+  normal: {
+    opacity: 1,
+    pathLength: 1,
+    scale: 1,
     transition: {
-      duration: 0.6,
-      ease: "easeOut",
+      duration: 0.3,
+      opacity: { duration: 0.1 },
+    },
+  },
+  animate: {
+    opacity: [0, 1],
+    pathLength: [0, 1],
+    scale: [0.5, 1],
+    transition: {
+      duration: 0.4,
+      opacity: { duration: 0.1 },
     },
   },
 };
 
-const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
-  ({ className, size = 28, onMouseEnter, onMouseLeave, ...props }, ref) => {
+const CheckIcon = forwardRef<CheckIconHandle, CheckIconProps>(
+  ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const controls = useAnimation();
     // The rest of the app honours prefers-reduced-motion; these icons must too.
     const reduced = useReducedMotion();
@@ -37,6 +46,7 @@ const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
 
     useImperativeHandle(ref, () => {
       isControlledRef.current = true;
+
       return {
         startAnimation: () => {
           if (!reduced) controls.start("animate");
@@ -88,9 +98,9 @@ const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
         >
           <motion.path
             animate={controls}
-            d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"
-            style={{ originY: 0.5, originX: 0.5 }}
-            variants={BOOKMARK_VARIANTS}
+            d="M4 12 9 17L20 6"
+            initial="normal"
+            variants={PATH_VARIANTS}
           />
         </svg>
       </div>
@@ -98,6 +108,6 @@ const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
   }
 );
 
-BookmarkIcon.displayName = "BookmarkIcon";
+CheckIcon.displayName = "CheckIcon";
 
-export { BookmarkIcon };
+export { CheckIcon };

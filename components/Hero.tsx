@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import Link from "next/link";
-import { Play, Info } from "lucide-react";
+import { Info } from "lucide-react";
+import WatchNowLink from "@/components/WatchNowLink";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
@@ -135,17 +136,15 @@ export default function Hero({ items }: HeroProps) {
             />
 
             <div className="flex items-center gap-3 pt-2">
-              <Link
+              <WatchNowLink
                 href={localizedHref(locale, watchHref)}
+                label={t("Watch Now")}
                 className={buttonClassName({
                   size: "lg",
                   className:
                     "rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-8 h-12 text-base cursor-pointer",
                 })}
-              >
-                <Play className="size-5 fill-white" />
-                {t("Watch Now")}
-              </Link>
+              />
               <Link
                 href={localizedHref(locale, detailHref)}
                 className={buttonClassName({

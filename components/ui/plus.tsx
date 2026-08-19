@@ -1,35 +1,22 @@
 "use client";
 
-import type { Variants } from "motion/react";
 import { motion, useAnimation, useReducedMotion } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface BookmarkIconHandle {
+export interface PlusIconHandle {
   startAnimation: () => void;
   stopAnimation: () => void;
 }
 
-interface BookmarkIconProps extends HTMLAttributes<HTMLDivElement> {
+interface PlusIconProps extends HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
-const BOOKMARK_VARIANTS: Variants = {
-  normal: { scaleY: 1, scaleX: 1 },
-  animate: {
-    scaleY: [1, 1.3, 0.9, 1.05, 1],
-    scaleX: [1, 0.9, 1.1, 0.95, 1],
-    transition: {
-      duration: 0.6,
-      ease: "easeOut",
-    },
-  },
-};
-
-const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
-  ({ className, size = 28, onMouseEnter, onMouseLeave, ...props }, ref) => {
+const PlusIcon = forwardRef<PlusIconHandle, PlusIconProps>(
+  ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const controls = useAnimation();
     // The rest of the app honours prefers-reduced-motion; these icons must too.
     const reduced = useReducedMotion();
@@ -37,6 +24,7 @@ const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
 
     useImperativeHandle(ref, () => {
       isControlledRef.current = true;
+
       return {
         startAnimation: () => {
           if (!reduced) controls.start("animate");
@@ -75,29 +63,35 @@ const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
         onMouseLeave={handleMouseLeave}
         {...props}
       >
-        <svg
+        <motion.svg
+          animate={controls}
           fill="none"
           height={size}
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth="2"
+          transition={{ type: "spring", stiffness: 100, damping: 15 }}
+          variants={{
+            normal: {
+              rotate: 0,
+            },
+            animate: {
+              rotate: 180,
+            },
+          }}
           viewBox="0 0 24 24"
           width={size}
           xmlns="http://www.w3.org/2000/svg"
         >
-          <motion.path
-            animate={controls}
-            d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"
-            style={{ originY: 0.5, originX: 0.5 }}
-            variants={BOOKMARK_VARIANTS}
-          />
-        </svg>
+          <path d="M5 12h14" />
+          <path d="M12 5v14" />
+        </motion.svg>
       </div>
     );
   }
 );
 
-BookmarkIcon.displayName = "BookmarkIcon";
+PlusIcon.displayName = "PlusIcon";
 
-export { BookmarkIcon };
+export { PlusIcon };

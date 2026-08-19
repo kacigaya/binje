@@ -1,14 +1,8 @@
 "use client";
 
-import { useRef } from "react";
-import {
-  ChevronLeftIcon,
-  type ChevronLeftIconHandle,
-} from "@/components/ui/chevron-left";
-import {
-  ChevronRightIcon,
-  type ChevronRightIconHandle,
-} from "@/components/ui/chevron-right";
+import { ChevronLeftIcon } from "@/components/ui/chevron-left";
+import { ChevronRightIcon } from "@/components/ui/chevron-right";
+import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { useTranslations } from "@/lib/use-locale";
 
 /**
@@ -25,10 +19,8 @@ export default function ScrollArrows({
   scroll: (direction: "left" | "right") => void;
 }) {
   const { t } = useTranslations();
-  // The buttons are far wider than their icon, so the animation is driven from
-  // the button instead of the icon's own hover.
-  const leftIcon = useRef<ChevronLeftIconHandle>(null);
-  const rightIcon = useRef<ChevronRightIconHandle>(null);
+  const [leftIcon, leftFeedback] = useAnimatedIcon();
+  const [rightIcon, rightFeedback] = useAnimatedIcon();
 
   return (
     <>
@@ -38,10 +30,7 @@ export default function ScrollArrows({
           <button
             type="button"
             onClick={() => scroll("left")}
-            onMouseEnter={() => leftIcon.current?.startAnimation()}
-            onMouseLeave={() => leftIcon.current?.stopAnimation()}
-            onFocus={() => leftIcon.current?.startAnimation()}
-            onBlur={() => leftIcon.current?.stopAnimation()}
+            {...leftFeedback}
             className="absolute left-0 top-0 bottom-0 z-20 w-12 flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity cursor-pointer"
             aria-label={t("Scroll left")}
           >
@@ -56,10 +45,7 @@ export default function ScrollArrows({
           <button
             type="button"
             onClick={() => scroll("right")}
-            onMouseEnter={() => rightIcon.current?.startAnimation()}
-            onMouseLeave={() => rightIcon.current?.stopAnimation()}
-            onFocus={() => rightIcon.current?.startAnimation()}
-            onBlur={() => rightIcon.current?.stopAnimation()}
+            {...rightFeedback}
             className="absolute right-0 top-0 bottom-0 z-20 w-12 flex items-center justify-center opacity-0 group-hover/scroll:opacity-100 transition-opacity cursor-pointer"
             aria-label={t("Scroll right")}
           >

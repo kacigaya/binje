@@ -6,10 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Film, Loader2, Search } from "lucide-react";
 import { Menu as MenuNode, Search as SearchNode, X as XNode } from "lucide";
 import { MorphIcon } from "morphicons/react";
-import {
-  ArrowRightIcon,
-  type ArrowRightIconHandle,
-} from "@/components/ui/arrow-right";
+import { ArrowRightIcon } from "@/components/ui/arrow-right";
 import { BookmarkIcon } from "@/components/ui/bookmark";
 import { ClapIcon } from "@/components/ui/clap";
 import { TvIcon } from "@/components/ui/tv";
@@ -25,6 +22,7 @@ import {
   type ReactNode,
   type RefAttributes,
 } from "react";
+import { useAnimatedIcon, type AnimatedIconHandle } from "@/lib/use-animated-icon";
 import { localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 import {
@@ -34,14 +32,8 @@ import {
   type SearchSuggestion,
 } from "@/lib/use-search-suggestions";
 
-/** The three nav icons share this shape, so one ref type drives all of them. */
-type NavIconHandle = {
-  startAnimation: () => void;
-  stopAnimation: () => void;
-};
-
 type NavIcon = ForwardRefExoticComponent<
-  HTMLAttributes<HTMLDivElement> & { size?: number } & RefAttributes<NavIconHandle>
+  HTMLAttributes<HTMLDivElement> & { size?: number } & RefAttributes<AnimatedIconHandle>
 >;
 
 const NAV_LINKS: readonly {
@@ -75,17 +67,14 @@ function NavLink({
   tabIndex?: number;
   children: ReactNode;
 }) {
-  const icon = useRef<NavIconHandle>(null);
+  const [icon, feedback] = useAnimatedIcon();
 
   return (
     <Link
       href={href}
       onClick={onClick}
       tabIndex={tabIndex}
-      onMouseEnter={() => icon.current?.startAnimation()}
-      onMouseLeave={() => icon.current?.stopAnimation()}
-      onFocus={() => icon.current?.startAnimation()}
-      onBlur={() => icon.current?.stopAnimation()}
+      {...feedback}
       className={className}
     >
       <Icon ref={icon} size={iconSize} />
@@ -103,7 +92,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
-  const submitIcon = useRef<ArrowRightIconHandle>(null);
+  const [submitIcon, submitFeedback] = useAnimatedIcon();
 
   const { suggestions, loading } = useSearchSuggestions({
     query,
@@ -230,10 +219,7 @@ export default function Navbar() {
                     <button
                       type="submit"
                       disabled={pending || query.trim().length < MIN_SUGGESTION_QUERY_LENGTH}
-                      onMouseEnter={() => submitIcon.current?.startAnimation()}
-                      onMouseLeave={() => submitIcon.current?.stopAnimation()}
-                      onFocus={() => submitIcon.current?.startAnimation()}
-                      onBlur={() => submitIcon.current?.stopAnimation()}
+                      {...submitFeedback}
                       aria-label={t("Search movies & TV...")}
                       className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:opacity-40 disabled:pointer-events-none"
                     >
@@ -243,7 +229,7 @@ export default function Navbar() {
                           className="size-4 animate-spin motion-reduce:animate-none"
                         />
                       ) : (
-                        <ArrowRightIcon ref={submitIcon} aria-hidden="true" size={16} />
+                        <ArrowRightIcon ref={submitIcon} size={16} />
                       )}
                     </button>
                     <span role="status" aria-live="polite" className="sr-only">

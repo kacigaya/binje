@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, Star, X } from "lucide-react";
+import { Bookmark, Star } from "lucide-react";
+import RemoveButton from "@/components/RemoveButton";
 import type { MouseEvent } from "react";
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -63,14 +64,12 @@ export default function Watchlist() {
 
         return (
           <div key={`${item.type}-${item.id}`} className="group relative">
-            <button
-              type="button"
+            <RemoveButton
               onClick={(event) => removeItem(event, item)}
-              aria-label={`${t("Remove from watchlist")}: ${item.title}`}
+              label={`${t("Remove from watchlist")}: ${item.title}`}
+              iconSize={16}
               className="absolute right-2 bottom-2 z-10 flex size-8 items-center justify-center rounded-full bg-black/70 text-white/85 backdrop-blur-sm transition-colors hover:bg-accent-red hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-red/70"
-            >
-              <X className="size-4" />
-            </button>
+            />
             <Link
               href={localizedHref(locale, getWatchlistHref(item))}
               className="block"

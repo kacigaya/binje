@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, Play, Clock } from "lucide-react";
+import { Play, Clock } from "lucide-react";
+import { ChevronLeftIcon } from "@/components/ui/chevron-left";
+import { ChevronRightIcon } from "@/components/ui/chevron-right";
+import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { Select } from "@/components/ui/select";
 import Player from "@/components/Player";
 import ScrollArrows from "@/components/ScrollArrows";
@@ -113,6 +116,9 @@ export default function TVPlayer({
     episode < maxEpisodes ||
     seasons.some((s) => s.season_number === season + 1);
 
+  const [prevIcon, prevFeedback] = useAnimatedIcon();
+  const [nextIcon, nextFeedback] = useAnimatedIcon();
+
   return (
     <div className="space-y-4">
       <Player
@@ -162,10 +168,11 @@ export default function TVPlayer({
             variant="outline"
             size="lg"
             onClick={prevEpisode}
+            {...prevFeedback}
             disabled={!hasPrev}
             className="h-10 rounded-full px-4 cursor-pointer"
           >
-            <ChevronLeft className="size-4" />
+            <ChevronLeftIcon ref={prevIcon} size={16} />
             {t("Previous")}
           </Button>
           <Button
@@ -173,11 +180,12 @@ export default function TVPlayer({
             variant="outline"
             size="lg"
             onClick={nextEpisode}
+            {...nextFeedback}
             disabled={!hasNext}
             className="h-10 rounded-full px-4 cursor-pointer"
           >
             {t("Next")}
-            <ChevronRight className="size-4" />
+            <ChevronRightIcon ref={nextIcon} size={16} />
           </Button>
         </div>
       </div>

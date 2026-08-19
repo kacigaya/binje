@@ -1,7 +1,9 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Cookie, X } from "lucide-react";
+import { Cookie } from "lucide-react";
+import { XIcon } from "@/components/ui/x";
+import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { Button } from "@/components/ui/button";
 import { setConsent, CONSENT_STORAGE_KEY } from "@/lib/consent";
 import { useTranslations } from "@/lib/use-locale";
@@ -24,6 +26,7 @@ function getServerSnapshot(): string | null {
 
 export default function CookiesBanner() {
   const { t } = useTranslations();
+  const [dismissIcon, dismissFeedback] = useAnimatedIcon();
   const storedConsent = useSyncExternalStore(
     subscribeToConsent,
     getConsentSnapshot,
@@ -61,10 +64,11 @@ export default function CookiesBanner() {
       <button
         type="button"
         onClick={dismiss}
+        {...dismissFeedback}
         aria-label={t("Dismiss")}
         className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/8 hover:text-foreground"
       >
-        <X className="size-4" />
+        <XIcon ref={dismissIcon} size={16} />
       </button>
 
       <div className="flex items-start gap-3">

@@ -65,6 +65,7 @@ const ChevronRightIcon = forwardRef<
   return (
     <div
       className={cn(className)}
+      aria-hidden="true"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...props}

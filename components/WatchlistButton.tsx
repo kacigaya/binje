@@ -1,7 +1,9 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
-import { Check, Plus } from "lucide-react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { CheckIcon } from "@/components/ui/check";
+import { PlusIcon } from "@/components/ui/plus";
+import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { toast } from "sonner";
 import {
   isInWatchlist,
@@ -24,10 +26,25 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
     () => false,
   );
 
+  const [icon, feedback] = useAnimatedIcon();
+  // Play the check once on the save itself, not only on hover: the tick is the
+  // confirmation that the title landed in the watchlist.
+  // Tied to the click, not to `added`: the server snapshot is always false, so
+  // an already-saved title flips false -> true on hydration too, and keying off
+  // the state alone would tick the check on every page load.
+  const savedByClick = useRef(false);
+  useEffect(() => {
+    if (!added || !savedByClick.current) return;
+    savedByClick.current = false;
+    icon.current?.startAnimation();
+  }, [added, icon]);
+
   return (
     <button
       type="button"
+      {...feedback}
       onClick={() => {
+        savedByClick.current = !added;
         toggleWatchlist(item);
         toast.success(t(added ? "Removed from watchlist" : "Added to watchlist"));
       }}
@@ -38,7 +55,11 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
           : "border-white/15 bg-white/8 text-foreground hover:bg-white/12"
       }`}
     >
-      {added ? <Check className="size-5" /> : <Plus className="size-5" />}
+      {added ? (
+        <CheckIcon ref={icon} size={20} />
+      ) : (
+        <PlusIcon ref={icon} size={20} />
+      )}
       {t(added ? "In Watchlist" : "Add to Watchlist")}
     </button>
   );
