@@ -114,8 +114,7 @@ const FRENCH = {
   "Play on device": "Lire sur l’appareil",
   "Pause on device": "Mettre en pause sur l’appareil",
   "Unable to cast. Try again.": "Impossible de diffuser. Réessayez.",
-  "No compatible Google Cast receiver found. Chrome tab casting may still be available.":
-    "Aucun récepteur Google Cast compatible détecté. La diffusion de l’onglet Chrome peut rester disponible.",
+  "No compatible casting device found.": "Aucun appareil de diffusion compatible détecté.",
   Subtitles: "Sous-titres",
   Season: "Saison",
   Episode: "Épisode",

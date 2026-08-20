@@ -10,6 +10,7 @@ import {
   type RemotePlayer,
   type RemotePlayerController,
 } from "@/lib/google-cast";
+import { selectCastTransport } from "@/lib/cast-transport";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -65,6 +66,10 @@ export default function CastControls({
   const [googleReady, setGoogleReady] = useState(false);
   const [googleAvailable, setGoogleAvailable] = useState(false);
   const [googleStatus, setGoogleStatus] = useState<CastStatus>("disconnected");
+  const [remotePlaybackSupported, setRemotePlaybackSupported] = useState(false);
+  const [remotePlaybackStatus, setRemotePlaybackStatus] =
+    useState<RemotePlaybackState>("disconnected");
+  const [remotePlaybackPromptPending, setRemotePlaybackPromptPending] = useState(false);
   const [airPlayAvailable, setAirPlayAvailable] = useState(false);
   const [airPlayConnected, setAirPlayConnected] = useState(false);
   const [remotePaused, setRemotePaused] = useState(true);
@@ -170,6 +175,51 @@ export default function CastControls({
       removeListeners?.();
     };
   }, [reportError, restoreLocalPlayback]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const remote = video?.remote;
+    if (!remote || typeof remote.prompt !== "function") return;
+
+    let cancelled = false;
+    let availabilityWatchId: number | undefined;
+    setRemotePlaybackSupported(true);
+
+    const updateState = () => {
+      setRemotePlaybackStatus(remote.state);
+      if (remote.state !== "disconnected") setError(null);
+    };
+    const onAvailability = (available: boolean) => {
+      if (available) setError(null);
+    };
+
+    updateState();
+    remote.addEventListener("connecting", updateState);
+    remote.addEventListener("connect", updateState);
+    remote.addEventListener("disconnect", updateState);
+    void remote
+      .watchAvailability(onAvailability)
+      .then((watchId) => {
+        if (cancelled) {
+          void remote.cancelWatchAvailability(watchId).catch(() => undefined);
+          return;
+        }
+        availabilityWatchId = watchId;
+      })
+      .catch(() => {
+        // Some browsers can prompt but cannot monitor devices in the background.
+      });
+
+    return () => {
+      cancelled = true;
+      remote.removeEventListener("connecting", updateState);
+      remote.removeEventListener("connect", updateState);
+      remote.removeEventListener("disconnect", updateState);
+      if (availabilityWatchId !== undefined) {
+        void remote.cancelWatchAvailability(availabilityWatchId).catch(() => undefined);
+      }
+    };
+  }, [source, videoRef]);
 
   useEffect(() => {
     const video = videoRef.current as AirPlayVideo | null;
@@ -279,27 +329,24 @@ export default function CastControls({
   useEffect(() => () => loadAbortRef.current?.abort(), []);
 
   const googleConnected = googleStatus === "connected";
-  const useGoogle =
-    googleConnected ||
-    googleAvailable ||
-    (googleReady && !airPlayAvailable && !airPlayConnected);
-  const googleUnavailable = useGoogle && !googleConnected && !googleAvailable;
-  const available = googleReady || airPlayAvailable || airPlayConnected;
+  const remotePlaybackConnected = remotePlaybackStatus === "connected";
+  const transport = selectCastTransport({
+    googleConnected,
+    googleAvailable,
+    remotePlaybackConnected,
+    remotePlaybackSupported,
+    airPlayConnected,
+    airPlayAvailable,
+  });
+  const unavailable = transport === null;
+  const available = !unavailable || googleReady;
   if (!available) return null;
 
   async function handleCast() {
     setError(null);
-    if (useGoogle) {
+    if (transport === "google") {
       const api = apiRef.current;
       if (!api) return;
-      if (!googleConnected && !googleAvailable) {
-        const message = t(
-          "No compatible Google Cast receiver found. Chrome tab casting may still be available.",
-        );
-        setError(message);
-        toast.error(message);
-        return;
-      }
       if (googleConnected) {
         api.context.endCurrentSession(true);
         restoreLocalPlayback(true);
@@ -322,20 +369,49 @@ export default function CastControls({
       return;
     }
 
+    if (transport === "remote-playback") {
+      const remote = videoRef.current?.remote;
+      if (!remote) return;
+      setRemotePlaybackPromptPending(true);
+      try {
+        await remote.prompt();
+        setRemotePlaybackStatus(remote.state);
+      } catch (promptError: unknown) {
+        const name = promptError instanceof DOMException ? promptError.name : "";
+        const message =
+          promptError instanceof Error ? promptError.message : String(promptError);
+        const cancelled =
+          name === "AbortError" || name === "NotAllowedError" || /cancel|dismiss/i.test(message);
+        if (!cancelled) reportError(message || "Remote playback failed.");
+      } finally {
+        setRemotePlaybackPromptPending(false);
+      }
+      return;
+    }
+
+    if (!transport) {
+      const message = t("No compatible casting device found.");
+      setError(message);
+      toast.error(message);
+      return;
+    }
+
     const video = videoRef.current as AirPlayVideo | null;
     video?.webkitShowPlaybackTargetPicker?.();
   }
 
-  const connecting = busy || googleStatus === "connecting";
-  const connected = googleConnected || airPlayConnected;
+  const connecting =
+    busy ||
+    googleStatus === "connecting" ||
+    remotePlaybackStatus === "connecting" ||
+    remotePlaybackPromptPending;
+  const connected = googleConnected || remotePlaybackConnected || airPlayConnected;
   const castLabel = connected
     ? t("Stop casting")
     : connecting
       ? t("Connecting to device…")
-      : googleUnavailable
-        ? t(
-            "No compatible Google Cast receiver found. Chrome tab casting may still be available.",
-          )
+      : unavailable
+        ? t("No compatible casting device found.")
         : t("Cast to a device");
 
   return (
@@ -361,7 +437,7 @@ export default function CastControls({
           "rounded-full p-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-red/60 disabled:cursor-wait disabled:opacity-60",
           connected
             ? "bg-accent-red text-white"
-            : googleUnavailable
+            : unavailable
               ? "text-white/45 hover:bg-white/10 hover:text-white/70"
               : "text-white/70 hover:bg-white/10 hover:text-white",
         )}
