@@ -62,6 +62,7 @@ export default function CastControls({
   const remoteSnapshotRef = useRef({ currentTime: 0, duration: 0, isPaused: true });
   const loadAbortRef = useRef<AbortController | null>(null);
   const lastLoadedRef = useRef<{ key: string; mediaKey: string } | null>(null);
+  const [googleReady, setGoogleReady] = useState(false);
   const [googleAvailable, setGoogleAvailable] = useState(false);
   const [googleStatus, setGoogleStatus] = useState<CastStatus>("disconnected");
   const [airPlayAvailable, setAirPlayAvailable] = useState(false);
@@ -105,6 +106,7 @@ export default function CastControls({
       .then((api) => {
         if (!api || cancelled) return;
         apiRef.current = api;
+        setGoogleReady(true);
         const { context, framework } = api;
         const castStateEvent = framework.CastContextEventType.CAST_STATE_CHANGED;
         const sessionStateEvent = framework.SessionStateEventType.SESSION_STATE_CHANGED;
@@ -124,7 +126,9 @@ export default function CastControls({
         };
         const onCastState = (event: { castState?: string }) => {
           const state = event.castState ?? context.getCastState();
-          setGoogleAvailable(state !== "NO_DEVICES_AVAILABLE");
+          const available = state !== "NO_DEVICES_AVAILABLE";
+          setGoogleAvailable(available);
+          if (available) setError(null);
           if (state === "CONNECTING") setGoogleStatus("connecting");
         };
         const onSessionState = (event: { sessionState?: string }) => {
@@ -275,8 +279,12 @@ export default function CastControls({
   useEffect(() => () => loadAbortRef.current?.abort(), []);
 
   const googleConnected = googleStatus === "connected";
-  const useGoogle = googleConnected || googleAvailable;
-  const available = useGoogle || airPlayAvailable || airPlayConnected;
+  const useGoogle =
+    googleConnected ||
+    googleAvailable ||
+    (googleReady && !airPlayAvailable && !airPlayConnected);
+  const googleUnavailable = useGoogle && !googleConnected && !googleAvailable;
+  const available = googleReady || airPlayAvailable || airPlayConnected;
   if (!available) return null;
 
   async function handleCast() {
@@ -284,6 +292,14 @@ export default function CastControls({
     if (useGoogle) {
       const api = apiRef.current;
       if (!api) return;
+      if (!googleConnected && !googleAvailable) {
+        const message = t(
+          "No compatible Google Cast receiver found. Chrome tab casting may still be available.",
+        );
+        setError(message);
+        toast.error(message);
+        return;
+      }
       if (googleConnected) {
         api.context.endCurrentSession(true);
         restoreLocalPlayback(true);
@@ -316,7 +332,11 @@ export default function CastControls({
     ? t("Stop casting")
     : connecting
       ? t("Connecting to device…")
-      : t("Cast to a device");
+      : googleUnavailable
+        ? t(
+            "No compatible Google Cast receiver found. Chrome tab casting may still be available.",
+          )
+        : t("Cast to a device");
 
   return (
     <>
@@ -341,7 +361,9 @@ export default function CastControls({
           "rounded-full p-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-red/60 disabled:cursor-wait disabled:opacity-60",
           connected
             ? "bg-accent-red text-white"
-            : "text-white/70 hover:bg-white/10 hover:text-white",
+            : googleUnavailable
+              ? "text-white/45 hover:bg-white/10 hover:text-white/70"
+              : "text-white/70 hover:bg-white/10 hover:text-white",
         )}
       >
         {connecting ? (
