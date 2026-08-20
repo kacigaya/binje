@@ -1,8 +1,9 @@
 "use client";
 
 import Hls from "hls.js";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import CastControls from "@/components/CastControls";
 import { Select } from "@/components/ui/select";
 import { fetchResolve } from "@/lib/resolve-client";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
@@ -13,6 +14,7 @@ export type PlayerMediaType = "movie" | "tv";
 type Track = { file: string; label?: string };
 type Quality = { index: number; height: number; bitrate: number };
 type StreamSource = { file: string; height: number };
+type ResolvedMedia = { url: string; tracks: Track[]; sources: StreamSource[] };
 
 type Lang = "en" | "vf";
 const LANGS: { id: Lang; label: string }[] = [
@@ -83,6 +85,8 @@ export default function Player({
   const [quality, setQuality] = useState(-1);
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [resolvedMedia, setResolvedMedia] = useState<ResolvedMedia | null>(null);
+  const [googleCasting, setGoogleCasting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -94,6 +98,7 @@ export default function Player({
     setTracks([]);
     setQualities([]);
     setQuality(-1);
+    setResolvedMedia(null);
     lastSavedAtRef.current = 0;
 
     let hls: Hls | null = null;
@@ -104,18 +109,27 @@ export default function Player({
         const data = await fetchResolve(sourceUrl);
         if (cancelled) return;
 
-        setTracks((data.tracks ?? []).filter((t) => t.file));
+        const nextTracks = (data.tracks ?? []).filter((t) => t.file);
+        const nextSources = data.sources ?? [];
+        setTracks(nextTracks);
+        setResolvedMedia({ url: data.url, tracks: nextTracks, sources: nextSources });
         const hlsSupported = Hls.isSupported();
-        if (hlsSupported && data.sources?.length) {
+        const nativeHlsSupported = Boolean(
+          video.canPlayType("application/vnd.apple.mpegurl") &&
+            "webkitShowPlaybackTargetPicker" in video,
+        );
+        if (!nativeHlsSupported && hlsSupported && nextSources.length) {
           masterUrl = URL.createObjectURL(
-            new Blob([createMasterPlaylist(data.sources)], {
+            new Blob([createMasterPlaylist(nextSources)], {
               type: "application/vnd.apple.mpegurl",
             }),
           );
         }
         const src = masterUrl ?? proxied(data.url);
 
-        if (hlsSupported) {
+        if (nativeHlsSupported) {
+          video.src = src;
+        } else if (hlsSupported) {
           hls = new Hls({ enableWorker: true });
           hlsRef.current = hls;
           hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
@@ -174,9 +188,8 @@ export default function Player({
     if (hlsRef.current) hlsRef.current.nextLevel = index;
   }
 
-  function onTimeUpdate() {
-    const video = videoRef.current;
-    if (!video || !video.duration) return;
+  const saveProgress = useCallback((positionSeconds: number, durationSeconds: number) => {
+    if (!durationSeconds) return;
     const now = Date.now();
     if (now - lastSavedAtRef.current < 5000) return;
     lastSavedAtRef.current = now;
@@ -186,10 +199,24 @@ export default function Player({
       id: tmdbId,
       season,
       episode,
-      positionSeconds: video.currentTime,
-      durationSeconds: video.duration,
+      positionSeconds,
+      durationSeconds,
     });
+  }, [episode, season, tmdbId, type]);
+
+  function onTimeUpdate() {
+    const video = videoRef.current;
+    if (!video) return;
+    saveProgress(video.currentTime, video.duration);
   }
+
+  const selectedHeight = qualities.find((item) => item.index === quality)?.height;
+  const castSource = selectedHeight
+    ? resolvedMedia?.sources.find((source) => source.height === selectedHeight)?.file ??
+      resolvedMedia?.url ??
+      null
+    : resolvedMedia?.url ?? null;
+  const mediaKey = `${type}:${tmdbId}:${season ?? 1}:${episode ?? 1}`;
 
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
@@ -224,10 +251,19 @@ export default function Player({
             className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums"
           />
         )}
+        <CastControls
+          videoRef={videoRef}
+          mediaKey={mediaKey}
+          source={castSource}
+          tracks={resolvedMedia?.tracks ?? []}
+          title={title}
+          onRemoteProgress={saveProgress}
+          onGoogleCastingChange={setGoogleCasting}
+        />
       </div>
       <video
         ref={videoRef}
-        controls
+        controls={!googleCasting}
         playsInline
         onTimeUpdate={onTimeUpdate}
         className="absolute inset-0 h-full w-full rounded-xl bg-black"

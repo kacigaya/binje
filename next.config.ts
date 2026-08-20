@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 // Next's dev overlay and HMR runtime need eval; production builds do not.
 const SCRIPT_SRC =
   process.env.NODE_ENV === "production"
-    ? "script-src 'self' 'unsafe-inline'"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
+    ? "script-src 'self' 'unsafe-inline' https://www.gstatic.com"
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com";
 
 const CSP = [
   "default-src 'self'",

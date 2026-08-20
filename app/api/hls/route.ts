@@ -3,6 +3,7 @@ import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
 import { Agent } from "undici";
+import { isValidCastToken } from "@/lib/cast-token";
 import { allowStreamHost, isAllowedStreamHost } from "@/lib/hls-hosts";
 
 const PLAYER_ORIGIN = "https://player.videasy.to";
@@ -156,14 +157,20 @@ async function safeFetch(start: URL, init: RequestInit) {
   throw new Error("Too many redirects.");
 }
 
-function proxiedUrl(url: string | URL, requestUrl: string) {
+function proxiedUrl(url: string | URL, requestUrl: string, castToken: string | null) {
   allowStreamHost(url);
   const proxyUrl = new URL("/api/hls", requestUrl);
   proxyUrl.searchParams.set("url", String(url));
+  if (castToken) proxyUrl.searchParams.set("castToken", castToken);
   return `${proxyUrl.pathname}${proxyUrl.search}`;
 }
 
-function rewritePlaylist(text: string, targetUrl: URL, requestUrl: string) {
+function rewritePlaylist(
+  text: string,
+  targetUrl: URL,
+  requestUrl: string,
+  castToken: string | null,
+) {
   return text
     .split("\n")
     .map((line) => {
@@ -171,16 +178,55 @@ function rewritePlaylist(text: string, targetUrl: URL, requestUrl: string) {
       if (!trimmed) return line;
       if (trimmed.startsWith("#")) {
         return line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
-          return `URI="${proxiedUrl(new URL(uri, targetUrl), requestUrl)}"`;
+          return `URI="${proxiedUrl(new URL(uri, targetUrl), requestUrl, castToken)}"`;
         });
       }
-      return proxiedUrl(new URL(trimmed, targetUrl), requestUrl);
+      return proxiedUrl(new URL(trimmed, targetUrl), requestUrl, castToken);
     })
     .join("\n");
 }
 
+function getCastCorsHeaders(request: NextRequest, castToken: string | null) {
+  if (!castToken || !isValidCastToken(castToken)) return null;
+  const origin = request.headers.get("origin");
+  if (!origin) return new Headers();
+
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  } catch {
+    return null;
+  }
+
+  return new Headers({
+    "access-control-allow-origin": origin,
+    "access-control-expose-headers":
+      "accept-ranges, content-length, content-range, content-type",
+    vary: "Origin",
+  });
+}
+
+export function OPTIONS(request: NextRequest) {
+  const targetUrl = getTargetUrl(request.nextUrl.searchParams.get("url"));
+  const castToken = request.nextUrl.searchParams.get("castToken");
+  const headers = getCastCorsHeaders(request, castToken);
+  if (!targetUrl || !isAllowedStreamHost(targetUrl) || !headers) {
+    return new NextResponse(null, { status: 403 });
+  }
+
+  headers.set("access-control-allow-methods", "GET, OPTIONS");
+  headers.set("access-control-allow-headers", "Accept-Encoding, Content-Type, Range");
+  headers.set("access-control-max-age", "600");
+  return new NextResponse(null, { status: 204, headers });
+}
+
 export async function GET(request: NextRequest) {
   const targetUrl = getTargetUrl(request.nextUrl.searchParams.get("url"));
+  const castToken = request.nextUrl.searchParams.get("castToken");
+  const castHeaders = getCastCorsHeaders(request, castToken);
+  if (castToken && !castHeaders) {
+    return NextResponse.json({ error: "Invalid Cast token." }, { status: 403 });
+  }
   if (!targetUrl) return NextResponse.json({ error: "Invalid HLS URL." }, { status: 400 });
   if (!isAllowedStreamHost(targetUrl) || !(await isSafeHost(targetUrl))) {
     return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
@@ -213,6 +259,9 @@ export async function GET(request: NextRequest) {
 
   const contentType = response.headers.get("content-type") ?? "";
   const responseHeaders = new Headers();
+  if (castHeaders) {
+    for (const [key, value] of castHeaders) responseHeaders.set(key, value);
+  }
   for (const header of ["accept-ranges", "content-length", "content-range", "content-type"]) {
     const value = response.headers.get(header);
     if (value) responseHeaders.set(header, value);
@@ -222,7 +271,9 @@ export async function GET(request: NextRequest) {
     responseHeaders.set("content-type", "application/vnd.apple.mpegurl");
     responseHeaders.set("cache-control", PLAYLIST_CACHE_CONTROL);
     responseHeaders.delete("content-length");
-    return new NextResponse(await response.text().then((text) => rewritePlaylist(text, targetUrl, request.nextUrl.href)), {
+    return new NextResponse(await response.text().then((text) =>
+      rewritePlaylist(text, targetUrl, request.nextUrl.href, castToken)
+    ), {
       status: response.status,
       headers: responseHeaders,
     });
