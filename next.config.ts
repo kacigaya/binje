@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { CAST_COMPANION_ORIGIN } from "./lib/tab-cast";
 
 // Next's dev overlay and HMR runtime need eval; production builds do not.
 const SCRIPT_SRC =
@@ -11,7 +12,9 @@ const CSP = [
   SCRIPT_SRC,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://image.tmdb.org",
-  "connect-src 'self' blob: data: https:",
+  // The cast companion is a loopback service; browsers treat it as a secure
+  // origin, but the connect-src allowlist still has to name it explicitly.
+  `connect-src 'self' blob: data: https: ${CAST_COMPANION_ORIGIN}`,
   "media-src 'self' blob: data: https:",
   "worker-src 'self' blob:",
   "font-src 'self' data:",

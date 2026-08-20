@@ -2,8 +2,9 @@
 
 import { Cast, LoaderCircle, Pause, Play } from "lucide-react";
 import type { RefObject } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Menu } from "@/components/ui/menu";
 import {
   loadGoogleCast,
   type GoogleCastApi,
@@ -11,6 +12,13 @@ import {
   type RemotePlayerController,
 } from "@/lib/google-cast";
 import { selectCastTransport } from "@/lib/cast-transport";
+import type { TranslationKey } from "@/lib/i18n";
+import {
+  TabCastError,
+  tabCastProvider,
+  type CastDevice,
+  type TabCastErrorCode,
+} from "@/lib/tab-cast";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -22,6 +30,18 @@ type AirPlayVideo = HTMLVideoElement & {
 };
 type AirPlayAvailabilityEvent = Event & {
   availability: "available" | "not-available";
+};
+
+const TAB_CAST_ACTIVE_POLL_MS = 5000;
+const TAB_CAST_IDLE_POLL_MS = 20000;
+
+const TAB_CAST_MESSAGES: Record<Exclude<TabCastErrorCode, "unreachable">, TranslationKey> = {
+  "chrome-unavailable":
+    "Chrome tab casting is unavailable. Restart Chrome with remote debugging enabled.",
+  "tab-not-found": "Chrome could not find this tab. Reload the page and try again.",
+  "sink-unavailable": "That device is no longer available.",
+  "already-casting": "This tab is already casting to another device.",
+  "cast-failed": "Tab casting failed. Try again.",
 };
 
 function castProxyUrl(url: string, token: string) {
@@ -57,21 +77,26 @@ export default function CastControls({
   onGoogleCastingChange: (casting: boolean) => void;
 }) {
   const { t } = useTranslations();
+  const noticeId = useId();
   const apiRef = useRef<GoogleCastApi | null>(null);
   const remotePlayerRef = useRef<RemotePlayer | null>(null);
   const remoteControllerRef = useRef<RemotePlayerController | null>(null);
   const remoteSnapshotRef = useRef({ currentTime: 0, duration: 0, isPaused: true });
   const loadAbortRef = useRef<AbortController | null>(null);
+  const tabCastAbortRef = useRef<AbortController | null>(null);
+  const castButtonRef = useRef<HTMLButtonElement>(null);
+  const refocusCastButtonRef = useRef(false);
+  const tabCastPendingRef = useRef(false);
   const lastLoadedRef = useRef<{ key: string; mediaKey: string } | null>(null);
   const [googleReady, setGoogleReady] = useState(false);
   const [googleAvailable, setGoogleAvailable] = useState(false);
   const [googleStatus, setGoogleStatus] = useState<CastStatus>("disconnected");
-  const [remotePlaybackSupported, setRemotePlaybackSupported] = useState(false);
-  const [remotePlaybackStatus, setRemotePlaybackStatus] =
-    useState<RemotePlaybackState>("disconnected");
-  const [remotePlaybackPromptPending, setRemotePlaybackPromptPending] = useState(false);
   const [airPlayAvailable, setAirPlayAvailable] = useState(false);
   const [airPlayConnected, setAirPlayConnected] = useState(false);
+  const [tabCastReady, setTabCastReady] = useState(false);
+  const [tabCastSink, setTabCastSink] = useState<string | null>(null);
+  const [tabCastDevices, setTabCastDevices] = useState<CastDevice[]>([]);
+  const [devicePickerOpen, setDevicePickerOpen] = useState(false);
   const [remotePaused, setRemotePaused] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +113,33 @@ export default function CastControls({
       toast.error(translated, { description: message });
     },
     [t],
+  );
+
+  const showManualCastHelp = useCallback(() => {
+    const message = t("Open Chrome menu > Cast, choose Sources > Cast tab, then select your TV.");
+    setError(message);
+    toast.info(message);
+  }, [t]);
+
+  const reportTabCastError = useCallback(
+    (thrown: unknown) => {
+      if (thrown instanceof DOMException && thrown.name === "AbortError") return;
+      if (!(thrown instanceof TabCastError)) {
+        reportError(thrown instanceof Error ? thrown.message : String(thrown));
+        return;
+      }
+      if (thrown.code === "unreachable") {
+        // The companion went away mid-session; fall back to Chrome's own menu.
+        setTabCastReady(false);
+        setTabCastSink(null);
+        showManualCastHelp();
+        return;
+      }
+      const message = t(TAB_CAST_MESSAGES[thrown.code]);
+      setError(message);
+      toast.error(message, { description: thrown.message });
+    },
+    [reportError, showManualCastHelp, t],
   );
 
   const restoreLocalPlayback = useCallback(
@@ -177,51 +229,6 @@ export default function CastControls({
   }, [reportError, restoreLocalPlayback]);
 
   useEffect(() => {
-    const video = videoRef.current;
-    const remote = video?.remote;
-    if (!remote || typeof remote.prompt !== "function") return;
-
-    let cancelled = false;
-    let availabilityWatchId: number | undefined;
-    setRemotePlaybackSupported(true);
-
-    const updateState = () => {
-      setRemotePlaybackStatus(remote.state);
-      if (remote.state !== "disconnected") setError(null);
-    };
-    const onAvailability = (available: boolean) => {
-      if (available) setError(null);
-    };
-
-    updateState();
-    remote.addEventListener("connecting", updateState);
-    remote.addEventListener("connect", updateState);
-    remote.addEventListener("disconnect", updateState);
-    void remote
-      .watchAvailability(onAvailability)
-      .then((watchId) => {
-        if (cancelled) {
-          void remote.cancelWatchAvailability(watchId).catch(() => undefined);
-          return;
-        }
-        availabilityWatchId = watchId;
-      })
-      .catch(() => {
-        // Some browsers can prompt but cannot monitor devices in the background.
-      });
-
-    return () => {
-      cancelled = true;
-      remote.removeEventListener("connecting", updateState);
-      remote.removeEventListener("connect", updateState);
-      remote.removeEventListener("disconnect", updateState);
-      if (availabilityWatchId !== undefined) {
-        void remote.cancelWatchAvailability(availabilityWatchId).catch(() => undefined);
-      }
-    };
-  }, [source, videoRef]);
-
-  useEffect(() => {
     const video = videoRef.current as AirPlayVideo | null;
     if (!video?.webkitShowPlaybackTargetPicker) return;
 
@@ -242,6 +249,42 @@ export default function CastControls({
       video.removeEventListener("webkitcurrentplaybacktargetiswirelesschanged", onWirelessChange);
     };
   }, [source, videoRef]);
+
+  // Poll the local companion for as long as the player is mounted. A missing
+  // companion is the normal case and stays silent, but it can also be started
+  // after the page, and a receiver can be stopped from the TV or from Chrome's
+  // own menu, so neither availability nor session state may be assumed once.
+  useEffect(() => {
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let stopped = false;
+
+    const poll = async () => {
+      let casting = false;
+      try {
+        const status = await tabCastProvider.status(controller.signal);
+        if (stopped) return;
+        casting = status?.casting ?? false;
+        // A cast request in flight owns the state; its own result is fresher.
+        if (!tabCastPendingRef.current) {
+          setTabCastReady(status !== null);
+          setTabCastSink(status?.sinkName ?? null);
+        }
+      } catch {
+        // Transient failure. The next tick re-probes instead of giving up.
+      }
+      if (!stopped) {
+        timer = setTimeout(poll, casting ? TAB_CAST_ACTIVE_POLL_MS : TAB_CAST_IDLE_POLL_MS);
+      }
+    };
+    void poll();
+
+    return () => {
+      stopped = true;
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, []);
 
   const loadRemoteMedia = useCallback(async () => {
     const api = apiRef.current;
@@ -326,17 +369,69 @@ export default function CastControls({
     return () => window.clearInterval(timer);
   }, [googleStatus, onRemoteProgress]);
 
-  useEffect(() => () => loadAbortRef.current?.abort(), []);
+  useEffect(
+    () => () => {
+      loadAbortRef.current?.abort();
+      tabCastAbortRef.current?.abort();
+    },
+    [],
+  );
+
+  // Picking a device closes the menu while the request is still in flight, and
+  // the button is disabled for that moment, so focus can only come back once
+  // the request settles.
+  useEffect(() => {
+    if (busy || !refocusCastButtonRef.current) return;
+    refocusCastButtonRef.current = false;
+    if (document.activeElement === document.body) castButtonRef.current?.focus();
+  }, [busy]);
+
+  const runTabCast = useCallback(
+    async (action: (signal: AbortSignal) => Promise<void>) => {
+      tabCastAbortRef.current?.abort();
+      const controller = new AbortController();
+      tabCastAbortRef.current = controller;
+      tabCastPendingRef.current = true;
+      setBusy(true);
+      setError(null);
+      try {
+        await action(controller.signal);
+      } catch (thrown) {
+        if (!controller.signal.aborted) reportTabCastError(thrown);
+      } finally {
+        if (tabCastAbortRef.current === controller) {
+          tabCastAbortRef.current = null;
+          tabCastPendingRef.current = false;
+        }
+        setBusy(false);
+      }
+    },
+    [reportTabCastError],
+  );
+
+  const startTabCast = useCallback(
+    (deviceName: string) =>
+      runTabCast(async (signal) => {
+        const status = await tabCastProvider.start(deviceName, signal);
+        setTabCastSink(status.sinkName);
+        if (!status.casting) {
+          const message = t("Tab casting failed. Try again.");
+          setError(message);
+          toast.error(message);
+        }
+      }),
+    [runTabCast, t],
+  );
 
   const googleConnected = googleStatus === "connected";
-  const remotePlaybackConnected = remotePlaybackStatus === "connected";
+  const tabCastConnected = tabCastSink !== null;
   const transport = selectCastTransport({
     googleConnected,
     googleAvailable,
-    remotePlaybackConnected,
-    remotePlaybackSupported,
     airPlayConnected,
     airPlayAvailable,
+    tabCastConnected,
+    tabCastAvailable: tabCastReady,
   });
   const unavailable = transport === null;
   const available = !unavailable || googleReady;
@@ -369,49 +464,48 @@ export default function CastControls({
       return;
     }
 
-    if (transport === "remote-playback") {
-      const remote = videoRef.current?.remote;
-      if (!remote) return;
-      setRemotePlaybackPromptPending(true);
-      try {
-        await remote.prompt();
-        setRemotePlaybackStatus(remote.state);
-      } catch (promptError: unknown) {
-        const name = promptError instanceof DOMException ? promptError.name : "";
-        const message =
-          promptError instanceof Error ? promptError.message : String(promptError);
-        const cancelled =
-          name === "AbortError" || name === "NotAllowedError" || /cancel|dismiss/i.test(message);
-        if (!cancelled) reportError(message || "Remote playback failed.");
-      } finally {
-        setRemotePlaybackPromptPending(false);
-      }
+    if (transport === "airplay") {
+      const video = videoRef.current as AirPlayVideo | null;
+      video?.webkitShowPlaybackTargetPicker?.();
       return;
     }
 
-    if (!transport) {
-      const message = t("No compatible casting device found.");
-      setError(message);
-      toast.error(message);
+    if (transport === "tab-cast") {
+      await runTabCast(async (signal) => {
+        if (tabCastSink) {
+          setTabCastSink((await tabCastProvider.stop(tabCastSink, signal)).sinkName);
+          return;
+        }
+        const devices = await tabCastProvider.getDevices(signal);
+        if (signal.aborted) return;
+        setTabCastDevices(devices);
+        if (devices.length === 0) {
+          const message = t("No Cast device found on your network.");
+          setError(message);
+          toast.error(message);
+          return;
+        }
+        if (devices.length === 1) {
+          const status = await tabCastProvider.start(devices[0].name, signal);
+          setTabCastSink(status.sinkName);
+          return;
+        }
+        setDevicePickerOpen(true);
+      });
       return;
     }
 
-    const video = videoRef.current as AirPlayVideo | null;
-    video?.webkitShowPlaybackTargetPicker?.();
+    showManualCastHelp();
   }
 
-  const connecting =
-    busy ||
-    googleStatus === "connecting" ||
-    remotePlaybackStatus === "connecting" ||
-    remotePlaybackPromptPending;
-  const connected = googleConnected || remotePlaybackConnected || airPlayConnected;
+  const connecting = busy || googleStatus === "connecting";
+  const connected = googleConnected || airPlayConnected || tabCastConnected;
   const castLabel = connected
     ? t("Stop casting")
     : connecting
       ? t("Connecting to device…")
       : unavailable
-        ? t("No compatible casting device found.")
+        ? t("How to cast this tab")
         : t("Cast to a device");
 
   return (
@@ -427,19 +521,21 @@ export default function CastControls({
         </button>
       )}
       <button
+        ref={castButtonRef}
         type="button"
         onClick={() => void handleCast()}
         disabled={!source || connecting}
         aria-label={castLabel}
         aria-pressed={connected}
+        aria-haspopup={transport === "tab-cast" && !connected ? "menu" : undefined}
+        aria-expanded={transport === "tab-cast" && !connected ? devicePickerOpen : undefined}
+        aria-describedby={error ? noticeId : undefined}
         title={castLabel}
         className={cn(
           "rounded-full p-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-red/60 disabled:cursor-wait disabled:opacity-60",
           connected
             ? "bg-accent-red text-white"
-            : unavailable
-              ? "text-white/45 hover:bg-white/10 hover:text-white/70"
-              : "text-white/70 hover:bg-white/10 hover:text-white",
+            : "text-white/70 hover:bg-white/10 hover:text-white",
         )}
       >
         {connecting ? (
@@ -448,9 +544,25 @@ export default function CastControls({
           <Cast aria-hidden="true" />
         )}
       </button>
+      <Menu
+        open={devicePickerOpen}
+        onOpenChange={setDevicePickerOpen}
+        anchor={castButtonRef}
+        ariaLabel={t("Choose a Cast device")}
+        items={tabCastDevices.map((device) => ({
+          value: device.name,
+          label: device.name,
+          selected: device.name === tabCastSink,
+        }))}
+        onSelect={(deviceName) => {
+          refocusCastButtonRef.current = true;
+          void startTabCast(deviceName);
+        }}
+      />
       {error && (
         <span
-          role="alert"
+          id={noticeId}
+          role="status"
           className="absolute right-0 top-12 w-max max-w-64 rounded-lg border border-white/15 bg-black px-3 py-2 text-xs text-white"
         >
           {error}

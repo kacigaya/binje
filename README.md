@@ -17,6 +17,8 @@
 - Detailed movie and TV show pages (ratings, cast, seasons, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
 - Watch pages with Videasy VO, optional VF, subtitles, and manual HLS quality selection
+- Casting to Google Cast and AirPlay receivers, plus Chrome tab mirroring through an
+  optional local companion for TVs that reject the Cast media receiver
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
 - "Continue Watching" row backed by local play history
 - Hero with auto-rotating featured titles, two-line expandable overview, and TMDB/Rotten Tomatoes ratings
@@ -107,6 +109,22 @@ bun run mobile:start
 The Expo application uses the Next.js deployment as its backend. See
 [`apps/mobile/README.md`](./apps/mobile/README.md) for development-build and EAS instructions.
 
+### Casting
+
+Google Cast and AirPlay work out of the box. Some TVs accept a Chrome tab but refuse
+the Cast media receiver app; for those, run the optional companion:
+
+```bash
+bun run cast:companion
+```
+
+It bridges the page to Chrome's DevTools Protocol, which is the only way to reach
+`Cast.startTabMirroring` from a web app. Chrome has to be started with
+`--remote-debugging-port=9222` and a dedicated `--user-data-dir`. See
+[`companion/README.md`](./companion/README.md) for setup and the security model.
+The Cast button falls back to instructions for Chrome's own Cast menu when the
+companion is not running.
+
 ### Project structure
 
 ```
@@ -122,6 +140,7 @@ app/            # Next.js App Router pages and layouts
   watch/tv/[id] # TV episode watch page
   privacy/      # Privacy policy
 components/     # Reusable web UI components (Hero, Carousel, Player, etc.)
+companion/      # Optional local service for Chrome tab casting over CDP
 apps/mobile/    # Expo Router application for Android and iOS
 lib/            # Utilities and TMDB API client
 types/          # TypeScript type definitions
@@ -140,6 +159,10 @@ tests/          # Playwright tests
   append the real client IP and to drop client-supplied forwarding headers.
 - The CSP is enforced (not report-only); `unsafe-eval` is only added in development,
   where the Next dev runtime needs it.
+- The cast companion binds to `127.0.0.1` only, checks the request `Origin` against an
+  allowlist, and requires a custom header that a cross-origin page cannot send without a
+  preflight. It exposes four fixed routes and never accepts a CDP method name from the
+  page.
 
 ## Privacy
 
