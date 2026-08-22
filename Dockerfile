@@ -6,6 +6,7 @@ WORKDIR /app
 # lockfile install fails. Its dependencies are never used by the web build.
 COPY package.json bun.lock ./
 COPY apps/mobile/package.json ./apps/mobile/package.json
+COPY patches ./patches
 RUN bun install --frozen-lockfile
 
 FROM oven/bun:1.3.14-slim AS builder
