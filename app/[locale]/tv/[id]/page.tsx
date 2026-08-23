@@ -3,26 +3,32 @@ import WatchNowLink from "@/components/WatchNowLink";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { locale as getRootLocale } from "next/root-params";
+import { Suspense } from "react";
 import { Calendar, Tv, Layers } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
+import CarouselSkeleton from "@/components/CarouselSkeleton";
 import WatchlistButton from "@/components/WatchlistButton";
 import StreamTechBadges from "@/components/StreamTechBadges";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import {
   getTVDetails,
-  getTVContentRating,
   getTVCredits,
   getSimilarTV,
+} from "@/lib/cached-tmdb";
+import {
+  getTVContentRating,
   tvToMedia,
   posterUrl,
   backdropUrl,
   profileUrl,
   parseTmdbId,
 } from "@/lib/tmdb";
-import { localizedHref, translate, type Locale } from "@/lib/i18n";
+import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
+import TVShowLoading from "./loading";
 
 export async function generateMetadata({
   params,
@@ -53,20 +59,29 @@ export default async function TVShowPage({
 }: {
   params: Promise<{ locale: Locale; id: string }>;
 }) {
+  const rootLocale = await getRootLocale();
+  const locale = isLocale(rootLocale) ? rootLocale : "en";
+
+  return (
+    <Suspense fallback={<TVShowLoading heading={translate(locale, "TV")} />}>
+      <TVShowDetails params={params} />
+    </Suspense>
+  );
+}
+
+async function TVShowDetails({
+  params,
+}: {
+  params: Promise<{ locale: Locale; id: string }>;
+}) {
   const { locale, id } = await params;
   const showId = parseTmdbId(id);
   if (showId === null) notFound();
 
-  const showPromise = getTVDetails(showId, locale);
-  const [show, credits, similar] = await Promise.all([
-    showPromise,
-    getTVCredits(showId, locale),
-    getSimilarTV(showId, locale),
-  ]);
+  const show = await getTVDetails(showId, locale);
 
   const backdrop = backdropUrl(show.backdrop_path, "w1280");
   const poster = posterUrl(show.poster_path, "w500");
-  const topCast = credits.cast.slice(0, 12);
   const contentRating = getTVContentRating(show);
 
   return (
@@ -277,57 +292,59 @@ export default async function TVShowPage({
           </div>
         )}
 
-        {topCast.length > 0 && (
-          <div className="mt-12">
-            <h2
-              className="text-xl font-bold mb-6 px-0"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {translate(locale, "Cast")}
-            </h2>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-              {topCast.map((person, i) => {
-                const photo = profileUrl(person.profile_path);
-                return (
-                  <div
-                    key={`${person.id}-${i}`}
-                    className="shrink-0 w-27.5 text-center"
-                  >
-                    <div className="relative size-27.5 rounded-full overflow-hidden bg-muted mx-auto mb-2">
-                      {photo ? (
-                        <Image
-                          src={photo}
-                          alt={person.name}
-                          fill
-                          loading="lazy"
-                          className="object-cover"
-                          sizes="110px"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl text-muted-foreground font-bold">
-                          {person.name.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-sm font-medium leading-tight line-clamp-1">
-                      {person.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                      {person.character}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <Suspense fallback={null}>
+          <TVShowCast showId={showId} locale={locale} />
+        </Suspense>
 
-        {similar.length > 0 && (
-          <div className="mt-12">
-            <Carousel title={translate(locale, "Similar Shows")} items={similar.map(tvToMedia)} />
-          </div>
-        )}
+        <Suspense fallback={<div className="mt-12"><CarouselSkeleton /></div>}>
+          <SimilarShows showId={showId} locale={locale} />
+        </Suspense>
       </div>
+    </div>
+  );
+}
+
+async function TVShowCast({ showId, locale }: { showId: number; locale: Locale }) {
+  const credits = await getTVCredits(showId, locale);
+  const topCast = credits.cast.slice(0, 12);
+  if (topCast.length === 0) return null;
+
+  return (
+    <div className="mt-12">
+      <h2 className="mb-6 text-xl font-bold" style={{ fontFamily: "var(--font-heading)" }}>
+        {translate(locale, "Cast")}
+      </h2>
+      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+        {topCast.map((person, index) => {
+          const photo = profileUrl(person.profile_path);
+          return (
+            <div key={`${person.id}-${index}`} className="w-27.5 shrink-0 text-center">
+              <div className="relative mx-auto mb-2 size-27.5 overflow-hidden rounded-full bg-muted">
+                {photo ? (
+                  <Image src={photo} alt={person.name} fill loading="lazy" className="object-cover" sizes="110px" />
+                ) : (
+                  <div className="flex size-full items-center justify-center text-2xl font-bold text-muted-foreground">
+                    {person.name.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <p className="line-clamp-1 text-sm font-medium leading-tight">{person.name}</p>
+              <p className="line-clamp-1 text-xs text-muted-foreground">{person.character}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+async function SimilarShows({ showId, locale }: { showId: number; locale: Locale }) {
+  const similar = await getSimilarTV(showId, locale);
+  if (similar.length === 0) return null;
+
+  return (
+    <div className="mt-12">
+      <Carousel title={translate(locale, "Similar Shows")} items={similar.map(tvToMedia)} />
     </div>
   );
 }

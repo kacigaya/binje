@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
 import { Tv } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
-import AsyncCarousel from "@/components/AsyncCarousel";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
 import {
   getAiringTodayTV,
@@ -12,38 +12,52 @@ import {
   getTopRatedTV,
   getTrendingTV,
   getTVByGenre,
-  tvToMedia,
-} from "@/lib/tmdb";
-import type { TVShow } from "@/types/tmdb";
-import { translate, type Locale } from "@/lib/i18n";
-
-export const revalidate = 3600;
+} from "@/lib/cached-tmdb";
+import { tvToMedia } from "@/lib/tmdb";
+import { isLocale, translate, type Locale, type TranslationKey } from "@/lib/i18n";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
   const { locale } = await params;
   return { title: translate(locale, "TV Shows") };
 }
 
-export default async function TVShowsPage({ params }: { params: Promise<{ locale: Locale }> }) {
-  const { locale } = await params;
-  const trendingPromise = getTrendingTV(locale);
-  // Every rail starts fetching now and is awaited later, inside its own
-  // Suspense boundary. If the trending await below throws first, nothing ever
-  // awaits these, and an unhandled rejection takes the process down, so each
-  // one absorbs its own failure and renders as an empty rail.
-  const rail = (request: Promise<TVShow[]>) => request.catch((): TVShow[] => []);
-  const sections = [
-    ["Popular TV Shows", rail(getPopularTV(locale))],
-    ["Top Rated TV Shows", rail(getTopRatedTV(locale))],
-    ["Airing Today", rail(getAiringTodayTV(locale))],
-    ["On The Air", rail(getOnTheAirTV(locale))],
-    ["Action & Adventure", rail(getTVByGenre(10759, locale))],
-    ["Comedy", rail(getTVByGenre(35, locale))],
-    ["Drama", rail(getTVByGenre(18, locale))],
-    ["Sci-Fi & Fantasy", rail(getTVByGenre(10765, locale))],
-    ["Documentary", rail(getTVByGenre(99, locale))],
-  ] as const;
-  const trending = await trendingPromise;
+const SECTIONS = [
+  ["Trending TV Shows", getTrendingTV, true],
+  ["Popular TV Shows", getPopularTV],
+  ["Top Rated TV Shows", getTopRatedTV],
+  ["Airing Today", getAiringTodayTV],
+  ["On The Air", getOnTheAirTV],
+  ["Action & Adventure", (locale: Locale) => getTVByGenre(10759, locale)],
+  ["Comedy", (locale: Locale) => getTVByGenre(35, locale)],
+  ["Drama", (locale: Locale) => getTVByGenre(18, locale)],
+  ["Sci-Fi & Fantasy", (locale: Locale) => getTVByGenre(10765, locale)],
+  ["Documentary", (locale: Locale) => getTVByGenre(99, locale)],
+] as const;
+
+async function TVRail({
+  locale,
+  title,
+  load,
+  priority = false,
+}: {
+  locale: Locale;
+  title: TranslationKey;
+  load: (locale: Locale) => ReturnType<typeof getTrendingTV>;
+  priority?: boolean;
+}) {
+  const shows = await load(locale).catch(() => []);
+  return (
+    <Carousel
+      title={translate(locale, title)}
+      items={shows.map(tvToMedia)}
+      priority={priority}
+    />
+  );
+}
+
+export default async function TVShowsPage() {
+  const rootLocale = await getRootLocale();
+  const locale = isLocale(rootLocale) ? rootLocale : "en";
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 pb-16 pt-24 sm:pt-28">
@@ -60,16 +74,13 @@ export default async function TVShowsPage({ params }: { params: Promise<{ locale
         <Separator className="mt-5 bg-white/10" />
       </header>
 
-      <Carousel
-        title={translate(locale, "Trending TV Shows")}
-        items={trending.map(tvToMedia)}
-        priority
-      />
-      {sections.map(([title, items]) => (
+      {SECTIONS.map(([title, load, priority]) => (
         <Suspense key={title} fallback={<CarouselSkeleton />}>
-          <AsyncCarousel
-            title={translate(locale, title)}
-            items={items.then((shows) => shows.map(tvToMedia))}
+          <TVRail
+            locale={locale}
+            title={title}
+            load={load}
+            priority={priority}
           />
         </Suspense>
       ))}

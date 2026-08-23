@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { locale as getRootLocale } from "next/root-params";
 import { Space_Grotesk, Outfit } from "next/font/google";
+import { Suspense } from "react";
 import "../globals.css";
 import Navbar from "@/components/Navbar";
 import CommandMenuLoader from "@/components/CommandMenuLoader";
@@ -8,6 +10,7 @@ import LazyToaster from "@/components/LazyToaster";
 import Footer from "@/components/Footer";
 import CookiesBanner from "@/components/CookiesBanner";
 import { isLocale, translate } from "@/lib/i18n";
+import { LocaleProvider } from "@/lib/use-locale";
 import { SITE_URL } from "@/lib/site";
 
 // Both families are variable fonts. Listing weights makes next/font fetch a
@@ -66,8 +69,8 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }>) {
-  const { locale } = await params;
-  if (!isLocale(locale)) notFound();
+  const rootLocale = await getRootLocale();
+  const locale = isLocale(rootLocale) ? rootLocale : "en";
 
   return (
     <html lang={locale} className={`${heading.variable} ${body.variable} dark`}>
@@ -76,13 +79,28 @@ export default async function RootLayout({
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
       </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground antialiased">
-        <Navbar />
-        <CommandMenuLoader />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <CookiesBanner />
-        <LazyToaster />
+        <LocaleProvider locale={locale}>
+          <Suspense fallback={null}>
+            <LocaleValidation params={params} />
+          </Suspense>
+          <Navbar />
+          <CommandMenuLoader />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <CookiesBanner />
+          <LazyToaster />
+        </LocaleProvider>
       </body>
     </html>
   );
+}
+
+async function LocaleValidation({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  if (!isLocale(locale)) notFound();
+  return null;
 }

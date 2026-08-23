@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStreamTech } from "@/lib/stream-tech";
 
-export const runtime = "nodejs";
 export const maxDuration = 30;
 
 const EMPTY = { height: null, video: null, audio: null };

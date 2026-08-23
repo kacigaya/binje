@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Cookie, Film, ShieldCheck } from "lucide-react";
 import { CONSENT_STORAGE_KEY } from "@/lib/consent";
 import { localizedHref } from "@/lib/i18n";
@@ -9,7 +9,6 @@ import { useTranslations } from "@/lib/use-locale";
 
 export default function Footer() {
   const { locale, t } = useTranslations();
-  const pathname = usePathname();
   const router = useRouter();
   return (
     <footer className="border-t border-white/10 bg-background/80">
@@ -32,7 +31,10 @@ export default function Footer() {
                 type="button"
                 aria-current={locale === value ? "page" : undefined}
                 onClick={() => {
-                  const nextPath = pathname.replace(/^\/(en|fr)(?=\/|$)/, `/${value}`);
+                  const nextPath = window.location.pathname.replace(
+                    /^\/(en|fr)(?=\/|$)/,
+                    `/${value}`,
+                  );
                   router.push(`${nextPath}${window.location.search}`);
                 }}
                 className={`rounded-full px-2 py-1 uppercase transition-colors cursor-pointer ${

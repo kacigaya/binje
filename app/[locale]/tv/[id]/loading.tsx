@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function TVShowLoading() {
+export default function TVShowLoading({ heading }: { heading?: string } = {}) {
   return (
     <div className="flex flex-col">
       <div className="relative w-full h-[50vh] sm:h-[60vh]">
@@ -18,7 +18,16 @@ export default function TVShowLoading() {
                 <Skeleton key={i} className="h-6 w-20 rounded-full" />
               ))}
             </div>
-            <Skeleton className="h-12 w-75 max-w-full" />
+            {heading ? (
+              <h1
+                className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                {heading}
+              </h1>
+            ) : (
+              <Skeleton className="h-12 w-75 max-w-full" />
+            )}
             <Skeleton className="h-5 w-64" />
             <div className="flex gap-4">
               <Skeleton className="h-5 w-20" />

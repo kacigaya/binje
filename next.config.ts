@@ -24,8 +24,15 @@ const CSP = [
   "form-action 'self'",
 ].join("; ");
 
+const isInstantTestBuild = process.env.NEXT_INSTANT_TEST === "1";
+
 const nextConfig: NextConfig = {
-  output: "standalone",
+  cacheComponents: true,
+  partialPrefetching: true,
+  experimental: {
+    exposeTestingApiInProductionBuild: isInstantTestBuild,
+  },
+  output: isInstantTestBuild ? undefined : "standalone",
   poweredByHeader: false,
   images: {
     // WebP only. TMDB already serves right-sized JPEGs, so AVIF bought a few

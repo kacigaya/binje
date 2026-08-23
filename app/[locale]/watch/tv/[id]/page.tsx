@@ -1,14 +1,19 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
+import { locale as getRootLocale } from "next/root-params";
+import { connection } from "next/server";
+import { Suspense } from "react";
 import { Calendar, Layers, Tv } from "lucide-react";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import { Badge } from "@/components/ui/badge";
 import {
   getTVDetails,
-  getTVContentRating,
   getTVImages,
   getSeasonEpisodes,
+} from "@/lib/cached-tmdb";
+import {
+  getTVContentRating,
   backdropUrl,
   logoUrl,
   pickLogo,
@@ -19,7 +24,8 @@ import ExpandableOverview from "@/components/ExpandableOverview";
 import TVPlayer from "./TVPlayer";
 import Link from "next/link";
 import StreamTechBadges from "@/components/StreamTechBadges";
-import { localizedHref, translate, type Locale } from "@/lib/i18n";
+import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
+import { WatchTVInfoLoading, WatchTVPlayerLoading } from "./loading";
 
 export async function generateMetadata({
   params,
@@ -58,8 +64,27 @@ export default async function WatchTVPage({
   params: Promise<{ locale: Locale; id: string }>;
   searchParams: Promise<{ s?: string; e?: string }>;
 }) {
+  const rootLocale = await getRootLocale();
+  const locale = isLocale(rootLocale) ? rootLocale : "en";
+
+  return (
+    <div className="flex flex-col pt-20" data-testid="watch-tv-shell">
+      <Suspense fallback={<WatchTVInfoLoading heading={translate(locale, "TV")} />}>
+        <WatchTVInfo params={params} />
+      </Suspense>
+      <Suspense fallback={<WatchTVPlayerLoading />}>
+        <WatchTVPlayer params={params} searchParams={searchParams} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function WatchTVInfo({
+  params,
+}: {
+  params: Promise<{ locale: Locale; id: string }>;
+}) {
   const { locale, id } = await params;
-  const { s, e } = await searchParams;
   const showId = parseTmdbId(id);
   if (showId === null) notFound();
   const showPromise = getTVDetails(showId, locale);
@@ -71,32 +96,11 @@ export default async function WatchTVPage({
   const showLogoUrl = logoUrl(logo?.file_path ?? null);
   const contentRating = getTVContentRating(show);
 
-  const season = s ? parseInt(s, 10) : 1;
-  const episode = e ? parseInt(e, 10) : 1;
-
-  const seasons = show.seasons.filter((ss) => ss.season_number > 0);
-
-  const initialEpisodes = await getSeasonEpisodes(showId, season, locale).catch(
-    () => [],
-  );
-
   return (
-    <div className="flex flex-col pt-20">
-      <PlayHistoryRecorder
-        item={{
-          type: "tv",
-          id: show.id,
-          title: show.name,
-          poster_path: show.poster_path,
-          backdrop_path: show.backdrop_path,
-          date: show.first_air_date,
-          vote_average: show.vote_average,
-          season,
-          episode,
-        }}
-      />
-
-      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
+    <div
+      className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4"
+      data-testid="watch-tv-data"
+    >
         <div className="space-y-4 mt-6">
           <Link
             href={localizedHref(locale, `/tv/${show.id}`)}
@@ -178,9 +182,49 @@ export default async function WatchTVPage({
             className="text-foreground/70 leading-relaxed"
           />
         </div>
-      </div>
+    </div>
+  );
+}
 
-      <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8">
+async function WatchTVPlayer({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: Locale; id: string }>;
+  searchParams: Promise<{ s?: string; e?: string }>;
+}) {
+  await connection();
+  const [{ locale, id }, { s, e }] = await Promise.all([params, searchParams]);
+  const showId = parseTmdbId(id);
+  if (showId === null) notFound();
+
+  const season = s ? parseInt(s, 10) : 1;
+  const episode = e ? parseInt(e, 10) : 1;
+  const show = await getTVDetails(showId, locale);
+  const initialEpisodes = await getSeasonEpisodes(showId, season, locale).catch(
+    () => [],
+  );
+  const seasons = show.seasons.filter((item) => item.season_number > 0);
+
+  return (
+    <>
+      <PlayHistoryRecorder
+        item={{
+          type: "tv",
+          id: show.id,
+          title: show.name,
+          poster_path: show.poster_path,
+          backdrop_path: show.backdrop_path,
+          date: show.first_air_date,
+          vote_average: show.vote_average,
+          season,
+          episode,
+        }}
+      />
+      <div
+        className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8"
+        data-testid="watch-tv-player"
+      >
         <TVPlayer
           showId={show.id}
           title={show.original_name}
@@ -188,14 +232,14 @@ export default async function WatchTVPage({
           imdbId={show.external_ids.imdb_id}
           season={season}
           episode={episode}
-          seasons={seasons.map((ss) => ({
-            season_number: ss.season_number,
-            name: ss.name,
-            episode_count: ss.episode_count,
+          seasons={seasons.map((item) => ({
+            season_number: item.season_number,
+            name: item.name,
+            episode_count: item.episode_count,
           }))}
           initialEpisodes={initialEpisodes}
         />
       </div>
-    </div>
+    </>
   );
 }

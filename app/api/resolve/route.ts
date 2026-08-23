@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { allowStreamHosts } from "@/lib/hls-hosts";
 import { cachedResolveVideasyStream } from "@/lib/resolve-cache";
 
-export const runtime = "nodejs";
 export const maxDuration = 20;
 
 export async function GET(request: NextRequest) {

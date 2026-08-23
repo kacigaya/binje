@@ -16,8 +16,10 @@ import {
   SyntheticEvent,
   useEffect,
   useCallback,
+  Suspense,
   useTransition,
   type ForwardRefExoticComponent,
+  type ComponentProps,
   type HTMLAttributes,
   type ReactNode,
   type RefAttributes,
@@ -83,10 +85,38 @@ function NavLink({
   );
 }
 
+function ActiveNavLink({
+  activeClassName,
+  inactiveClassName,
+  ...props
+}: Omit<ComponentProps<typeof NavLink>, "className"> & {
+  activeClassName: string;
+  inactiveClassName: string;
+}) {
+  const pathname = usePathname();
+
+  return (
+    <NavLink
+      {...props}
+      className={pathname === props.href ? activeClassName : inactiveClassName}
+    />
+  );
+}
+
+function HideOnSearchRoute({
+  locale,
+  children,
+}: {
+  locale: string;
+  children: ReactNode;
+}) {
+  const pathname = usePathname();
+  return pathname.startsWith(`/${locale}/search`) ? null : children;
+}
+
 export default function Navbar() {
   const { locale, t } = useTranslations();
   const router = useRouter();
-  const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -161,22 +191,34 @@ export default function Navbar() {
             <div className="hidden md:flex items-center gap-1">
               {NAV_LINKS.map((link) => {
                 const href = localizedHref(locale, link.href);
-                const active = pathname === href;
+                const baseClassName =
+                  "flex items-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm";
+                const inactiveClassName = `${baseClassName} text-muted-foreground hover:bg-white/8 hover:text-foreground`;
 
                 return (
-                  <NavLink
+                  <Suspense
                     key={link.href}
-                    href={href}
-                    icon={link.icon}
-                    iconSize={16}
-                    className={`flex items-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
-                      active
-                        ? "bg-white/10 text-foreground"
-                        : "text-muted-foreground hover:bg-white/8 hover:text-foreground"
-                    }`}
+                    fallback={
+                      <NavLink
+                        href={href}
+                        icon={link.icon}
+                        iconSize={16}
+                        className={inactiveClassName}
+                      >
+                        {t(link.label)}
+                      </NavLink>
+                    }
                   >
-                    {t(link.label)}
-                  </NavLink>
+                    <ActiveNavLink
+                      href={href}
+                      icon={link.icon}
+                      iconSize={16}
+                      activeClassName={`${baseClassName} bg-white/10 text-foreground`}
+                      inactiveClassName={inactiveClassName}
+                    >
+                      {t(link.label)}
+                    </ActiveNavLink>
+                  </Suspense>
                 );
               })}
             </div>
@@ -195,7 +237,23 @@ export default function Navbar() {
             </button>
           )}
 
-          {!pathname.startsWith(`/${locale}/search`) && (
+          <Suspense
+            fallback={
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(true);
+                  setMenuOpen(false);
+                }}
+                className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/8 hover:text-foreground cursor-pointer"
+                aria-label={t("Open search")}
+                aria-expanded={false}
+              >
+                <MorphIcon icon={SearchNode} size={20} reducedMotion="user" />
+              </button>
+            }
+          >
+            <HideOnSearchRoute locale={locale}>
             <div className="flex items-center gap-2">
               {open && (
                 <form onSubmit={handleSubmit} className="flex items-center">
@@ -304,7 +362,8 @@ export default function Navbar() {
                 <MorphIcon icon={open ? XNode : SearchNode} size={20} reducedMotion="user" />
               </button>
             </div>
-          )}
+            </HideOnSearchRoute>
+          </Suspense>
         </div>
         </div>
 
@@ -321,26 +380,40 @@ export default function Navbar() {
             <div className="flex flex-col gap-1 px-4 py-3 sm:px-6">
               {NAV_LINKS.map((link) => {
                 const href = localizedHref(locale, link.href);
-                const active = pathname === href;
+                const visibilityClassName = menuOpen
+                  ? "translate-y-0 opacity-100"
+                  : "-translate-y-1 opacity-0";
+                const baseClassName = `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition duration-200 ${visibilityClassName}`;
+                const inactiveClassName = `${baseClassName} text-muted-foreground hover:bg-white/8 hover:text-foreground`;
 
                 return (
-                  <NavLink
+                  <Suspense
                     key={link.href}
-                    href={href}
-                    icon={link.icon}
-                    iconSize={20}
-                    onClick={() => setMenuOpen(false)}
-                    tabIndex={menuOpen ? 0 : -1}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition duration-200 ${
-                      active
-                        ? "bg-white/10 text-foreground"
-                        : "text-muted-foreground hover:bg-white/8 hover:text-foreground"
-                    } ${
-                      menuOpen ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
-                    }`}
+                    fallback={
+                      <NavLink
+                        href={href}
+                        icon={link.icon}
+                        iconSize={20}
+                        onClick={() => setMenuOpen(false)}
+                        tabIndex={menuOpen ? 0 : -1}
+                        className={inactiveClassName}
+                      >
+                        {t(link.label)}
+                      </NavLink>
+                    }
                   >
-                    {t(link.label)}
-                  </NavLink>
+                    <ActiveNavLink
+                      href={href}
+                      icon={link.icon}
+                      iconSize={20}
+                      onClick={() => setMenuOpen(false)}
+                      tabIndex={menuOpen ? 0 : -1}
+                      activeClassName={`${baseClassName} bg-white/10 text-foreground`}
+                      inactiveClassName={inactiveClassName}
+                    >
+                      {t(link.label)}
+                    </ActiveNavLink>
+                  </Suspense>
                 );
               })}
             </div>

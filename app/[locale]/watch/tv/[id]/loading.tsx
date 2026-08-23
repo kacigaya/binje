@@ -1,12 +1,19 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function WatchTVLoading() {
+export function WatchTVInfoLoading({ heading }: { heading?: string } = {}) {
   return (
-    <div className="flex flex-col pt-20">
-      {}
-      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
+    <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
         <div className="space-y-4 mt-6">
-          <Skeleton className="h-12 w-64 max-w-full" />
+          {heading ? (
+            <h1
+              className="text-2xl font-bold tracking-tight sm:text-3xl"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {heading}
+            </h1>
+          ) : (
+            <Skeleton className="h-12 w-64 max-w-full" />
+          )}
 
           <div className="flex flex-wrap gap-2">
             {Array.from({ length: 4 }).map((_, i) => (
@@ -28,9 +35,15 @@ export default function WatchTVLoading() {
           </div>
         </div>
       </div>
+  );
+}
 
-      {}
-      <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8">
+export function WatchTVPlayerLoading() {
+  return (
+    <div
+      className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8"
+      data-testid="watch-tv-player-frame"
+    >
         <div className="space-y-4">
           <Skeleton className="w-full aspect-video rounded-xl" />
 
@@ -58,6 +71,14 @@ export default function WatchTVLoading() {
           </div>
         </div>
       </div>
+  );
+}
+
+export default function WatchTVLoading() {
+  return (
+    <div className="flex flex-col pt-20">
+      <WatchTVInfoLoading />
+      <WatchTVPlayerLoading />
     </div>
   );
 }

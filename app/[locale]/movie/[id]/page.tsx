@@ -2,26 +2,32 @@ import { notFound } from "next/navigation";
 import WatchNowLink from "@/components/WatchNowLink";
 import type { Metadata } from "next";
 import Image from "next/image";
+import { locale as getRootLocale } from "next/root-params";
+import { Suspense } from "react";
 import { Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
+import CarouselSkeleton from "@/components/CarouselSkeleton";
 import WatchlistButton from "@/components/WatchlistButton";
 import StreamTechBadges from "@/components/StreamTechBadges";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import {
   getMovieDetails,
-  getMovieContentRating,
   getMovieCredits,
   getSimilarMovies,
+} from "@/lib/cached-tmdb";
+import {
+  getMovieContentRating,
   movieToMedia,
   posterUrl,
   backdropUrl,
   profileUrl,
   parseTmdbId,
 } from "@/lib/tmdb";
-import { localizedHref, translate, type Locale } from "@/lib/i18n";
+import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
+import MovieLoading from "./loading";
 
 export async function generateMetadata({
   params,
@@ -52,21 +58,29 @@ export default async function MoviePage({
 }: {
   params: Promise<{ locale: Locale; id: string }>;
 }) {
+  const rootLocale = await getRootLocale();
+  const locale = isLocale(rootLocale) ? rootLocale : "en";
+
+  return (
+    <Suspense fallback={<MovieLoading heading={translate(locale, "Movie")} />}>
+      <MovieDetails params={params} />
+    </Suspense>
+  );
+}
+
+async function MovieDetails({
+  params,
+}: {
+  params: Promise<{ locale: Locale; id: string }>;
+}) {
   const { locale, id } = await params;
   const movieId = parseTmdbId(id);
   if (movieId === null) notFound();
 
-  const moviePromise = getMovieDetails(movieId, locale);
-  const [movie, credits, similar] = await Promise.all([
-    moviePromise,
-    getMovieCredits(movieId, locale),
-    getSimilarMovies(movieId, locale),
-  ]);
+  const movie = await getMovieDetails(movieId, locale);
 
   const backdrop = backdropUrl(movie.backdrop_path, "w1280");
   const poster = posterUrl(movie.poster_path, "w500");
-  const director = credits.crew.find((c) => c.job === "Director");
-  const topCast = credits.cast.slice(0, 12);
   const contentRating = getMovieContentRating(movie);
 
   return (
@@ -206,69 +220,83 @@ export default async function MoviePage({
               </p>
             </div>
 
-            {director && (
-              <div>
-                <span className="text-sm text-muted-foreground">{translate(locale, "Director")}</span>
-                <p className="font-medium">{director.name}</p>
-              </div>
-            )}
+            <Suspense fallback={null}>
+              <MovieDirector movieId={movieId} locale={locale} />
+            </Suspense>
           </div>
         </div>
 
-        {topCast.length > 0 && (
-          <div className="mt-12">
-            <h2
-              className="text-xl font-bold mb-6 px-0"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {translate(locale, "Cast")}
-            </h2>
-            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-              {topCast.map((person, i) => {
-                const photo = profileUrl(person.profile_path);
-                return (
-                  <div
-                    key={`${person.id}-${i}`}
-                    className="shrink-0 w-27.5 text-center"
-                  >
-                    <div className="relative size-27.5 rounded-full overflow-hidden bg-muted mx-auto mb-2">
-                      {photo ? (
-                        <Image
-                          src={photo}
-                          alt={person.name}
-                          fill
-                          loading="lazy"
-                          className="object-cover"
-                          sizes="110px"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-2xl text-muted-foreground font-bold">
-                          {person.name.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-sm font-medium leading-tight line-clamp-1">
-                      {person.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                      {person.character}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        <Suspense fallback={null}>
+          <MovieCast movieId={movieId} locale={locale} />
+        </Suspense>
 
-        {similar.length > 0 && (
-          <div className="mt-12">
-            <Carousel
-              title={translate(locale, "Similar Movies")}
-              items={similar.map(movieToMedia)}
-            />
-          </div>
-        )}
+        <Suspense fallback={<div className="mt-12"><CarouselSkeleton /></div>}>
+          <SimilarMovies movieId={movieId} locale={locale} />
+        </Suspense>
       </div>
+    </div>
+  );
+}
+
+async function MovieDirector({ movieId, locale }: { movieId: number; locale: Locale }) {
+  const credits = await getMovieCredits(movieId, locale);
+  const director = credits.crew.find((person) => person.job === "Director");
+  if (!director) return null;
+
+  return (
+    <div>
+      <span className="text-sm text-muted-foreground">
+        {translate(locale, "Director")}
+      </span>
+      <p className="font-medium">{director.name}</p>
+    </div>
+  );
+}
+
+async function MovieCast({ movieId, locale }: { movieId: number; locale: Locale }) {
+  const credits = await getMovieCredits(movieId, locale);
+  const topCast = credits.cast.slice(0, 12);
+  if (topCast.length === 0) return null;
+
+  return (
+    <div className="mt-12">
+      <h2
+        className="mb-6 text-xl font-bold"
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
+        {translate(locale, "Cast")}
+      </h2>
+      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+        {topCast.map((person, index) => {
+          const photo = profileUrl(person.profile_path);
+          return (
+            <div key={`${person.id}-${index}`} className="w-27.5 shrink-0 text-center">
+              <div className="relative mx-auto mb-2 size-27.5 overflow-hidden rounded-full bg-muted">
+                {photo ? (
+                  <Image src={photo} alt={person.name} fill loading="lazy" className="object-cover" sizes="110px" />
+                ) : (
+                  <div className="flex size-full items-center justify-center text-2xl font-bold text-muted-foreground">
+                    {person.name.charAt(0)}
+                  </div>
+                )}
+              </div>
+              <p className="line-clamp-1 text-sm font-medium leading-tight">{person.name}</p>
+              <p className="line-clamp-1 text-xs text-muted-foreground">{person.character}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+async function SimilarMovies({ movieId, locale }: { movieId: number; locale: Locale }) {
+  const similar = await getSimilarMovies(movieId, locale);
+  if (similar.length === 0) return null;
+
+  return (
+    <div className="mt-12">
+      <Carousel title={translate(locale, "Similar Movies")} items={similar.map(movieToMedia)} />
     </div>
   );
 }

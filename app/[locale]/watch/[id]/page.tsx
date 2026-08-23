@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { locale as getRootLocale } from "next/root-params";
+import { Suspense } from "react";
 import { Clock, Calendar } from "lucide-react";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import StreamTechBadges from "@/components/StreamTechBadges";
@@ -11,14 +13,17 @@ import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
 import ExpandableOverview from "@/components/ExpandableOverview";
 import {
   getMovieDetails,
-  getMovieContentRating,
   getMovieImages,
+} from "@/lib/cached-tmdb";
+import {
+  getMovieContentRating,
   backdropUrl,
   logoUrl,
   pickLogo,
   parseTmdbId,
 } from "@/lib/tmdb";
-import { localizedHref, type Locale } from "@/lib/i18n";
+import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
+import { WatchInfoLoading, WatchPlayerLoading } from "./loading";
 
 export async function generateMetadata({
   params,
@@ -49,6 +54,26 @@ export default async function WatchPage({
 }: {
   params: Promise<{ locale: Locale; id: string }>;
 }) {
+  const rootLocale = await getRootLocale();
+  const locale = isLocale(rootLocale) ? rootLocale : "en";
+
+  return (
+    <div className="flex flex-col pt-20" data-testid="watch-movie-shell">
+      <Suspense fallback={<WatchInfoLoading heading={translate(locale, "Movie")} />}>
+        <WatchMovieInfo params={params} />
+      </Suspense>
+      <Suspense fallback={<WatchPlayerLoading />}>
+        <WatchMoviePlayer params={params} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function WatchMovieInfo({
+  params,
+}: {
+  params: Promise<{ locale: Locale; id: string }>;
+}) {
   const { locale, id } = await params;
   const movieId = parseTmdbId(id);
   if (movieId === null) notFound();
@@ -62,7 +87,7 @@ export default async function WatchPage({
   const contentRating = getMovieContentRating(movie);
 
   return (
-    <div className="flex flex-col pt-20">
+    <>
       <PlayHistoryRecorder
         item={{
           type: "movie",
@@ -157,15 +182,32 @@ export default async function WatchPage({
         </div>
       </div>
 
-      <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8">
-        <Player
-          tmdbId={movie.id}
-          title={movie.original_title}
-          year={movie.release_date.slice(0, 4)}
-          imdbId={movie.imdb_id}
-          type="movie"
-        />
-      </div>
+    </>
+  );
+}
+
+async function WatchMoviePlayer({
+  params,
+}: {
+  params: Promise<{ locale: Locale; id: string }>;
+}) {
+  const { locale, id } = await params;
+  const movieId = parseTmdbId(id);
+  if (movieId === null) notFound();
+  const movie = await getMovieDetails(movieId, locale);
+
+  return (
+    <div
+      className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8"
+      data-testid="watch-movie-player"
+    >
+      <Player
+        tmdbId={movie.id}
+        title={movie.original_title}
+        year={movie.release_date.slice(0, 4)}
+        imdbId={movie.imdb_id}
+        type="movie"
+      />
     </div>
   );
 }

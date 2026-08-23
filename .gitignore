@@ -41,9 +41,9 @@ yarn-error.log*
 next-env.d.ts
 .hermes/plans
 # Playwright
-playwright.config.ts
-tests/
 .playwright-mcp/
+/playwright-report/
+/test-results/
 
 # wrangler local cache/state
 worker/.wrangler/
