@@ -5,7 +5,7 @@
   "workspaces": [
     "apps/mobile"
   ],
-  "packageManager": "bun@1.3.11",
+  "packageManager": "bun@1.4.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
