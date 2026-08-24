@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/icon.svg" alt="Logo" width="200">
+  <img src="public/icon.svg" alt="b!nje logo" width="140">
 </p>
 
 <h1 align="center">b!nje</h1>
@@ -7,6 +7,14 @@
 <p align="center">
    <strong>A movie and TV discovery app for web, Android, and iOS.</strong><br>
    <em>Powered by TMDB API with optional Rotten Tomatoes scores via OMDb.</em>
+</p>
+
+<p align="center">
+  <a href="https://nextjs.org"><img alt="Next.js 16.3.2" src="https://shieldcn.dev/badge/Next.js-16.3.2-171717.svg?variant=secondary&amp;logo=nextdotjs"></a>
+  <a href="https://bun.sh"><img alt="Bun 1.3" src="https://shieldcn.dev/badge/Bun-1.3-fbf0df.svg?variant=secondary&amp;logo=bun&amp;logoColor=171717"></a>
+  <a href="https://tailwindcss.com"><img alt="Tailwind CSS 4" src="https://shieldcn.dev/badge/Tailwind_CSS-4-06b6d4.svg?variant=secondary&amp;logo=tailwindcss"></a>
+  <a href="https://expo.dev"><img alt="Expo 57" src="https://shieldcn.dev/badge/Expo-57-000020.svg?variant=secondary&amp;logo=expo"></a>
+  <a href="https://github.com/kacigaya/binje/blob/main/LICENSE"><img alt="MIT License" src="https://shieldcn.dev/github/license/kacigaya/binje.svg?variant=secondary"></a>
 </p>
 
 ## Features
