@@ -9,7 +9,7 @@ COPY apps/mobile/package.json ./apps/mobile/package.json
 COPY patches ./patches
 RUN bun install --frozen-lockfile
 
-FROM oven/bun:1.3.14-slim AS builder
+FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -21,7 +21,7 @@ RUN --mount=type=secret,id=TMDB_API_KEY \
     --mount=type=secret,id=OMDB_API_KEY \
     TMDB_API_KEY="$(cat /run/secrets/TMDB_API_KEY)" \
     OMDB_API_KEY="$(cat /run/secrets/OMDB_API_KEY)" \
-    bun run build
+    node node_modules/next/dist/bin/next build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
