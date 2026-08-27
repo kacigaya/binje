@@ -19,6 +19,11 @@
 
 The Expo app asks `/api/resolve` or `/api/resolve-vf` for a stream and plays the proxied HLS URL with `expo-video`. Provider extraction and browser-like request headers remain on the server. Playback progress is throttled and stored locally after consent.
 
+For Google Cast, the native sender requests a short-lived token from `/api/cast`,
+loads the token-bound HLS proxy URL in Google's Default Media Receiver, and transfers
+the current position and subtitle tracks. Remote progress continues updating local
+history. Disconnecting restores local playback at the last remote position.
+
 ## Local state
 
 AsyncStorage repositories validate every decoded record. Watchlist is limited to 100 unique titles and history to 20. TV progress is keyed by title, season, and episode. Locale selection prefers a saved choice, then the device locale, then English.

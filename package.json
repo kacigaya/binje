@@ -1,6 +1,6 @@
 {
   "name": "binje",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "private": true,
   "workspaces": [
     "apps/mobile"
@@ -12,9 +12,8 @@
     "build:instant": "NEXT_INSTANT_TEST=1 next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "bash -lc 'shopt -s globstar; bun test lib/**/*.test.ts app/**/*.test.ts companion/**/*.test.ts'",
+    "test": "bash -lc 'shopt -s globstar; bun test lib/**/*.test.ts app/**/*.test.ts'",
     "test:instant": "bun run build:instant && playwright test e2e/instant.spec.ts",
-    "cast:companion": "bun run companion/index.ts",
     "mobile:start": "bun --cwd apps/mobile start",
     "mobile:android": "bun --cwd apps/mobile android",
     "mobile:ios": "bun --cwd apps/mobile ios",

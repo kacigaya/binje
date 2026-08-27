@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
@@ -15,6 +15,7 @@ import { upsertPlayHistory, updatePlayHistoryProgress } from "../../storage/play
 import { colors, fonts, spacing } from "../../theme";
 import { createProgressWriter } from "./progressWriter";
 import { proxiedHlsUrl, resolveStream, type AudioVariant } from "./resolveStream";
+import NativeCastControls from "./CastControls";
 import type { MobileMediaType, StreamResponse } from "../../types/api";
 
 export function PlayerScreen({
@@ -39,6 +40,8 @@ export function PlayerScreen({
   const [qualityHeight, setQualityHeight] = useState<number | null>(null);
   const [qualityMenuOpen, setQualityMenuOpen] = useState(false);
   const [seasonPickerOpen, setSeasonPickerOpen] = useState(false);
+  const [casting, setCasting] = useState(false);
+  const castingRef = useRef(false);
   const details = useQuery({
     queryKey: ["details", type, id, locale],
     queryFn: ({ signal }) => getMediaDetails(type, id, locale, signal),
@@ -62,6 +65,25 @@ export function PlayerScreen({
         updatePlayHistoryProgress({ type, id, season, episode, positionSeconds, durationSeconds }),
       ),
     [episode, id, season, type],
+  );
+  const handleCastingChange = useCallback((active: boolean) => {
+    castingRef.current = active;
+    setCasting(active);
+  }, []);
+  const handleRemoteProgress = useCallback(
+    (positionSeconds: number, durationSeconds: number) => {
+      void progressWriter.update(positionSeconds, durationSeconds);
+    },
+    [progressWriter],
+  );
+  const handleCastDisconnect = useCallback(
+    (positionSeconds: number, resume: boolean) => {
+      if (Number.isFinite(positionSeconds) && positionSeconds > 0) {
+        player.seekBy(positionSeconds - player.currentTime);
+      }
+      if (resume) player.play();
+    },
+    [player],
   );
 
   useEffect(() => {
@@ -111,7 +133,7 @@ export function PlayerScreen({
         setStream(result);
         setQualityHeight(null);
         await player.replaceAsync({ uri: proxiedHlsUrl(result.url), contentType: "hls" });
-        if (!cancelled) player.play();
+        if (!cancelled && !castingRef.current) player.play();
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -137,10 +159,11 @@ export function PlayerScreen({
     const file = height == null ? stream.url : stream.sources?.find((source) => source.height === height)?.file;
     if (!file) return;
     setQualityHeight(height);
+    const wasCasting = castingRef.current;
     const position = player.currentTime;
     await player.replaceAsync({ uri: proxiedHlsUrl(file), contentType: "hls" });
     if (position > 0) player.seekBy(position);
-    player.play();
+    if (!wasCasting) player.play();
   }
 
   const seasonList = (details.data?.seasons ?? []).filter((item) => item.seasonNumber > 0);
@@ -228,7 +251,7 @@ export function PlayerScreen({
         <VideoView
           player={player}
           style={styles.video}
-          nativeControls
+          nativeControls={!casting}
           contentFit="contain"
           allowsPictureInPicture
           fullscreenOptions={{ enable: true }}
@@ -236,6 +259,20 @@ export function PlayerScreen({
         {resolving ? <View style={styles.overlay}><ActivityIndicator color="#fff" size="large" /></View> : null}
         <View style={styles.playerControls}>
           <View style={styles.playerPillGroup}>
+            <NativeCastControls
+              player={player}
+              mediaKey={`${type}:${id}:${type === "tv" ? `${season}:${episode}` : "movie"}`}
+              source={stream
+                ? qualityHeight == null
+                  ? stream.url
+                  : stream.sources?.find((item) => item.height === qualityHeight)?.file ?? stream.url
+                : null}
+              tracks={stream?.tracks ?? []}
+              title={details.data.title}
+              onCastingChange={handleCastingChange}
+              onDisconnect={handleCastDisconnect}
+              onRemoteProgress={handleRemoteProgress}
+            />
             {(["vo", "vf"] as const).map((item) => (
               <Pressable
                 accessibilityRole="button"

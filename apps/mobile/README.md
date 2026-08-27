@@ -24,6 +24,11 @@ npx eas-cli@latest build --platform ios --profile development
 
 EAS authentication and access to the owning Expo account are required. Store submission is not performed automatically.
 
+Google Cast uses the native sender SDK and Google's Default Media Receiver. After
+adding or upgrading `react-native-google-cast`, rebuild the development client before
+testing. The Cast button appears in the player when a compatible receiver is available
+on the same network.
+
 ## Validation
 
 ```bash

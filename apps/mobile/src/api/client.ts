@@ -4,6 +4,7 @@ type QueryValue = string | number | boolean | null | undefined;
 
 type ApiRequestOptions = {
   baseUrl?: string;
+  method?: "GET" | "POST";
   query?: Record<string, QueryValue>;
   timeoutMs?: number;
   signal?: AbortSignal;
@@ -34,7 +35,7 @@ export function normalizeBaseUrl(value: string): string {
   return trimmed;
 }
 
-function configuredBaseUrl(): string {
+export function configuredBaseUrl(): string {
   return normalizeBaseUrl(
     process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://binje.duckdns.org",
   );
@@ -58,6 +59,7 @@ export async function apiRequest<T>(
   try {
     const response = await fetch(url.toString(), {
       headers: { Accept: "application/json" },
+      method: options.method ?? "GET",
       signal: controller.signal,
     });
 

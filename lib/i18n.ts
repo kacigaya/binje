@@ -114,20 +114,6 @@ const FRENCH = {
   "Play on device": "Lire sur l’appareil",
   "Pause on device": "Mettre en pause sur l’appareil",
   "Unable to cast. Try again.": "Impossible de diffuser. Réessayez.",
-  "How to cast this tab": "Comment caster cet onglet",
-  "Open Chrome menu > Cast, choose Sources > Cast tab, then select your TV.":
-    "Ouvrez le menu Chrome > Caster, choisissez Sources > Caster l’onglet, puis sélectionnez votre téléviseur.",
-  "Choose a Cast device": "Choisir un appareil de diffusion",
-  "No Cast device found on your network.":
-    "Aucun appareil de diffusion détecté sur votre réseau.",
-  "Chrome tab casting is unavailable. Restart Chrome with remote debugging enabled.":
-    "La diffusion d’onglet Chrome est indisponible. Redémarrez Chrome avec le débogage à distance activé.",
-  "Chrome could not find this tab. Reload the page and try again.":
-    "Chrome n’a pas trouvé cet onglet. Rechargez la page puis réessayez.",
-  "That device is no longer available.": "Cet appareil n’est plus disponible.",
-  "This tab is already casting to another device.":
-    "Cet onglet est déjà diffusé sur un autre appareil.",
-  "Tab casting failed. Try again.": "Échec de la diffusion de l’onglet. Réessayez.",
   Subtitles: "Sous-titres",
   Season: "Saison",
   Episode: "Épisode",

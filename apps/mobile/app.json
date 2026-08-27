@@ -19,6 +19,7 @@
       "bundleIdentifier": "com.gayakaci.binje",
       "infoPlist": {
         "CFBundleDisplayName": "b!nje",
+        "NSLocalNetworkUsageDescription": "b!nje uses your local network to find and connect to Cast devices.",
         "UIViewControllerBasedStatusBarAppearance": true
       }
     },
@@ -51,6 +52,12 @@
         {
           "supportsBackgroundPlayback": false,
           "supportsPictureInPicture": true
+        }
+      ],
+      [
+        "react-native-google-cast",
+        {
+          "receiverAppId": "CC1AD845"
         }
       ]
     ],

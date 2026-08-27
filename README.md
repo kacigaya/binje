@@ -25,8 +25,7 @@
 - Detailed movie and TV show pages (ratings, cast, seasons, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
 - Watch pages with Videasy VO, optional VF, subtitles, and manual HLS quality selection
-- Casting to Google Cast and AirPlay receivers, plus Chrome tab mirroring through an
-  optional local companion for TVs that reject the Cast media receiver
+- Google Cast on web, Android, and iOS, plus AirPlay on supported Apple devices
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
 - "Continue Watching" row backed by local play history
 - Hero with auto-rotating featured titles, two-line expandable overview, and TMDB/Rotten Tomatoes ratings
@@ -119,19 +118,14 @@ The Expo application uses the Next.js deployment as its backend. See
 
 ### Casting
 
-Google Cast and AirPlay work out of the box. Some TVs accept a Chrome tab but refuse
-the Cast media receiver app; for those, run the optional companion:
+The web player uses Google Cast Web Sender and keeps AirPlay available in Safari.
+The Android and iOS apps use the native Google Cast SDK through
+`react-native-google-cast`. Mobile casting requires a development or release build;
+it does not run in Expo Go because the Cast SDK contains native code.
 
-```bash
-bun run cast:companion
-```
-
-It bridges the page to Chrome's DevTools Protocol, which is the only way to reach
-`Cast.startTabMirroring` from a web app. Chrome has to be started with
-`--remote-debugging-port=9222` and a dedicated `--user-data-dir`. See
-[`companion/README.md`](./companion/README.md) for setup and the security model.
-The Cast button falls back to instructions for Chrome's own Cast menu when the
-companion is not running.
+Both senders use Google's Default Media Receiver. The backend issues a short-lived
+Cast token and places it on HLS proxy URLs so receivers can fetch playlists,
+segments, and subtitle tracks.
 
 ### Project structure
 
@@ -148,7 +142,6 @@ app/            # Next.js App Router pages and layouts
   watch/tv/[id] # TV episode watch page
   privacy/      # Privacy policy
 components/     # Reusable web UI components (Hero, Carousel, Player, etc.)
-companion/      # Optional local service for Chrome tab casting over CDP
 apps/mobile/    # Expo Router application for Android and iOS
 lib/            # Utilities and TMDB API client
 types/          # TypeScript type definitions
@@ -167,10 +160,9 @@ tests/          # Playwright tests
   append the real client IP and to drop client-supplied forwarding headers.
 - The CSP is enforced (not report-only); `unsafe-eval` is only added in development,
   where the Next dev runtime needs it.
-- The cast companion binds to `127.0.0.1` only, checks the request `Origin` against an
-  allowlist, and requires a custom header that a cross-origin page cannot send without a
-  preflight. It exposes four fixed routes and never accepts a CDP method name from the
-  page.
+- `/api/cast` accepts same-origin web senders and originless native senders. Requests
+  carrying cross-site browser metadata are rejected. Issued tokens expire after six
+  hours and only authorize receiver CORS access to already-allowed HLS targets.
 
 ## Privacy
 

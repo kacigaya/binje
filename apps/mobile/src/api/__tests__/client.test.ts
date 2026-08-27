@@ -28,7 +28,24 @@ describe("API client", () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       "https://example.com/api/search?q=Dune+Part+Two&lang=fr",
-      expect.objectContaining({ headers: { Accept: "application/json" } }),
+      expect.objectContaining({ headers: { Accept: "application/json" }, method: "GET" }),
+    );
+  });
+
+  test("supports POST requests without changing the JSON contract", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ token: "token" }),
+    }) as jest.Mock;
+
+    await apiRequest("/api/cast", {
+      baseUrl: "https://example.com",
+      method: "POST",
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://example.com/api/cast",
+      expect.objectContaining({ method: "POST" }),
     );
   });
 

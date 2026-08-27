@@ -36,4 +36,25 @@ describe("POST /api/cast", () => {
 
     expect(response.status).toBe(403);
   });
+
+  test("issues a token to an originless native sender", async () => {
+    const response = POST(
+      new NextRequest("https://binje.test/api/cast", { method: "POST" }),
+    );
+    const body = (await response.json()) as { token: string };
+
+    expect(response.status).toBe(200);
+    expect(isValidCastToken(body.token)).toBe(true);
+  });
+
+  test("rejects an originless request marked as cross-site", () => {
+    const response = POST(
+      new NextRequest("https://binje.test/api/cast", {
+        method: "POST",
+        headers: { "sec-fetch-site": "cross-site" },
+      }),
+    );
+
+    expect(response.status).toBe(403);
+  });
 });
