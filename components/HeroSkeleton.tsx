@@ -12,7 +12,8 @@ export default function HeroSkeleton() {
       <div className="absolute inset-0 flex items-end">
         <div className="mx-auto w-full max-w-7xl px-4 pb-16 sm:px-6 sm:pb-24">
           <div className="max-w-2xl space-y-4">
-            <Skeleton className="h-12 w-96 max-w-[80vw] sm:h-14 lg:h-16" />
+            {/* Matches the pinned title slot in Hero so the swap is shift-free. */}
+            <Skeleton className="h-28 w-72 max-w-[80vw] sm:h-36 sm:w-90" />
             <div className="flex items-center gap-3">
               <Skeleton className="h-5 w-20 rounded-full" />
               <Skeleton className="h-4 w-10" />

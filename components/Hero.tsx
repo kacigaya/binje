@@ -104,24 +104,32 @@ export default function Hero({ items }: HeroProps) {
       <div className="absolute inset-0 flex items-end">
         <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16 sm:pb-24">
           <div className="max-w-2xl space-y-4">
-            {logo ? (
-              <Image
-                src={logo}
-                alt={`${activeItem.title} logo`}
-                width={activeItem.logo_width ?? 500}
-                height={activeItem.logo_height ?? 200}
-                priority
-                sizes={logoSizes}
-                className="h-auto max-h-28 w-auto max-w-xs object-contain sm:max-h-36 sm:max-w-lg"
-              />
-            ) : (
-              <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-balance"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                {activeItem.title}
-              </h1>
-            )}
+            {/*
+              The hero content is bottom-anchored, so anything that resolves to
+              a different height after paint drags the whole column upwards.
+              Pinning the title slot keeps that height fixed whether the item
+              has a logo, has none, or has one that has not decoded yet.
+            */}
+            <div className="flex min-h-28 items-end sm:min-h-36">
+              {logo ? (
+                <Image
+                  src={logo}
+                  alt={`${activeItem.title} logo`}
+                  width={activeItem.logo_width ?? 500}
+                  height={activeItem.logo_height ?? 200}
+                  priority
+                  sizes={logoSizes}
+                  className="h-28 w-auto max-w-xs object-contain object-left-bottom sm:h-36 sm:max-w-lg"
+                />
+              ) : (
+                <h1
+                  className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-balance"
+                  style={{ fontFamily: "var(--font-heading)" }}
+                >
+                  {activeItem.title}
+                </h1>
+              )}
+            </div>
 
             <div className="flex items-center gap-3">
               {activeItem.media_type === "tv" && (
