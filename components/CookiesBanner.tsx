@@ -55,55 +55,60 @@ export default function CookiesBanner() {
   }
 
   return (
+    // The enter animation and the backdrop blur are deliberately on separate
+    // elements: an element that both animates and carries a backdrop-filter
+    // cannot be composited, so the transform would run on the main thread.
     <div
       role="dialog"
       aria-label={t("Cookie consent")}
       aria-live="polite"
-      className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 right-4 z-40 mx-auto max-w-md rounded-2xl border border-white/10 bg-background/95 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] sm:left-auto sm:right-6 animate-in fade-in slide-in-from-bottom-4 duration-300"
+      className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 right-4 z-40 mx-auto max-w-md sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] sm:left-auto sm:right-6 animate-in fade-in slide-in-from-bottom-4 duration-300"
     >
-      <button
-        type="button"
-        onClick={dismiss}
-        {...dismissFeedback}
-        aria-label={t("Dismiss")}
-        className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/8 hover:text-foreground"
-      >
-        <XIcon ref={dismissIcon} size={16} />
-      </button>
-
-      <div className="flex items-start gap-3">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-red/15 text-accent-red">
-          <Cookie className="size-5" />
-        </span>
-        <div className="min-w-0 pr-6">
-          <p
-            className="text-sm font-semibold text-foreground"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            {t("We use local storage")}
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            {t("We store your watch history in your browser so you can pick up where you left off. No tracking, no third-party cookies.")}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-3 flex items-center justify-end gap-2">
-        <Button
+      <div className="relative rounded-2xl border border-white/10 bg-background/95 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <button
+          type="button"
           onClick={dismiss}
-          size="sm"
-          variant="secondary"
-          className="h-8 px-4 text-xs font-semibold"
+          {...dismissFeedback}
+          aria-label={t("Dismiss")}
+          className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/8 hover:text-foreground"
         >
-          {t("Refuse")}
-        </Button>
-        <Button
-          onClick={accept}
-          size="sm"
-          className="h-8 px-4 text-xs font-semibold"
-        >
-          {t("Accept")}
-        </Button>
+          <XIcon ref={dismissIcon} size={16} />
+        </button>
+
+        <div className="flex items-start gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-red/15 text-accent-red">
+            <Cookie className="size-5" />
+          </span>
+          <div className="min-w-0 pr-6">
+            <p
+              className="text-sm font-semibold text-foreground"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {t("We use local storage")}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {t("We store your watch history in your browser so you can pick up where you left off. No tracking, no third-party cookies.")}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center justify-end gap-2">
+          <Button
+            onClick={dismiss}
+            size="sm"
+            variant="secondary"
+            className="h-8 px-4 text-xs font-semibold"
+          >
+            {t("Refuse")}
+          </Button>
+          <Button
+            onClick={accept}
+            size="sm"
+            className="h-8 px-4 text-xs font-semibold"
+          >
+            {t("Accept")}
+          </Button>
+        </div>
       </div>
     </div>
   );
