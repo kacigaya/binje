@@ -70,6 +70,9 @@ export default function Hero({ items }: HeroProps) {
           alt={activeItem.title}
           fill
           priority
+          // `priority` only emits the preload; without this the backdrop is
+          // fetched at Low priority and loses the race to the poster rows.
+          fetchPriority="high"
           className="object-cover object-top"
           sizes="100vw"
         />
