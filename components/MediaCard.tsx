@@ -29,9 +29,7 @@ export default function MediaCard({
             src={poster}
             alt={item.title}
             fill
-            // Eager, but deliberately not `priority`: the first row sits below
-            // the fold on phones, and `priority` would emit a High-priority
-            // preload for every one of them, outranking the hero backdrop.
+            priority={eager}
             loading={eager ? "eager" : "lazy"}
             className="object-cover transition-transform duration-200 group-hover:scale-110"
             sizes="(max-width: 640px) 160px, 185px"
