@@ -1,6 +1,6 @@
 "use client";
 
-import Hls from "hls.js";
+import type Hls from "hls.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import CastControls from "@/components/CastControls";
@@ -113,11 +113,17 @@ export default function Player({
         const nextSources = data.sources ?? [];
         setTracks(nextTracks);
         setResolvedMedia({ url: data.url, tracks: nextTracks, sources: nextSources });
-        const hlsSupported = Hls.isSupported();
         const nativeHlsSupported = Boolean(
           video.canPlayType("application/vnd.apple.mpegurl") &&
             "webkitShowPlaybackTargetPicker" in video,
         );
+        // hls.js is ~600 KB of the client bundle and Safari never needs it, so
+        // it is only fetched once we know the platform cannot play HLS itself.
+        const HlsModule = nativeHlsSupported
+          ? null
+          : (await import("hls.js")).default;
+        if (cancelled) return;
+        const hlsSupported = Boolean(HlsModule?.isSupported());
         if (!nativeHlsSupported && hlsSupported && nextSources.length) {
           masterUrl = URL.createObjectURL(
             new Blob([createMasterPlaylist(nextSources)], {
@@ -129,10 +135,10 @@ export default function Player({
 
         if (nativeHlsSupported) {
           video.src = src;
-        } else if (hlsSupported) {
-          hls = new Hls({ enableWorker: true });
+        } else if (hlsSupported && HlsModule) {
+          hls = new HlsModule({ enableWorker: true });
           hlsRef.current = hls;
-          hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+          hls.on(HlsModule.Events.MANIFEST_PARSED, (_event, data) => {
             const byHeight = new Map<number, Quality>();
             data.levels.forEach((level, index) => {
               if (!level.height) return;
@@ -149,7 +155,7 @@ export default function Player({
           });
           hls.loadSource(src);
           hls.attachMedia(video);
-          hls.on(Hls.Events.ERROR, (_e, payload) => {
+          hls.on(HlsModule.Events.ERROR, (_e, payload) => {
             if (payload.fatal) setError(true);
           });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
