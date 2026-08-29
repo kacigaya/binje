@@ -23,6 +23,22 @@ function tmdbBackdropLoader({ src, width }: ImageLoaderProps) {
   return `https://image.tmdb.org/t/p/${size}${src}`;
 }
 
+/** Rendered box the logo is capped to, mirroring the Tailwind classes below. */
+const LOGO_MAX_HEIGHT = { mobile: 112, desktop: 144 } as const; // max-h-28 / sm:max-h-36
+const LOGO_MAX_WIDTH = { mobile: 320, desktop: 512 } as const; // max-w-xs / sm:max-w-lg
+
+/**
+ * Without `sizes`, next/image treats a fixed-width image as full-bleed and
+ * requests the 1x/2x device widths — a 1280px PNG for a box that is never
+ * wider than ~360px. The logo's own aspect ratio tells us the real box.
+ */
+function heroLogoSizes(width?: number, height?: number) {
+  const ratio = width && height ? width / height : 2.5;
+  const at = (cap: keyof typeof LOGO_MAX_HEIGHT) =>
+    Math.round(Math.min(LOGO_MAX_HEIGHT[cap] * ratio, LOGO_MAX_WIDTH[cap]));
+  return `(max-width: 640px) ${at("mobile")}px, ${at("desktop")}px`;
+}
+
 export default function Hero({ items }: HeroProps) {
   const { locale, t } = useTranslations();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -49,6 +65,10 @@ export default function Hero({ items }: HeroProps) {
 
   const backdrop = activeItem.backdrop_path;
   const logo = logoUrl(activeItem.logo_path ?? null);
+  const logoSizes = heroLogoSizes(
+    activeItem.logo_width,
+    activeItem.logo_height,
+  );
   const detailHref =
     activeItem.media_type === "tv"
       ? `/tv/${activeItem.id}`
@@ -91,6 +111,7 @@ export default function Hero({ items }: HeroProps) {
                 width={activeItem.logo_width ?? 500}
                 height={activeItem.logo_height ?? 200}
                 priority
+                sizes={logoSizes}
                 className="h-auto max-h-28 w-auto max-w-xs object-contain sm:max-h-36 sm:max-w-lg"
               />
             ) : (
