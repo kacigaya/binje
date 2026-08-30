@@ -96,3 +96,30 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+/*
+ * tw-animate-css's `animate-in` drives its `enter` keyframe through filter and
+ * scale variables as well as translate, and an animation that touches a
+ * filter cannot be composited. The cookie banner only needs to rise and fade,
+ * so it gets a keyframe that stays on the compositor.
+ */
+@keyframes banner-enter {
+    from {
+        opacity: 0;
+        transform: translateY(1rem);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.animate-banner-enter {
+    animation: banner-enter 300ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-banner-enter {
+        animation: none;
+    }
+}

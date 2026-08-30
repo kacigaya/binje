@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import Link from "next/link";
 import { Info } from "lucide-react";
@@ -21,6 +21,34 @@ interface HeroProps {
 function tmdbBackdropLoader({ src, width }: ImageLoaderProps) {
   const size = width <= 780 ? "w780" : "w1280";
   return `https://image.tmdb.org/t/p/${size}${src}`;
+}
+
+/** Rendered box the logo is capped to, mirroring the Tailwind classes below. */
+const LOGO_HEIGHT = { mobile: 112, desktop: 144 } as const; // h-28 / sm:h-36
+const LOGO_MAX_WIDTH = { mobile: 320, desktop: 512 } as const; // max-w-xs / sm:max-w-lg
+
+/**
+ * The rendered width at each breakpoint, derived from the logo's own aspect
+ * ratio. Two things need it: `sizes`, because without it next/image treats a
+ * fixed-width image as full-bleed and requests the 1x/2x device widths (a
+ * 1280px PNG for a box that is never wider than ~360px), and the element's own
+ * width, because `w-auto` leaves the box indeterminate until the image decodes
+ * and the hero column is bottom-anchored.
+ */
+function heroLogoBox(width?: number, height?: number) {
+  const ratio = width && height ? width / height : 2.5;
+  const widthAt = (cap: keyof typeof LOGO_HEIGHT) =>
+    Math.round(Math.min(LOGO_HEIGHT[cap] * ratio, LOGO_MAX_WIDTH[cap]));
+
+  const mobile = widthAt("mobile");
+  const desktop = widthAt("desktop");
+  return {
+    sizes: `(max-width: 640px) ${mobile}px, ${desktop}px`,
+    style: {
+      "--logo-width": `${mobile}px`,
+      "--logo-width-sm": `${desktop}px`,
+    } as CSSProperties,
+  };
 }
 
 export default function Hero({ items }: HeroProps) {
@@ -49,6 +77,7 @@ export default function Hero({ items }: HeroProps) {
 
   const backdrop = activeItem.backdrop_path;
   const logo = logoUrl(activeItem.logo_path ?? null);
+  const logoBox = heroLogoBox(activeItem.logo_width, activeItem.logo_height);
   const detailHref =
     activeItem.media_type === "tv"
       ? `/tv/${activeItem.id}`
@@ -70,6 +99,9 @@ export default function Hero({ items }: HeroProps) {
           alt={activeItem.title}
           fill
           priority
+          // `priority` only emits the preload; without this the backdrop is
+          // fetched at Low priority and loses the race to the poster rows.
+          fetchPriority="high"
           className="object-cover object-top"
           sizes="100vw"
         />
@@ -81,23 +113,33 @@ export default function Hero({ items }: HeroProps) {
       <div className="absolute inset-0 flex items-end">
         <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16 sm:pb-24">
           <div className="max-w-2xl space-y-4">
-            {logo ? (
-              <Image
-                src={logo}
-                alt={`${activeItem.title} logo`}
-                width={activeItem.logo_width ?? 500}
-                height={activeItem.logo_height ?? 200}
-                priority
-                className="h-auto max-h-28 w-auto max-w-xs object-contain sm:max-h-36 sm:max-w-lg"
-              />
-            ) : (
-              <h1
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-balance"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                {activeItem.title}
-              </h1>
-            )}
+            {/*
+              The hero content is bottom-anchored, so anything that resolves to
+              a different height after paint drags the whole column upwards.
+              Pinning the title slot keeps that height fixed whether the item
+              has a logo, has none, or has one that has not decoded yet.
+            */}
+            <div className="flex min-h-28 items-end sm:min-h-36">
+              {logo ? (
+                <Image
+                  src={logo}
+                  alt={`${activeItem.title} logo`}
+                  width={activeItem.logo_width ?? 500}
+                  height={activeItem.logo_height ?? 200}
+                  priority
+                  sizes={logoBox.sizes}
+                  style={logoBox.style}
+                  className="h-28 w-(--logo-width) object-contain object-left-bottom sm:h-36 sm:w-(--logo-width-sm)"
+                />
+              ) : (
+                <h1
+                  className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-balance"
+                  style={{ fontFamily: "var(--font-heading)" }}
+                >
+                  {activeItem.title}
+                </h1>
+              )}
+            </div>
 
             <div className="flex items-center gap-3">
               {activeItem.media_type === "tv" && (

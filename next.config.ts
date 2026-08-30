@@ -54,6 +54,10 @@ const nextConfig: NextConfig = {
         { key: "X-Frame-Options", value: "SAMEORIGIN" },
         { key: "X-Content-Type-Options", value: "nosniff" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        // Nothing here opens a popup or touches window.opener: the only
+        // cross-window links are plain target="_blank", and the Cast SDK is a
+        // script, not a popup. So the strictest value is safe.
+        { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
         { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         { key: "Content-Security-Policy", value: CSP },
       ],
