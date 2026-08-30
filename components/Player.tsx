@@ -104,6 +104,20 @@ export default function Player({
     let hls: Hls | null = null;
     let masterUrl: string | null = null;
 
+    const nativeHlsSupported = Boolean(
+      video.canPlayType("application/vnd.apple.mpegurl") &&
+        "webkitShowPlaybackTargetPicker" in video,
+    );
+    // hls.js is ~600 KB and Safari never needs it, so it lives in its own chunk
+    // rather than the watch route's. Start that download alongside the resolve
+    // instead of after it, so splitting it out costs no playback latency. A
+    // failed load degrades to the native `canPlayType` path below.
+    const hlsModulePromise = nativeHlsSupported
+      ? null
+      : import("hls.js")
+          .then((module) => module.default)
+          .catch(() => null);
+
     (async () => {
       try {
         const data = await fetchResolve(sourceUrl);
@@ -113,15 +127,7 @@ export default function Player({
         const nextSources = data.sources ?? [];
         setTracks(nextTracks);
         setResolvedMedia({ url: data.url, tracks: nextTracks, sources: nextSources });
-        const nativeHlsSupported = Boolean(
-          video.canPlayType("application/vnd.apple.mpegurl") &&
-            "webkitShowPlaybackTargetPicker" in video,
-        );
-        // hls.js is ~600 KB of the client bundle and Safari never needs it, so
-        // it is only fetched once we know the platform cannot play HLS itself.
-        const HlsModule = nativeHlsSupported
-          ? null
-          : (await import("hls.js")).default;
+        const HlsModule = hlsModulePromise ? await hlsModulePromise : null;
         if (cancelled) return;
         const hlsSupported = Boolean(HlsModule?.isSupported());
         if (!nativeHlsSupported && hlsSupported && nextSources.length) {
