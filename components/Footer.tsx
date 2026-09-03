@@ -1,15 +1,72 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { Cookie, Film, ShieldCheck } from "lucide-react";
 import { CONSENT_STORAGE_KEY } from "@/lib/consent";
-import { localizedHref } from "@/lib/i18n";
+import { LOCALES, localizedHref, type Locale } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
+
+const LOCALE_LINK_BASE =
+  "rounded-full px-2 py-1 uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60";
+
+function localeLinkClassName(active: boolean) {
+  return `${LOCALE_LINK_BASE} ${
+    active
+      ? "bg-accent-red text-white"
+      : "text-muted-foreground hover:text-foreground"
+  }`;
+}
+
+/**
+ * The locale switch is navigation, so each option is a real link: it opens in
+ * a new tab on middle-click and survives a Cmd-click. The query string is read
+ * in a nested component because `useSearchParams` opts its whole subtree out of
+ * static rendering, and the footer sits in the root layout.
+ */
+function LocaleLinks({
+  locale,
+  path,
+}: {
+  locale: Locale;
+  path: string;
+}) {
+  const search = useSearchParams().toString();
+  return (
+    <LocaleLinkList locale={locale} path={path} search={search ? `?${search}` : ""} />
+  );
+}
+
+function LocaleLinkList({
+  locale,
+  path,
+  search,
+}: {
+  locale: Locale;
+  path: string;
+  search: string;
+}) {
+  return (
+    <>
+      {LOCALES.map((value) => (
+        <Link
+          key={value}
+          href={`${path.replace(/^\/(en|fr)(?=\/|$)/, `/${value}`)}${search}`}
+          hrefLang={value}
+          aria-current={locale === value ? "page" : undefined}
+          className={localeLinkClassName(locale === value)}
+        >
+          {value}
+        </Link>
+      ))}
+    </>
+  );
+}
 
 export default function Footer() {
   const { locale, t } = useTranslations();
-  const router = useRouter();
+  const pathname = usePathname();
   return (
     <footer className="border-t border-white/10 bg-background/80">
       <div className="mx-auto flex min-h-16 max-w-7xl flex-col items-center justify-between gap-3 px-4 py-3 sm:h-16 sm:flex-row sm:px-6 sm:py-0">
@@ -25,27 +82,13 @@ export default function Footer() {
 
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
           <div className="flex items-center rounded-full border border-white/10 bg-white/5 p-0.5 text-xs font-semibold">
-            {(["en", "fr"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                aria-current={locale === value ? "page" : undefined}
-                onClick={() => {
-                  const nextPath = window.location.pathname.replace(
-                    /^\/(en|fr)(?=\/|$)/,
-                    `/${value}`,
-                  );
-                  router.push(`${nextPath}${window.location.search}`);
-                }}
-                className={`rounded-full px-2 py-1 uppercase transition-colors cursor-pointer ${
-                  locale === value
-                    ? "bg-accent-red text-white"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {value}
-              </button>
-            ))}
+            <Suspense
+              fallback={
+                <LocaleLinkList locale={locale} path={pathname} search="" />
+              }
+            >
+              <LocaleLinks locale={locale} path={pathname} />
+            </Suspense>
           </div>
           <button
             type="button"
@@ -89,7 +132,7 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
         <p className="text-center text-xs leading-relaxed text-muted-foreground">
           {t("b!nje hosts no files on its servers. All content is provided by unaffiliated third parties. For any claim, see our")}{" "}
           <Link
