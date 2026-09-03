@@ -239,7 +239,7 @@ export default function Player({
             type="button"
             onClick={() => setLang(l.id)}
             className={cn(
-              "rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent-red/60",
+              "rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60",
               lang === l.id
                 ? "bg-accent-red text-white"
                 : "text-white/70 hover:text-white hover:bg-white/10",

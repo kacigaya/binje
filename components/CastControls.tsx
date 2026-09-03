@@ -333,7 +333,7 @@ export default function CastControls({
           type="button"
           onClick={() => remoteControllerRef.current?.playOrPause()}
           aria-label={remotePaused ? t("Play on device") : t("Pause on device")}
-          className="rounded-full p-1.5 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-red/60"
+          className="rounded-full p-1.5 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
         >
           {remotePaused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
         </button>
@@ -347,7 +347,7 @@ export default function CastControls({
         aria-describedby={error ? noticeId : undefined}
         title={castLabel}
         className={cn(
-          "rounded-full p-1.5 transition-colors focus:outline-none focus:ring-2 focus:ring-accent-red/60 disabled:cursor-wait disabled:opacity-60",
+          "rounded-full p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:cursor-wait disabled:opacity-60",
           connected
             ? "bg-accent-red text-white"
             : "text-white/70 hover:bg-white/10 hover:text-white",

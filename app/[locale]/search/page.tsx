@@ -122,7 +122,7 @@ function SearchContent() {
           placeholder={t("Search movies & TV shows…")}
           aria-label={t("Search movies & TV shows…")}
           autoFocus
-          className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-13 pr-12 text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition"
+          className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-13 pr-12 text-lg text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition"
         />
         {query && (
           <button

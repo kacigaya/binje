@@ -272,14 +272,14 @@ export default function Navbar() {
                       aria-label={t("Search movies & TV…")}
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
-                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition disabled:opacity-60"
+                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition disabled:opacity-60"
                     />
                     <button
                       type="submit"
                       disabled={pending || query.trim().length < MIN_SUGGESTION_QUERY_LENGTH}
                       {...submitFeedback}
                       aria-label={t("Search movies & TV…")}
-                      className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:opacity-40 disabled:pointer-events-none"
+                      className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       {pending ? (
                         <Loader2
@@ -307,7 +307,7 @@ export default function Navbar() {
                               key={`${suggestion.media_type}-${suggestion.id}`}
                               type="button"
                               onClick={() => openSuggestion(suggestion)}
-                              className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus:bg-white/8 focus:outline-none"
+                              className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                             >
                               <span className="relative h-12.5 w-8.5 shrink-0 overflow-hidden rounded bg-white/8">
                                 {suggestion.poster_path ? (

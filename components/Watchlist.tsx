@@ -68,7 +68,7 @@ export default function Watchlist() {
               onClick={(event) => removeItem(event, item)}
               label={`${t("Remove from watchlist")}: ${item.title}`}
               iconSize={16}
-              className="absolute right-2 bottom-2 z-10 flex size-8 items-center justify-center rounded-full bg-black/70 text-white/85 backdrop-blur-sm transition-colors hover:bg-accent-red hover:text-white focus:outline-none focus:ring-2 focus:ring-accent-red/70"
+              className="absolute right-2 bottom-2 z-10 flex size-8 items-center justify-center rounded-full bg-black/70 text-white/85 backdrop-blur-sm transition-colors hover:bg-accent-red hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/70"
             />
             <Link
               href={localizedHref(locale, getWatchlistHref(item))}
