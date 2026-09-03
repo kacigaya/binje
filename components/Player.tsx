@@ -5,7 +5,7 @@ import { RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import CastControls from "@/components/CastControls";
-import { Button } from "@/components/ui/button";
+import { Button } from "@appica/ui-react/button";
 import { Select } from "@/components/ui/select";
 import { fetchResolve } from "@/lib/resolve-client";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
@@ -323,7 +323,7 @@ export default function Player({
               onClick={() => setReloadKey((previous) => previous + 1)}
               className="h-9 cursor-pointer gap-2 rounded-full px-4"
             >
-              <RotateCcw aria-hidden="true" className="size-4" />
+              <RotateCcw aria-hidden="true" data-icon="start" className="size-4" />
               {t("Try Again")}
             </Button>
           )}

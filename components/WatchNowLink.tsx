@@ -21,7 +21,7 @@ export default function WatchNowLink({
 
   return (
     <Link href={href} {...feedback} className={className}>
-      <PlayIcon ref={icon} size={20} />
+      <PlayIcon ref={icon} data-icon="start" size={20} />
       {label}
     </Link>
   );

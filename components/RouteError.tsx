@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { RotateCCWIcon } from "@/components/ui/rotate-ccw";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
-import { Button } from "@/components/ui/button";
+import { Button } from "@appica/ui-react/button";
 import { useTranslations } from "@/lib/use-locale";
 
 export default function RouteError({
@@ -48,7 +48,7 @@ export default function RouteError({
         variant="outline"
         className="gap-2 rounded-full cursor-pointer"
       >
-        <RotateCCWIcon ref={retryIcon} size={16} />
+        <RotateCCWIcon ref={retryIcon} data-icon="start" size={16} />
         {t("Try Again")}
       </Button>
     </div>

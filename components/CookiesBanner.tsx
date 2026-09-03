@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { Cookie } from "lucide-react";
 import { XIcon } from "@/components/ui/x";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
-import { Button } from "@/components/ui/button";
+import { Button } from "@appica/ui-react/button";
 import { setConsent, CONSENT_STORAGE_KEY } from "@/lib/consent";
 import { useTranslations } from "@/lib/use-locale";
 

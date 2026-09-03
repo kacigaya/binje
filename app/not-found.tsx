@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Compass } from "lucide-react";
-import { buttonClassName } from "@/components/ui/button";
+import { buttonVariants } from "@appica/ui-react/button";
 import { HomeIcon } from "@/components/ui/home";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import "./globals.css";
@@ -28,12 +28,13 @@ export default function NotFound() {
       <Link
         href="/"
         {...homeFeedback}
-        className={buttonClassName({
+        className={buttonVariants({
           variant: "outline",
-          className: "gap-2 rounded-full h-11 px-6 cursor-pointer",
+          size: "lg",
+          className: "gap-2 rounded-full cursor-pointer",
         })}
       >
-        <HomeIcon ref={homeIcon} size={16} />
+        <HomeIcon ref={homeIcon} data-icon="start" size={16} />
         Back to home
       </Link>
     </div>

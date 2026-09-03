@@ -7,7 +7,7 @@ import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
 import { Calendar, Tv, Layers } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { buttonClassName } from "@/components/ui/button";
+import { buttonVariants } from "@appica/ui-react/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
@@ -188,10 +188,10 @@ async function TVShowDetails({
               <WatchNowLink
                 href={localizedHref(locale, `/watch/tv/${show.id}`)}
                 label={translate(locale, "Watch Now")}
-                className={buttonClassName({
+                className={buttonVariants({
                   size: "lg",
                   className:
-                    "w-full sm:w-auto rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer",
+                    "w-full sm:w-auto rounded-full font-semibold gap-2 px-10 h-12 text-base cursor-pointer",
                 })}
               />
               <WatchlistButton

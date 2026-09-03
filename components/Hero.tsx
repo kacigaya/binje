@@ -7,7 +7,7 @@ import { Info, Pause, Play } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import WatchNowLink from "@/components/WatchNowLink";
 import { Badge } from "@/components/ui/badge";
-import { buttonClassName } from "@/components/ui/button";
+import { buttonVariants } from "@appica/ui-react/button";
 import type { MediaItem } from "@/types/tmdb";
 import { logoUrl } from "@/lib/tmdb";
 import ExpandableOverview from "@/components/ExpandableOverview";
@@ -210,22 +210,22 @@ export default function Hero({ items }: HeroProps) {
               <WatchNowLink
                 href={localizedHref(locale, watchHref)}
                 label={t("Watch Now")}
-                className={buttonClassName({
+                className={buttonVariants({
                   size: "lg",
                   className:
-                    "rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-8 h-12 text-base cursor-pointer",
+                    "rounded-full font-semibold gap-2 px-8 h-12 text-base cursor-pointer",
                 })}
               />
               <Link
                 href={localizedHref(locale, detailHref)}
-                className={buttonClassName({
+                className={buttonVariants({
                   size: "lg",
                   variant: "outline",
                   className:
-                    "rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-8 h-12 text-base cursor-pointer",
+                    "rounded-full gap-2 px-8 h-12 text-base cursor-pointer",
                 })}
               >
-                <Info className="size-5" />
+                <Info data-icon="start" className="size-5" />
                 {t("Details")}
               </Link>
             </div>

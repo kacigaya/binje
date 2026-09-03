@@ -11,7 +11,7 @@ import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { Select } from "@/components/ui/select";
 import Player from "@/components/Player";
 import ScrollArrows from "@/components/ScrollArrows";
-import { Button } from "@/components/ui/button";
+import { Button } from "@appica/ui-react/button";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { stillUrl } from "@/lib/tmdb";
 import type { Episode } from "@/types/tmdb";
@@ -191,7 +191,7 @@ export default function TVPlayer({
             disabled={!hasPrev}
             className="h-10 rounded-full px-4 cursor-pointer"
           >
-            <ChevronLeftIcon ref={prevIcon} size={16} />
+            <ChevronLeftIcon ref={prevIcon} data-icon="start" size={16} />
             {t("Previous")}
           </Button>
           <Button
@@ -204,7 +204,7 @@ export default function TVPlayer({
             className="h-10 rounded-full px-4 cursor-pointer"
           >
             {t("Next")}
-            <ChevronRightIcon ref={nextIcon} size={16} />
+            <ChevronRightIcon ref={nextIcon} data-icon="end" size={16} />
           </Button>
         </div>
       </div>
