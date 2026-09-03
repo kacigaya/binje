@@ -18,7 +18,7 @@ export default function Footer() {
           style={{ fontFamily: "var(--font-heading)" }}
         >
           <Film className="size-4 text-accent-red" />
-          <span className="font-bold tracking-tight text-foreground">
+          <span className="font-bold tracking-tight text-foreground" translate="no">
             b<span className="text-accent-red">!</span>nje
           </span>
         </div>

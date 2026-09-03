@@ -181,7 +181,7 @@ export default function Navbar() {
           style={{ fontFamily: "var(--font-heading)" }}
         >
           <Film className="size-6 text-accent-red" />
-          <span className="text-foreground">
+          <span className="text-foreground" translate="no">
             b<span className="text-accent-red">!</span>nje
           </span>
         </Link>

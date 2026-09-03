@@ -78,7 +78,10 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
 
 function Code({ children }: { children: React.ReactNode }) {
   return (
-    <code className="rounded bg-white/8 px-1.5 py-0.5 text-xs text-foreground">
+    <code
+      className="rounded bg-white/8 px-1.5 py-0.5 text-xs text-foreground"
+      translate="no"
+    >
       {children}
     </code>
   );
