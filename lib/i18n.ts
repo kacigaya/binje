@@ -144,6 +144,7 @@ const FRENCH = {
   Home: "Accueil",
   Searching: "Recherche",
   Undo: "Annuler",
+  "Skip to content": "Aller au contenu",
 } as const;
 
 export type TranslationKey = keyof typeof FRENCH;
