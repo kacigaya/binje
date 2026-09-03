@@ -147,6 +147,8 @@ const FRENCH = {
   "Skip to content": "Aller au contenu",
   "Pause featured titles": "Mettre en pause les titres à la une",
   "Resume featured titles": "Reprendre les titres à la une",
+  "Audio track": "Piste audio",
+  "Video player": "Lecteur vidéo",
 } as const;
 
 export type TranslationKey = keyof typeof FRENCH;
