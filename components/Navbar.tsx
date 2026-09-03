@@ -31,7 +31,6 @@ import {
   MIN_SUGGESTION_QUERY_LENGTH,
   suggestionHref,
   useSearchSuggestions,
-  type SearchSuggestion,
 } from "@/lib/use-search-suggestions";
 
 type NavIcon = ForwardRefExoticComponent<
@@ -163,13 +162,6 @@ export default function Navbar() {
     });
   }
 
-  function openSuggestion(suggestion: SearchSuggestion) {
-    startTransition(() => {
-      router.push(localizedHref(locale, suggestionHref(suggestion)));
-      close();
-    });
-  }
-
   return (
     <nav className="fixed top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 z-50">
       <div className="mx-auto max-w-7xl rounded-[2rem] bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30">
@@ -264,7 +256,13 @@ export default function Navbar() {
                     />
                     <input
                       ref={inputRef}
-                      type="text"
+                      type="search"
+                      name="q"
+                      autoComplete="off"
+                      // A title is not a word the dictionary knows, and the
+                      // red underline reads as an error on a search field.
+                      spellCheck={false}
+                      enterKeyHint="search"
                       required
                       minLength={MIN_SUGGESTION_QUERY_LENGTH}
                       disabled={pending}
@@ -294,7 +292,9 @@ export default function Navbar() {
                       {pending ? t("Searching…") : loading ? t("Searching…") : ""}
                     </span>
                     {suggestions.length > 0 && (
-                      <div className="absolute right-0 top-12 w-72 overflow-hidden rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
+                      <ul
+                        className="absolute right-0 top-12 w-72 overflow-hidden rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl"
+                      >
                         {suggestions.map((suggestion) => {
                           const title =
                             suggestion.title ?? suggestion.name ?? t("Untitled");
@@ -303,10 +303,12 @@ export default function Navbar() {
                           const year = date ? new Date(date).getFullYear() : null;
 
                           return (
-                            <button
-                              key={`${suggestion.media_type}-${suggestion.id}`}
-                              type="button"
-                              onClick={() => openSuggestion(suggestion)}
+                            <li key={`${suggestion.media_type}-${suggestion.id}`}>
+                            {/* A suggestion is a destination, so it is a link:
+                                Cmd-click and middle-click have to work. */}
+                            <Link
+                              href={localizedHref(locale, suggestionHref(suggestion))}
+                              onClick={() => close()}
                               className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                             >
                               <span className="relative h-12.5 w-8.5 shrink-0 overflow-hidden rounded bg-white/8">
@@ -337,10 +339,11 @@ export default function Navbar() {
                               <span className="ml-auto shrink-0 rounded-full bg-accent-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-red">
                                 {t(suggestion.media_type === "tv" ? "TV" : "Movie")}
                               </span>
-                            </button>
+                            </Link>
+                            </li>
                           );
                         })}
-                      </div>
+                      </ul>
                     )}
                   </div>
                 </form>
