@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useId, useRef } from "react";
+import { Button } from "@appica/ui-react/button";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -45,15 +46,19 @@ export default function ExpandableOverview({
         {text}
       </p>
       {isTruncated && (
-        <button
-          type="button"
+        // Not an Appica Collapsible: collapsed here means two clamped lines,
+        // not hidden content, and a Collapsible panel is all-or-nothing. The
+        // clamp stays; only the control is the design system's.
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setExpanded(!expanded)}
           aria-expanded={expanded}
           aria-controls={textId}
-          className="text-accent-red text-sm font-medium mt-1 rounded hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          className="mt-1 -ml-2 text-primary hover:underline"
         >
           {t(expanded ? "Show less" : "Read more")}
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
+import { Button } from "@appica/ui-react/button";
 import { CheckIcon } from "@/components/ui/check";
 import { PlusIcon } from "@/components/ui/plus";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
@@ -40,8 +41,7 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
   }, [added, icon]);
 
   return (
-    <button
-      type="button"
+    <Button
       {...feedback}
       onClick={() => {
         savedByClick.current = !added;
@@ -49,18 +49,19 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
         toast.success(t(added ? "Removed from watchlist" : "Added to watchlist"));
       }}
       aria-pressed={added}
-      className={`inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full border h-12 px-7 text-base font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 ${
-        added
-          ? "border-accent-red/60 bg-accent-red/15 text-accent-red hover:bg-accent-red/25"
-          : "border-white/15 bg-white/8 text-foreground hover:bg-white/12"
-      }`}
+      // `primary-outline` is the saved state: the brand red reads as "this is
+      // on your list" without the weight of a filled primary button, which
+      // belongs to Watch Now.
+      variant={added ? "primary-outline" : "outline"}
+      size="lg"
+      className="w-full rounded-full px-7 text-base font-semibold sm:w-auto"
     >
       {added ? (
-        <CheckIcon ref={icon} size={20} />
+        <CheckIcon ref={icon} data-icon="start" size={20} />
       ) : (
-        <PlusIcon ref={icon} size={20} />
+        <PlusIcon ref={icon} data-icon="start" size={20} />
       )}
       {t(added ? "In Watchlist" : "Add to Watchlist")}
-    </button>
+    </Button>
   );
 }
