@@ -6,7 +6,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import CastControls from "@/components/CastControls";
 import { Button } from "@appica/ui-react/button";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@appica/ui-react/select";
 import { fetchResolve } from "@/lib/resolve-client";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
 import { cn } from "@/lib/utils";
@@ -205,6 +211,16 @@ export default function Player({
     if (hlsRef.current) hlsRef.current.nextLevel = index;
   }
 
+  // Built once and passed to both the Select root (which needs it to render
+  // the trigger's value) and the item list.
+  const qualityItems = [
+    { value: -1, label: t("Auto") },
+    ...qualities.map((item) => ({
+      value: item.index,
+      label: `${item.height}p`,
+    })),
+  ];
+
   const saveProgress = useCallback((positionSeconds: number, durationSeconds: number) => {
     if (!durationSeconds) return;
     const now = Date.now();
@@ -258,18 +274,31 @@ export default function Player({
         </div>
         {qualities.length > 0 && (
           <Select
-            ariaLabel={t("Quality")}
             value={quality}
-            onValueChange={changeQuality}
-            items={[
-              { value: -1, label: t("Auto") },
-              ...qualities.map((item) => ({
-                value: item.index,
-                label: `${item.height}p`,
-              })),
-            ]}
-            className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums"
-          />
+            onValueChange={(value) => {
+              // Appica re-exports Base UI's Root without its value generic, so
+              // the callback is typed `{} | undefined`. Quality is an HLS level
+              // index, or -1 for auto.
+              if (typeof value === "number") changeQuality(value);
+            }}
+            items={qualityItems}
+            size="sm"
+            variant="soft"
+          >
+            <SelectTrigger
+              aria-label={t("Quality")}
+              className="rounded-full tabular-nums"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {qualityItems.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
         <CastControls
           videoRef={videoRef}

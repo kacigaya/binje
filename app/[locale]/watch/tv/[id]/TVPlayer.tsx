@@ -8,7 +8,13 @@ import { Play, Clock } from "lucide-react";
 import { ChevronLeftIcon } from "@/components/ui/chevron-left";
 import { ChevronRightIcon } from "@/components/ui/chevron-right";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
-import { Select } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@appica/ui-react/select";
 import Player from "@/components/Player";
 import ScrollArrows from "@/components/ScrollArrows";
 import { Button } from "@appica/ui-react/button";
@@ -156,15 +162,29 @@ export default function TVPlayer({
             {t("Season")}
           </span>
           <Select
-            ariaLabel={t("Season")}
             value={season}
-            onValueChange={(value) => navigate(value, 1)}
+            onValueChange={(value) => {
+              // Appica re-exports Base UI's Root without its value generic, so
+              // the callback is typed `{} | undefined`. Season numbers are the
+              // only thing this select holds.
+              if (typeof value === "number") navigate(value, 1);
+            }}
             items={seasons.map((s) => ({
               value: s.season_number,
               label: s.name,
             }))}
-            className="h-10 rounded-full border border-white/15 bg-white/5 px-4 text-sm font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:border-accent-red/50 focus-visible:ring-accent-red/30"
-          />
+          >
+            <SelectTrigger aria-label={t("Season")} className="rounded-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {seasons.map((s) => (
+                <SelectItem key={s.season_number} value={s.season_number}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex min-w-0 items-center sm:border-l sm:border-white/10 sm:pl-4">
