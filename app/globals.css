@@ -60,12 +60,17 @@
     /* The b!nje red, as a whole family rather than one token: `-subtle` and
      * `-soft` are alpha tints of the base so they composite over whatever
      * surface they land on, which is why seeding only `--primary` gives a
-     * correct button and a wrong everything-else. #e11d48 in oklch. */
-    --primary: oklch(59.5% 0.222 15.5);
-    --primary-subtle: oklch(59.5% 0.222 15.5 / 10%);
-    --primary-soft: oklch(59.5% 0.222 15.5 / 20%);
-    --primary-muted: oklch(68% 0.195 15.5);
-    --primary-strong: oklch(52.5% 0.218 15.5);
+     * correct button and a wrong everything-else.
+     *
+     * Written as hex, not oklch: #e11d48 is the exact brand value and the
+     * round trip through oklch lands on #e42251. Nothing reads the format
+     * back, so the literal is both exact and legible. The steps either side
+     * are the neighbouring stops of the same ramp. */
+    --primary: #e11d48;
+    --primary-subtle: #e11d481a;
+    --primary-soft: #e11d4833;
+    --primary-muted: #f43f5e;
+    --primary-strong: #be123c;
     --primary-foreground: #ffffff;
 
     /* Appica ships secondary as a blue brand axis. b!nje has one brand color,
@@ -83,15 +88,15 @@
     /* error/success/warning/info keep Appica's values: they carry status, not
      * brand, and a re-seeded error red stops reading as an error. */
 
-    --focus-ring: oklch(59.5% 0.222 15.5 / 50%);
-    --focus-ring-primary: oklch(59.5% 0.222 15.5 / 50%);
+    --focus-ring: #e11d4880;
+    --focus-ring-primary: #e11d4880;
     --focus-ring-secondary: rgba(255, 255, 255, 0.2);
     --focus-ring-input: rgba(255, 255, 255, 0.12);
 
     --radius: 0.625rem;
 
     --shadow-color: oklch(0 0 0 / 45%);
-    --selection-color: oklch(59.5% 0.222 15.5 / 25%);
+    --selection-color: #e11d4840;
 
     /* Legacy shadcn-shaped names, pointed at the same palette so the surfaces
      * not yet migrated stay visually identical. */
