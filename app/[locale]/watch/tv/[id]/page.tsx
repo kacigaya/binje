@@ -24,7 +24,7 @@ import ExpandableOverview from "@/components/ExpandableOverview";
 import TVPlayer from "./TVPlayer";
 import Link from "next/link";
 import StreamTechBadges from "@/components/StreamTechBadges";
-import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
+import { formatRating, isLocale, localizedHref, pluralize, translate, type Locale } from "@/lib/i18n";
 import { WatchTVInfoLoading, WatchTVPlayerLoading } from "./loading";
 
 export async function generateMetadata({
@@ -153,7 +153,7 @@ async function WatchTVInfo({
                 aria-hidden="true"
                 className="h-4 w-auto shrink-0"
               />
-              {show.vote_average.toFixed(1)}
+              {formatRating(locale, show.vote_average) ?? translate(locale, "N/A")}
             </div>
             <RottenTomatoesRating imdbId={show.external_ids.imdb_id} />
             {contentRating && (
@@ -161,11 +161,11 @@ async function WatchTVInfo({
             )}
             <div className="flex items-center gap-1">
               <Layers className="size-4" />
-              {show.number_of_seasons} {show.number_of_seasons === 1 ? translate(locale, "Season") : translate(locale, "Seasons")}
+              {show.number_of_seasons} {pluralize(locale, show.number_of_seasons, "Season", "Seasons")}
             </div>
             <div className="flex items-center gap-1">
               <Tv className="size-4" />
-              {show.number_of_episodes} {show.number_of_episodes === 1 ? translate(locale, "Episode") : translate(locale, "Episodes")}
+              {show.number_of_episodes} {pluralize(locale, show.number_of_episodes, "Episode", "Episodes")}
             </div>
             {show.first_air_date && (
               <div className="flex items-center gap-1">

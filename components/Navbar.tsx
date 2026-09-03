@@ -14,6 +14,7 @@ import {
   useState,
   useRef,
   SyntheticEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   useEffect,
   useCallback,
   Suspense,
@@ -119,6 +120,7 @@ export default function Navbar() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const [submitIcon, submitFeedback] = useAnimatedIcon();
@@ -128,6 +130,12 @@ export default function Navbar() {
     locale,
     enabled: open,
   });
+
+  const normalizedSuggestionIndex =
+    activeSuggestionIndex < 0
+      ? -1
+      : Math.min(activeSuggestionIndex, suggestions.length - 1);
+  const activeSuggestion = suggestions[normalizedSuggestionIndex];
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -160,6 +168,29 @@ export default function Navbar() {
       );
       close();
     });
+  }
+
+  function onSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (suggestions.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveSuggestionIndex((index) => (index + 1) % suggestions.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveSuggestionIndex(
+        (index) =>
+          index < 0
+            ? suggestions.length - 1
+            : (index - 1 + suggestions.length) % suggestions.length,
+      );
+    } else if (event.key === "Enter" && activeSuggestion) {
+      event.preventDefault();
+      router.push(
+        localizedHref(locale, suggestionHref(activeSuggestion)),
+      );
+      close();
+    }
   }
 
   return (
@@ -268,8 +299,25 @@ export default function Navbar() {
                       disabled={pending}
                       placeholder={t("Search movies & TV…")}
                       aria-label={t("Search movies & TV…")}
+                      role="combobox"
+                      aria-autocomplete="list"
+                      aria-expanded={suggestions.length > 0}
+                      aria-controls={
+                        suggestions.length > 0
+                          ? "navbar-search-suggestions"
+                          : undefined
+                      }
+                      aria-activedescendant={
+                        activeSuggestion
+                          ? `navbar-suggestion-${activeSuggestion.media_type}-${activeSuggestion.id}`
+                          : undefined
+                      }
                       value={query}
-                      onChange={(event) => setQuery(event.target.value)}
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        setActiveSuggestionIndex(-1);
+                      }}
+                      onKeyDown={onSearchKeyDown}
                       className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition disabled:opacity-60"
                     />
                     <button
@@ -293,9 +341,12 @@ export default function Navbar() {
                     </span>
                     {suggestions.length > 0 && (
                       <ul
-                        className="absolute right-0 top-12 w-72 overflow-hidden rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl"
+                        id="navbar-search-suggestions"
+                        role="listbox"
+                        aria-label={t("Results")}
+                        className="absolute right-0 top-12 w-72 overflow-hidden overscroll-contain rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl"
                       >
-                        {suggestions.map((suggestion) => {
+                        {suggestions.map((suggestion, index) => {
                           const title =
                             suggestion.title ?? suggestion.name ?? t("Untitled");
                           const date =
@@ -303,13 +354,23 @@ export default function Navbar() {
                           const year = date ? new Date(date).getFullYear() : null;
 
                           return (
-                            <li key={`${suggestion.media_type}-${suggestion.id}`}>
+                            <li
+                              key={`${suggestion.media_type}-${suggestion.id}`}
+                              role="presentation"
+                            >
                             {/* A suggestion is a destination, so it is a link:
                                 Cmd-click and middle-click have to work. */}
                             <Link
+                              id={`navbar-suggestion-${suggestion.media_type}-${suggestion.id}`}
                               href={localizedHref(locale, suggestionHref(suggestion))}
+                              role="option"
+                              aria-selected={index === normalizedSuggestionIndex}
+                              tabIndex={-1}
+                              onMouseEnter={() => setActiveSuggestionIndex(index)}
                               onClick={() => close()}
-                              className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 ${
+                                index === normalizedSuggestionIndex ? "bg-white/8" : ""
+                              }`}
                             >
                               <span className="relative h-12.5 w-8.5 shrink-0 overflow-hidden rounded bg-white/8">
                                 {suggestion.poster_path ? (

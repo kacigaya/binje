@@ -26,7 +26,7 @@ import {
   profileUrl,
   parseTmdbId,
 } from "@/lib/tmdb";
-import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
+import { formatRating, intlLocale, isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
 import MovieLoading from "./loading";
 
 export async function generateMetadata({
@@ -150,7 +150,7 @@ async function MovieDetails({
                   aria-hidden="true"
                   className="h-4 w-auto shrink-0"
                 />
-                {movie.vote_average.toFixed(1)}
+                {formatRating(locale, movie.vote_average) ?? translate(locale, "N/A")}
               </div>
               <RottenTomatoesRating imdbId={movie.imdb_id} />
               {contentRating && (
@@ -159,13 +159,13 @@ async function MovieDetails({
               {movie.runtime > 0 && (
                 <div className="flex items-center gap-1">
                   <Clock className="size-4" />
-                  {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
+                  {Math.floor(movie.runtime / 60)}&nbsp;h {movie.runtime % 60}&nbsp;m
                 </div>
               )}
               {movie.release_date && (
                 <div className="flex items-center gap-1">
                   <Calendar className="size-4" />
-                  {new Date(movie.release_date).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
+                  {new Date(movie.release_date).toLocaleDateString(intlLocale(locale), {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
@@ -270,7 +270,7 @@ async function MovieCast({ movieId, locale }: { movieId: number; locale: Locale 
         tabIndex={0}
         role="group"
         aria-label={translate(locale, "Cast")}
-        className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
+        className="flex gap-4 overflow-x-auto pb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
       >
         {topCast.map((person, index) => {
           const photo = profileUrl(person.profile_path);

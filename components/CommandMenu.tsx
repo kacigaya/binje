@@ -143,7 +143,7 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
               // The palette only ever opens from an explicit shortcut or
               // click, so focusing its single input is what was asked for.
               autoFocus
-              type="text"
+              type="search"
               name="q"
               autoComplete="off"
               spellCheck={false}

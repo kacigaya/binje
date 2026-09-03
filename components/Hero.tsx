@@ -11,7 +11,7 @@ import { buttonClassName } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
 import { logoUrl } from "@/lib/tmdb";
 import ExpandableOverview from "@/components/ExpandableOverview";
-import { localizedHref } from "@/lib/i18n";
+import { formatRating, localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 
@@ -92,9 +92,7 @@ export default function Hero({ items }: HeroProps) {
     activeItem.media_type === "tv"
       ? `/watch/tv/${activeItem.id}`
       : `/watch/${activeItem.id}`;
-  const rating = Number.isFinite(activeItem.vote_average)
-    ? activeItem.vote_average.toFixed(1)
-    : t("N/A");
+  const rating = formatRating(locale, activeItem.vote_average) ?? t("N/A");
 
   return (
     <section className="relative w-full h-[70vh] sm:h-[80vh] overflow-hidden">

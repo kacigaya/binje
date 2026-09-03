@@ -27,7 +27,7 @@ import {
   profileUrl,
   parseTmdbId,
 } from "@/lib/tmdb";
-import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
+import { formatRating, intlLocale, isLocale, localizedHref, pluralize, translate, type Locale } from "@/lib/i18n";
 import TVShowLoading from "./loading";
 
 export async function generateMetadata({
@@ -151,7 +151,7 @@ async function TVShowDetails({
                   aria-hidden="true"
                   className="h-4 w-auto shrink-0"
                 />
-                {show.vote_average.toFixed(1)}
+                {formatRating(locale, show.vote_average) ?? translate(locale, "N/A")}
               </div>
               <RottenTomatoesRating imdbId={show.external_ids.imdb_id} />
               {contentRating && (
@@ -159,16 +159,16 @@ async function TVShowDetails({
               )}
               <div className="flex items-center gap-1">
                 <Layers className="size-4" />
-                {show.number_of_seasons} {show.number_of_seasons === 1 ? translate(locale, "Season") : translate(locale, "Seasons")}
+                {show.number_of_seasons} {pluralize(locale, show.number_of_seasons, "Season", "Seasons")}
               </div>
               <div className="flex items-center gap-1">
                 <Tv className="size-4" />
-                {show.number_of_episodes} {show.number_of_episodes === 1 ? translate(locale, "Episode") : translate(locale, "Episodes")}
+                {show.number_of_episodes} {pluralize(locale, show.number_of_episodes, "Episode", "Episodes")}
               </div>
               {show.first_air_date && (
                 <div className="flex items-center gap-1">
                   <Calendar className="size-4" />
-                  {new Date(show.first_air_date).toLocaleDateString(locale === "fr" ? "fr-FR" : "en-US", {
+                  {new Date(show.first_air_date).toLocaleDateString(intlLocale(locale), {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
@@ -257,7 +257,7 @@ async function TVShowDetails({
               tabIndex={0}
               role="group"
               aria-label={translate(locale, "Seasons")}
-              className="flex gap-4 overflow-x-auto scrollbar-hide p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
+              className="flex gap-4 overflow-x-auto p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
             >
               {show.seasons
                 .filter((s) => s.season_number > 0)
@@ -323,7 +323,7 @@ async function TVShowCast({ showId, locale }: { showId: number; locale: Locale }
         tabIndex={0}
         role="group"
         aria-label={translate(locale, "Cast")}
-        className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
+        className="flex gap-4 overflow-x-auto pb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
       >
         {topCast.map((person, index) => {
           const photo = profileUrl(person.profile_path);

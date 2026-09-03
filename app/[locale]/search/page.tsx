@@ -8,7 +8,7 @@ import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import Image from "next/image";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { localizedHref } from "@/lib/i18n";
+import { formatRating, localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 
 interface SearchResult {
@@ -181,6 +181,10 @@ function SearchContent() {
           {filtered.map((item, index) => {
             const title = item.title || item.name || t("Untitled");
             const date = item.release_date || item.first_air_date;
+            const rating = formatRating(
+              locale,
+              item.vote_average ?? Number.NaN,
+            );
             const href =
               item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
             return (
@@ -207,10 +211,10 @@ function SearchContent() {
                   )}
                   <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent transition-opacity duration-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-visible:opacity-100" />
 
-                  {item.vote_average != null && (
+                  {rating && (
                     <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
                       <Star className="size-3 fill-accent-red" />
-                      {item.vote_average.toFixed(1)}
+                      {rating}
                     </div>
                   )}
 

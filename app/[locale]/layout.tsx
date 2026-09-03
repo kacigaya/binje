@@ -96,7 +96,9 @@ export default async function RootLayout({
           <main id="main" tabIndex={-1} className="flex-1 outline-none">
             {children}
           </main>
-          <Footer />
+          <Suspense fallback={null}>
+            <Footer />
+          </Suspense>
           <CookiesBanner />
           <LazyToaster />
         </LocaleProvider>

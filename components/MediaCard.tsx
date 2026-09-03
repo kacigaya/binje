@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import type { MediaItem } from "@/types/tmdb";
 import { posterUrl } from "@/lib/tmdb";
-import { localizedHref } from "@/lib/i18n";
+import { formatRating, localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 
 export default function MediaCard({
@@ -17,9 +17,7 @@ export default function MediaCard({
   const poster = posterUrl(item.poster_path, "w342");
   const href =
     item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
-  const rating = Number.isFinite(item.vote_average)
-    ? item.vote_average.toFixed(1)
-    : t("N/A");
+  const rating = formatRating(locale, item.vote_average) ?? t("N/A");
 
   return (
     <Link href={localizedHref(locale, href)} className="group block shrink-0">

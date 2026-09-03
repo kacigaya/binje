@@ -22,7 +22,7 @@ import {
   pickLogo,
   parseTmdbId,
 } from "@/lib/tmdb";
-import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
+import { formatRating, isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
 import { WatchInfoLoading, WatchPlayerLoading } from "./loading";
 
 export async function generateMetadata({
@@ -153,7 +153,7 @@ async function WatchMovieInfo({
                 aria-hidden="true"
                 className="h-4 w-auto shrink-0"
               />
-              {movie.vote_average.toFixed(1)}
+              {formatRating(locale, movie.vote_average) ?? translate(locale, "N/A")}
             </div>
             <RottenTomatoesRating imdbId={movie.imdb_id} />
             {contentRating && (
@@ -162,7 +162,7 @@ async function WatchMovieInfo({
             {movie.runtime > 0 && (
               <div className="flex items-center gap-1">
                 <Clock className="size-4" />
-                {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
+                {Math.floor(movie.runtime / 60)}&nbsp;h {movie.runtime % 60}&nbsp;m
               </div>
             )}
             {movie.release_date && (

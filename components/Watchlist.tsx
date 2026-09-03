@@ -16,7 +16,7 @@ import {
   type WatchlistItem,
 } from "@/lib/watchlist";
 import { posterUrl } from "@/lib/tmdb";
-import { localizedHref } from "@/lib/i18n";
+import { formatRating, localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 
 const EMPTY_WATCHLIST: WatchlistItem[] = [];
@@ -58,9 +58,7 @@ export default function Watchlist() {
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
       {items.map((item) => {
         const poster = posterUrl(item.poster_path, "w342");
-        const rating = Number.isFinite(item.vote_average)
-          ? item.vote_average.toFixed(1)
-          : t("N/A");
+        const rating = formatRating(locale, item.vote_average) ?? t("N/A");
 
         return (
           <div key={`${item.type}-${item.id}`} className="group relative">

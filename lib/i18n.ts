@@ -166,6 +166,48 @@ export function translate(locale: Locale, text: TranslationKey): string {
   return locale === "fr" ? FRENCH[text] : text;
 }
 
+const INTL_LOCALES: Record<Locale, string> = { en: "en-US", fr: "fr-FR" };
+
+/** BCP 47 tag for an app locale, for the `Intl` constructors. */
+export function intlLocale(locale: Locale): string {
+  return INTL_LOCALES[locale];
+}
+
+// Constructing a formatter is the expensive part, and these are rendered once
+// per card, so each locale keeps one.
+const ratingFormatters = new Map<Locale, Intl.NumberFormat>();
+
+/** A one-decimal score in the locale's own notation: French wants a comma. */
+export function formatRating(locale: Locale, value: number): string | null {
+  if (!Number.isFinite(value)) return null;
+  let formatter = ratingFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(intlLocale(locale), {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+    ratingFormatters.set(locale, formatter);
+  }
+  return formatter.format(value);
+}
+
+const pluralRules = new Map<Locale, Intl.PluralRules>();
+
+/** Picks the singular or plural translation the locale's rules call for. */
+export function pluralize(
+  locale: Locale,
+  count: number,
+  one: TranslationKey,
+  other: TranslationKey,
+): string {
+  let rules = pluralRules.get(locale);
+  if (!rules) {
+    rules = new Intl.PluralRules(intlLocale(locale));
+    pluralRules.set(locale, rules);
+  }
+  return translate(locale, rules.select(count) === "one" ? one : other);
+}
+
 export function localizedHref(locale: Locale, href: string): string {
   if (!href.startsWith("/") || href.startsWith("//")) return href;
   return `/${locale}${href === "/" ? "" : href}`;
