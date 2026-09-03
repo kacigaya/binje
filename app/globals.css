@@ -1,78 +1,126 @@
-@import "tailwindcss";
+/* Appica's stylesheet imports Tailwind itself, so it leads. Importing
+ * "tailwindcss" here as well compiles Preflight into the bundle twice. */
+@import "@appica/ui-react/styles.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* Tailwind ignores node_modules, so the compiled Appica components are only
+ * scanned because of this line. The path is relative to this stylesheet and a
+ * bare package name resolves to nothing: get it wrong and every Appica
+ * component renders as unstyled HTML with no error anywhere. */
+@source '../node_modules/@appica/ui-react/dist';
 
 @theme inline {
-    --color-background: var(--background);
-    --color-foreground: var(--foreground);
-    --font-sans: var(--font-sans);
-    --font-heading: var(--font-heading);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
+    /* Appica's stylesheet already aliases foreground/background/border/primary/
+     * secondary/ring/radius. Only the tokens it has no equivalent for are
+     * declared here: the shadcn-shaped names that the surfaces still on the old
+     * markup (media cards, hero, player, route pages) reference. */
     --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-input: var(--input);
     --color-accent-red: var(--accent-red);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    --font-heading: var(--font-heading);
 }
 
-:root {
-    --radius: 0.625rem;
-    --accent-red: #e11d48;
-}
-
+/* b!nje is dark-only, so both selectors carry the same values: `.dark` for the
+ * class Appica's ThemeProvider writes, `:root` so nothing renders light in the
+ * gap before it runs. Overrides are on the raw tokens, never the `--color-*`
+ * theme layer, which is derived. */
 .dark,
 :root {
-    --background: #050506;
     --foreground: #f0f0f0;
+    --foreground-subtle: #6b6b6b;
+    --foreground-muted: #8a8a8a;
+    --foreground-strong: #f7f7f7;
+    --foreground-emphasis: #fafafa;
+    --foreground-intense: #ffffff;
+    --foreground-inverse: #050506;
+
+    --background: #050506;
+    --background-subtle: #0c0c0f;
+    --background-muted: #1a1a1f;
+    --background-strong: #24242b;
+    --background-inverse: #f0f0f0;
+
+    --border: rgba(255, 255, 255, 0.08);
+    --border-muted: rgba(255, 255, 255, 0.05);
+    --border-strong: rgba(255, 255, 255, 0.12);
+    --border-emphasis: rgba(255, 255, 255, 0.2);
+    --border-intense: rgba(255, 255, 255, 0.3);
+    --border-inverse: #050506;
+    --border-overlay: rgba(255, 255, 255, 0.08);
+
+    /* The b!nje red, as a whole family rather than one token: `-subtle` and
+     * `-soft` are alpha tints of the base so they composite over whatever
+     * surface they land on, which is why seeding only `--primary` gives a
+     * correct button and a wrong everything-else. #e11d48 in oklch. */
+    --primary: oklch(59.5% 0.222 15.5);
+    --primary-subtle: oklch(59.5% 0.222 15.5 / 10%);
+    --primary-soft: oklch(59.5% 0.222 15.5 / 20%);
+    --primary-muted: oklch(68% 0.195 15.5);
+    --primary-strong: oklch(52.5% 0.218 15.5);
+    --primary-foreground: #ffffff;
+
+    /* Appica ships secondary as a blue brand axis. b!nje has one brand color,
+     * so secondary is retuned to the neutral fill the old `secondary` button
+     * variant used. */
+    --secondary: #1a1a1f;
+    --secondary-subtle: rgba(255, 255, 255, 0.05);
+    --secondary-soft: rgba(255, 255, 255, 0.08);
+    --secondary-muted: #24242b;
+    --secondary-strong: #24242b;
+    --secondary-emphasis: #2e2e37;
+    --secondary-intense: #3a3a45;
+    --secondary-foreground: #f0f0f0;
+
+    /* error/success/warning/info keep Appica's values: they carry status, not
+     * brand, and a re-seeded error red stops reading as an error. */
+
+    --focus-ring: oklch(59.5% 0.222 15.5 / 50%);
+    --focus-ring-primary: oklch(59.5% 0.222 15.5 / 50%);
+    --focus-ring-secondary: rgba(255, 255, 255, 0.2);
+    --focus-ring-input: rgba(255, 255, 255, 0.12);
+
+    --radius: 0.625rem;
+
+    --shadow-color: oklch(0 0 0 / 45%);
+    --selection-color: oklch(59.5% 0.222 15.5 / 25%);
+
+    /* Legacy shadcn-shaped names, pointed at the same palette so the surfaces
+     * not yet migrated stay visually identical. */
     --card: #0c0c0f;
     --card-foreground: #f0f0f0;
     --popover: #0c0c0f;
     --popover-foreground: #f0f0f0;
-    --primary: #e11d48;
-    --primary-foreground: #ffffff;
-    --secondary: #1a1a1f;
-    --secondary-foreground: #f0f0f0;
     --muted: #1a1a1f;
     --muted-foreground: #8a8a8a;
     --accent: #e11d48;
     --accent-foreground: #ffffff;
     --destructive: #ef4444;
-    --border: rgba(255, 255, 255, 0.08);
     --input: rgba(255, 255, 255, 0.12);
-    --ring: #e11d48;
+    --accent-red: #e11d48;
 }
 
 @layer base {
+    /* Appica's own base layer sets `outline-3` on everything but leaves the
+     * color to each component. The surfaces still on the old markup have no
+     * component to set it, so the default ring color is restored here. */
     * {
-        @apply border-border outline-ring/50;
-    }
-    body {
-        @apply bg-background text-foreground;
+        @apply outline-ring/50;
     }
     html {
         @apply font-sans;
-        /* The palette below is dark-only, so the UA needs to match: without
-         * this, native scrollbars, form controls and pickers render light. */
+        /* The palette is dark-only, so the UA needs to match: without this,
+         * native scrollbars, form controls and pickers render light. Set here
+         * rather than left to ThemeProvider so it holds before the theme
+         * script runs. */
         color-scheme: dark;
     }
     /* Taps resolve immediately instead of waiting out the double-tap-zoom
