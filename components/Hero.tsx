@@ -121,16 +121,23 @@ export default function Hero({ items }: HeroProps) {
             */}
             <div className="flex min-h-28 items-end sm:min-h-36">
               {logo ? (
-                <Image
-                  src={logo}
-                  alt={`${activeItem.title} logo`}
-                  width={activeItem.logo_width ?? 500}
-                  height={activeItem.logo_height ?? 200}
-                  priority
-                  sizes={logoBox.sizes}
-                  style={logoBox.style}
-                  className="h-28 w-(--logo-width) object-contain object-left-bottom sm:h-36 sm:w-(--logo-width-sm)"
-                />
+                <>
+                  {/* The logo carries the title visually. The heading keeps it
+                      in the document outline, which is otherwise empty of an
+                      h1 on the whole home page. */}
+                  <h1 className="sr-only">{activeItem.title}</h1>
+                  <Image
+                    src={logo}
+                    alt=""
+                    aria-hidden="true"
+                    width={activeItem.logo_width ?? 500}
+                    height={activeItem.logo_height ?? 200}
+                    priority
+                    sizes={logoBox.sizes}
+                    style={logoBox.style}
+                    className="h-28 w-(--logo-width) object-contain object-left-bottom sm:h-36 sm:w-(--logo-width-sm)"
+                  />
+                </>
               ) : (
                 <h1
                   className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-balance"
