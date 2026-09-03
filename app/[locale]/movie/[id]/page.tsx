@@ -266,7 +266,12 @@ async function MovieCast({ movieId, locale }: { movieId: number; locale: Locale 
       >
         {translate(locale, "Cast")}
       </h2>
-      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+      <div
+        tabIndex={0}
+        role="group"
+        aria-label={translate(locale, "Cast")}
+        className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
+      >
         {topCast.map((person, index) => {
           const photo = profileUrl(person.profile_path);
           return (

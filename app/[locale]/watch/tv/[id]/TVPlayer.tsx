@@ -221,7 +221,10 @@ export default function TVPlayer({
 
             <div
               ref={scrollRef}
-              className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2"
+              tabIndex={0}
+              role="group"
+              aria-label={t("Episodes")}
+              className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
             >
               {episodes.map((ep) => {
               const still = stillUrl(ep.still_path, "w300");

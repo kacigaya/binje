@@ -64,7 +64,10 @@ export default function ContinueWatching() {
 
         <div
           ref={scrollRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 py-2"
+          tabIndex={0}
+          role="group"
+          aria-label={t("Continue Watching")}
+          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
         >
           {items.map((item) => {
             const image = item.backdrop_path
