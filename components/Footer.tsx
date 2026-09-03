@@ -4,20 +4,11 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Cookie, Film, ShieldCheck } from "lucide-react";
+import { NavigationLink } from "@appica/ui-react/navigation";
+import { Separator } from "@appica/ui-react/separator";
 import { CONSENT_STORAGE_KEY } from "@/lib/consent";
 import { LOCALES, localizedHref, type Locale } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
-
-const LOCALE_LINK_BASE =
-  "rounded-full px-2 py-1 uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60";
-
-function localeLinkClassName(active: boolean) {
-  return `${LOCALE_LINK_BASE} ${
-    active
-      ? "bg-accent-red text-white"
-      : "text-muted-foreground hover:text-foreground"
-  }`;
-}
 
 /**
  * The locale switch is navigation, so each option is a real link: it opens in
@@ -50,15 +41,22 @@ function LocaleLinkList({
   return (
     <>
       {LOCALES.map((value) => (
-        <Link
+        <NavigationLink
           key={value}
-          href={`${path.replace(/^\/(en|fr)(?=\/|$)/, `/${value}`)}${search}`}
-          hrefLang={value}
-          aria-current={locale === value ? "page" : undefined}
-          className={localeLinkClassName(locale === value)}
+          variant="pill"
+          size="sm"
+          active={locale === value}
+          className="uppercase"
+          render={
+            <Link
+              href={`${path.replace(/^\/(en|fr)(?=\/|$)/, `/${value}`)}${search}`}
+              hrefLang={value}
+              aria-current={locale === value ? "page" : undefined}
+            />
+          }
         >
           {value}
-        </Link>
+        </NavigationLink>
       ))}
     </>
   );
@@ -68,20 +66,20 @@ export default function Footer() {
   const { locale, t } = useTranslations();
   const pathname = usePathname();
   return (
-    <footer className="border-t border-white/10 bg-background/80">
+    <footer className="border-t bg-background/80">
       <div className="mx-auto flex min-h-16 max-w-7xl flex-col items-center justify-between gap-3 px-4 py-3 sm:h-16 sm:flex-row sm:px-6 sm:py-0">
         <div
-          className="flex items-center gap-2 text-sm text-muted-foreground"
+          className="flex items-center gap-2 text-sm text-foreground-muted"
           style={{ fontFamily: "var(--font-heading)" }}
         >
           <Film className="size-4 text-accent-red" />
-          <span className="font-bold tracking-tight text-foreground" translate="no">
+          <span className="font-bold tracking-tight text-foreground-intense" translate="no">
             b<span className="text-accent-red">!</span>nje
           </span>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-          <div className="flex items-center rounded-full border border-white/10 bg-white/5 p-0.5 text-xs font-semibold">
+          <div className="flex items-center rounded-full border bg-background-subtle p-0.5">
             <Suspense
               fallback={
                 <LocaleLinkList locale={locale} path={pathname} search="" />
@@ -101,14 +99,14 @@ export default function Footer() {
               }
               window.location.reload();
             }}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 text-sm text-foreground-muted transition-colors hover:text-foreground-intense cursor-pointer"
           >
             <Cookie className="size-4" />
             {t("Cookies")}
           </button>
           <Link
             href={localizedHref(locale, "/privacy")}
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-foreground-muted transition-colors hover:text-foreground-intense"
           >
             <ShieldCheck className="size-4" />
             {t("Privacy")}
@@ -117,7 +115,7 @@ export default function Footer() {
             href="https://github.com/kacigaya/binje"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-foreground-muted transition-colors hover:text-foreground-intense"
           >
             <svg
               role="img"
@@ -132,8 +130,10 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
-        <p className="text-center text-xs leading-relaxed text-muted-foreground">
+      <Separator />
+
+      <div className="mx-auto max-w-7xl px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
+        <p className="text-center text-xs leading-relaxed text-foreground-muted">
           {t("b!nje hosts no files on its servers. All content is provided by unaffiliated third parties. For any claim, see our")}{" "}
           <Link
             href={localizedHref(locale, "/dmca")}
