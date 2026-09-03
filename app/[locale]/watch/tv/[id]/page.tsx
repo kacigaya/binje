@@ -6,7 +6,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { Calendar, Layers, Tv } from "lucide-react";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@appica/ui-react/badge";
 import {
   getTVDetails,
   getTVImages,
@@ -136,7 +136,8 @@ async function WatchTVInfo({
               <Badge
                 key={g.id}
                 variant="outline"
-                className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
+                size="sm"
+                className="border-border-strong text-foreground-muted"
               >
                 {g.name}
               </Badge>

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Info, Pause, Play } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import WatchNowLink from "@/components/WatchNowLink";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@appica/ui-react/badge";
 import { buttonVariants } from "@appica/ui-react/button";
 import type { MediaItem } from "@/types/tmdb";
 import { logoUrl } from "@/lib/tmdb";
@@ -172,7 +172,7 @@ export default function Hero({ items }: HeroProps) {
 
             <div className="flex items-center gap-3">
               {activeItem.media_type === "tv" && (
-                <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
+                <Badge size="sm" className="uppercase tracking-wider">
                   {t("TV Series")}
                 </Badge>
               )}

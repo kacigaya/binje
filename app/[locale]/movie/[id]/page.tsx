@@ -5,7 +5,7 @@ import Image from "next/image";
 import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
 import { Clock, Calendar } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@appica/ui-react/badge";
 import { buttonVariants } from "@appica/ui-react/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
@@ -133,7 +133,8 @@ async function MovieDetails({
                 <Badge
                   key={g.id}
                   variant="outline"
-                  className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
+                  size="sm"
+                  className="border-border-strong text-foreground-muted"
                 >
                   {g.name}
                 </Badge>
