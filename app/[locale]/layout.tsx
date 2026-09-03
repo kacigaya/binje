@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { locale as getRootLocale } from "next/root-params";
 import { Space_Grotesk, Outfit } from "next/font/google";
 import { Suspense } from "react";
+import { ThemeProvider } from "@appica/ui-react/providers/theme-provider";
 import "../globals.css";
 import Navbar from "@/components/Navbar";
 import CommandMenuLoader from "@/components/CommandMenuLoader";
@@ -79,29 +80,31 @@ export default async function RootLayout({
         <link rel="dns-prefetch" href="https://image.tmdb.org" />
       </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground antialiased">
-        <LocaleProvider locale={locale}>
-          <Suspense fallback={null}>
-            <LocaleValidation params={params} />
-          </Suspense>
-          {/* First tab stop on every page: the fixed nav and the carousels
-              below it are a long way to travel one link at a time. */}
-          <a
-            href="#main"
-            className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-100 focus-visible:rounded-full focus-visible:bg-accent-red focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-semibold focus-visible:text-white"
-          >
-            {translate(locale, "Skip to content")}
-          </a>
-          <Navbar />
-          <CommandMenuLoader />
-          <main id="main" tabIndex={-1} className="flex-1 outline-none">
-            {children}
-          </main>
-          <Suspense fallback={null}>
-            <Footer />
-          </Suspense>
-          <CookiesBanner />
-          <LazyToaster />
-        </LocaleProvider>
+        <ThemeProvider forcedTheme="dark" enableSystem={false}>
+          <LocaleProvider locale={locale}>
+            <Suspense fallback={null}>
+              <LocaleValidation params={params} />
+            </Suspense>
+            {/* First tab stop on every page: the fixed nav and the carousels
+                below it are a long way to travel one link at a time. */}
+            <a
+              href="#main"
+              className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-100 focus-visible:rounded-full focus-visible:bg-accent-red focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-semibold focus-visible:text-white"
+            >
+              {translate(locale, "Skip to content")}
+            </a>
+            <Navbar />
+            <CommandMenuLoader />
+            <main id="main" tabIndex={-1} className="flex-1 outline-none">
+              {children}
+            </main>
+            <Suspense fallback={null}>
+              <Footer />
+            </Suspense>
+            <CookiesBanner />
+            <LazyToaster />
+          </LocaleProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
