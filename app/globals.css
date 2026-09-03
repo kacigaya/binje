@@ -71,6 +71,20 @@
     }
     html {
         @apply font-sans;
+        /* The palette below is dark-only, so the UA needs to match: without
+         * this, native scrollbars, form controls and pickers render light. */
+        color-scheme: dark;
+    }
+    /* Taps resolve immediately instead of waiting out the double-tap-zoom
+     * window, and the flash on tap is ours rather than the platform blue. */
+    a,
+    button,
+    [role="button"],
+    input,
+    select,
+    summary {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
     }
 }
 
