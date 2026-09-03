@@ -203,7 +203,7 @@ export default function TVPlayer({
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
-                className="w-72 sm:w-80 shrink-0 aspect-video rounded-2xl bg-white/5 animate-pulse"
+                className="w-72 sm:w-80 shrink-0 aspect-video rounded-2xl bg-white/5 animate-pulse motion-reduce:animate-none"
               />
             ))}
           </div>
