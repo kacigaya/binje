@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Bookmark } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@appica/ui-react/separator";
 import Watchlist from "@/components/Watchlist";
 import { translate, type Locale } from "@/lib/i18n";
 
@@ -26,7 +26,7 @@ export default async function WatchlistPage({ params }: { params: Promise<{ loca
             {translate(locale, "My Watchlist")}
           </h1>
         </div>
-        <Separator className="mt-5 bg-white/10" />
+        <Separator className="mt-5" />
       </div>
 
       <Watchlist />

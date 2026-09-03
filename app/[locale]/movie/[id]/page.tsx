@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import { Clock, Calendar } from "lucide-react";
 import { Badge } from "@appica/ui-react/badge";
 import { buttonVariants } from "@appica/ui-react/button";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@appica/ui-react/separator";
 import Carousel from "@/components/Carousel";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
 import WatchlistButton from "@/components/WatchlistButton";
@@ -206,7 +206,7 @@ async function MovieDetails({
             </div>
 
             <div className="mt-6">
-              <Separator className="bg-white/10" />
+              <Separator />
             </div>
 
             <div>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
 import { Tv } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@appica/ui-react/separator";
 import Carousel from "@/components/Carousel";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
 import {
@@ -71,7 +71,7 @@ export default async function TVShowsPage() {
             {translate(locale, "TV Shows")}
           </h1>
         </div>
-        <Separator className="mt-5 bg-white/10" />
+        <Separator className="mt-5" />
       </header>
 
       {SECTIONS.map(([title, load, priority]) => (
