@@ -165,7 +165,7 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
             id="command-menu-list"
             role="listbox"
             aria-label={t("Results")}
-            className="max-h-80 overflow-y-auto p-1.5"
+            className="max-h-80 overflow-y-auto overscroll-contain p-1.5"
           >
             {items.map((item, index) => {
               const Icon = item.icon;
