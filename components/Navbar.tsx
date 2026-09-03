@@ -14,6 +14,7 @@ import {
   useState,
   useRef,
   SyntheticEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   useEffect,
   useCallback,
   Suspense,
@@ -31,7 +32,6 @@ import {
   MIN_SUGGESTION_QUERY_LENGTH,
   suggestionHref,
   useSearchSuggestions,
-  type SearchSuggestion,
 } from "@/lib/use-search-suggestions";
 
 type NavIcon = ForwardRefExoticComponent<
@@ -120,6 +120,7 @@ export default function Navbar() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const [submitIcon, submitFeedback] = useAnimatedIcon();
@@ -129,6 +130,12 @@ export default function Navbar() {
     locale,
     enabled: open,
   });
+
+  const normalizedSuggestionIndex =
+    activeSuggestionIndex < 0
+      ? -1
+      : Math.min(activeSuggestionIndex, suggestions.length - 1);
+  const activeSuggestion = suggestions[normalizedSuggestionIndex];
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -163,11 +170,27 @@ export default function Navbar() {
     });
   }
 
-  function openSuggestion(suggestion: SearchSuggestion) {
-    startTransition(() => {
-      router.push(localizedHref(locale, suggestionHref(suggestion)));
+  function onSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (suggestions.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveSuggestionIndex((index) => (index + 1) % suggestions.length);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveSuggestionIndex(
+        (index) =>
+          index < 0
+            ? suggestions.length - 1
+            : (index - 1 + suggestions.length) % suggestions.length,
+      );
+    } else if (event.key === "Enter" && activeSuggestion) {
+      event.preventDefault();
+      router.push(
+        localizedHref(locale, suggestionHref(activeSuggestion)),
+      );
       close();
-    });
+    }
   }
 
   return (
@@ -181,7 +204,7 @@ export default function Navbar() {
           style={{ fontFamily: "var(--font-heading)" }}
         >
           <Film className="size-6 text-accent-red" />
-          <span className="text-foreground">
+          <span className="text-foreground" translate="no">
             b<span className="text-accent-red">!</span>nje
           </span>
         </Link>
@@ -264,22 +287,45 @@ export default function Navbar() {
                     />
                     <input
                       ref={inputRef}
-                      type="text"
+                      type="search"
+                      name="q"
+                      autoComplete="off"
+                      // A title is not a word the dictionary knows, and the
+                      // red underline reads as an error on a search field.
+                      spellCheck={false}
+                      enterKeyHint="search"
                       required
                       minLength={MIN_SUGGESTION_QUERY_LENGTH}
                       disabled={pending}
-                      placeholder={t("Search movies & TV...")}
-                      aria-label={t("Search movies & TV...")}
+                      placeholder={t("Search movies & TV…")}
+                      aria-label={t("Search movies & TV…")}
+                      role="combobox"
+                      aria-autocomplete="list"
+                      aria-expanded={suggestions.length > 0}
+                      aria-controls={
+                        suggestions.length > 0
+                          ? "navbar-search-suggestions"
+                          : undefined
+                      }
+                      aria-activedescendant={
+                        activeSuggestion
+                          ? `navbar-suggestion-${activeSuggestion.media_type}-${activeSuggestion.id}`
+                          : undefined
+                      }
                       value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition disabled:opacity-60"
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        setActiveSuggestionIndex(-1);
+                      }}
+                      onKeyDown={onSearchKeyDown}
+                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition disabled:opacity-60"
                     />
                     <button
                       type="submit"
                       disabled={pending || query.trim().length < MIN_SUGGESTION_QUERY_LENGTH}
                       {...submitFeedback}
-                      aria-label={t("Search movies & TV...")}
-                      className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:opacity-40 disabled:pointer-events-none"
+                      aria-label={t("Search movies & TV…")}
+                      className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       {pending ? (
                         <Loader2
@@ -294,8 +340,13 @@ export default function Navbar() {
                       {pending ? t("Searching…") : loading ? t("Searching…") : ""}
                     </span>
                     {suggestions.length > 0 && (
-                      <div className="absolute right-0 top-12 w-72 overflow-hidden rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl">
-                        {suggestions.map((suggestion) => {
+                      <ul
+                        id="navbar-search-suggestions"
+                        role="listbox"
+                        aria-label={t("Results")}
+                        className="absolute right-0 top-12 w-72 overflow-hidden overscroll-contain rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl"
+                      >
+                        {suggestions.map((suggestion, index) => {
                           const title =
                             suggestion.title ?? suggestion.name ?? t("Untitled");
                           const date =
@@ -303,11 +354,23 @@ export default function Navbar() {
                           const year = date ? new Date(date).getFullYear() : null;
 
                           return (
-                            <button
+                            <li
                               key={`${suggestion.media_type}-${suggestion.id}`}
-                              type="button"
-                              onClick={() => openSuggestion(suggestion)}
-                              className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus:bg-white/8 focus:outline-none"
+                              role="presentation"
+                            >
+                            {/* A suggestion is a destination, so it is a link:
+                                Cmd-click and middle-click have to work. */}
+                            <Link
+                              id={`navbar-suggestion-${suggestion.media_type}-${suggestion.id}`}
+                              href={localizedHref(locale, suggestionHref(suggestion))}
+                              role="option"
+                              aria-selected={index === normalizedSuggestionIndex}
+                              tabIndex={-1}
+                              onMouseEnter={() => setActiveSuggestionIndex(index)}
+                              onClick={() => close()}
+                              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 ${
+                                index === normalizedSuggestionIndex ? "bg-white/8" : ""
+                              }`}
                             >
                               <span className="relative h-12.5 w-8.5 shrink-0 overflow-hidden rounded bg-white/8">
                                 {suggestion.poster_path ? (
@@ -337,10 +400,11 @@ export default function Navbar() {
                               <span className="ml-auto shrink-0 rounded-full bg-accent-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-red">
                                 {t(suggestion.media_type === "tv" ? "TV" : "Movie")}
                               </span>
-                            </button>
+                            </Link>
+                            </li>
                           );
                         })}
-                      </div>
+                      </ul>
                     )}
                   </div>
                 </form>

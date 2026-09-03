@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, Star } from "lucide-react";
 import { XIcon } from "@/components/ui/x";
@@ -8,7 +8,7 @@ import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import Image from "next/image";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { localizedHref } from "@/lib/i18n";
+import { formatRating, localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 
 interface SearchResult {
@@ -61,6 +61,7 @@ function SearchContent() {
   const initialType = parseFilterType(searchParams.get("type"));
 
   const [query, setQuery] = useState(initialQuery);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [clearIcon, clearFeedback] = useAnimatedIcon();
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -102,6 +103,11 @@ function SearchContent() {
     if (initialQuery) {
       doSearch(initialQuery);
     }
+    // Autofocus only where a keyboard is already out: on a phone it throws up
+    // the on-screen keyboard and scrolls the results out of view on arrival.
+    if (window.matchMedia("(pointer: fine)").matches) {
+      inputRef.current?.focus();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -110,19 +116,26 @@ function SearchContent() {
 
   return (
     <div className="pt-24 pb-16 px-4 sm:px-6 max-w-7xl mx-auto w-full">
+      {/* The field itself is the page title visually; the heading gives the
+          document an outline and a landmark to jump to. */}
+      <h1 className="sr-only">{t("Search")}</h1>
       <div className="relative max-w-2xl mx-auto mb-8">
         <Search
           aria-hidden="true"
           className="absolute left-5 top-1/2 -translate-y-1/2 size-5 text-muted-foreground"
         />
         <input
-          type="text"
+          ref={inputRef}
+          type="search"
+          name="q"
+          autoComplete="off"
+          spellCheck={false}
+          enterKeyHint="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={t("Search movies & TV shows...")}
-          aria-label={t("Search movies & TV shows...")}
-          autoFocus
-          className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-13 pr-12 text-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition"
+          placeholder={t("Search movies & TV shows…")}
+          aria-label={t("Search movies & TV shows…")}
+          className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-13 pr-12 text-lg text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition"
         />
         {query && (
           <button
@@ -141,8 +154,10 @@ function SearchContent() {
         {FILTER_TYPES.map((type) => (
           <button
             key={type}
+            type="button"
             onClick={() => setFilter(type)}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition cursor-pointer ${
+            aria-pressed={filter === type}
+            className={`px-5 py-2 rounded-full text-sm font-medium transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 ${
               filter === type
                 ? "bg-accent-red text-white"
                 : "bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
@@ -166,6 +181,10 @@ function SearchContent() {
           {filtered.map((item, index) => {
             const title = item.title || item.name || t("Untitled");
             const date = item.release_date || item.first_air_date;
+            const rating = formatRating(
+              locale,
+              item.vote_average ?? Number.NaN,
+            );
             const href =
               item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
             return (
@@ -190,12 +209,12 @@ function SearchContent() {
                       {t("No Poster")}
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent transition-opacity duration-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-visible:opacity-100" />
 
-                  {item.vote_average != null && (
+                  {rating && (
                     <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
                       <Star className="size-3 fill-accent-red" />
-                      {item.vote_average.toFixed(1)}
+                      {rating}
                     </div>
                   )}
 
@@ -205,7 +224,7 @@ function SearchContent() {
                     </div>
                   )}
 
-                  <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <div className="absolute bottom-0 left-0 right-0 p-3 transition-opacity duration-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-visible:opacity-100">
                     <p className="text-sm font-semibold text-white leading-tight line-clamp-2">
                       {title}
                     </p>
@@ -225,12 +244,12 @@ function SearchContent() {
       {!loading && searched && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Search className="size-12 text-muted-foreground/40 mb-4" />
-          <h3
+          <h2
             className="text-xl font-semibold mb-2"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             {t("No results found")}
-          </h3>
+          </h2>
           <p className="text-muted-foreground">
             {t("Try a different search term or check the spelling.")}
           </p>
@@ -240,12 +259,12 @@ function SearchContent() {
       {!loading && !searched && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Search className="size-12 text-muted-foreground/40 mb-4" />
-          <h3
+          <h2
             className="text-xl font-semibold mb-2"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             {t("Discover movies & TV shows")}
-          </h3>
+          </h2>
           <p className="text-muted-foreground">
             {t("Start typing to search thousands of titles.")}
           </p>

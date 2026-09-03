@@ -27,17 +27,17 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
       <div className="space-y-8 text-sm leading-relaxed text-muted-foreground">
         <Section title={translate(locale, "What we store")}>
           <p>
-            {french ? "Nous stockons votre historique de visionnage dans le stockage local de votre navigateur" : "We store your watch history in your browser's local storage"}
+            {french ? "Nous stockons votre historique de visionnage dans le stockage local de votre navigateur" : "We store your watch history in your browser’s local storage"}
             {" "}({french ? "clé" : "key"}: <Code>binje:play-history:v1</Code>){" "}
             {french ? "afin que vous puissiez reprendre votre lecture. Ces données ne quittent jamais votre appareil." : "so you can resume what you were watching. This data never leaves your device."}
           </p>
         </Section>
 
-        <Section title={translate(locale, "What we don't do")}>
+        <Section title={translate(locale, "What we don’t do")}>
           <p>
             {french
               ? "Nous n’utilisons aucun outil d’analyse, cookie publicitaire ou technique d’identification du navigateur. Ce site ne contient aucun traceur."
-              : "We don't run analytics, don't set advertising cookies, and don't fingerprint your browser. There are no trackers on this site."}
+              : "We don’t run analytics, don’t set advertising cookies, and don’t fingerprint your browser. There are no trackers on this site."}
           </p>
         </Section>
 
@@ -57,7 +57,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
           <p>
             {french
               ? "Vous pouvez effacer votre historique depuis les réglages du site de votre navigateur. Si vous refusez l’avis relatif aux cookies, rien n’est enregistré : les écritures commencent uniquement après votre consentement."
-              : "You can clear your watch history from your browser's site settings; that wipes the local storage key. If you decline the cookie notice, nothing gets recorded in the first place: writes only happen after you consent."}
+              : "You can clear your watch history from your browser’s site settings; that wipes the local storage key. If you decline the cookie notice, nothing gets recorded in the first place: writes only happen after you consent."}
           </p>
         </Section>
 
@@ -78,7 +78,10 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
 
 function Code({ children }: { children: React.ReactNode }) {
   return (
-    <code className="rounded bg-white/8 px-1.5 py-0.5 text-xs text-foreground">
+    <code
+      className="rounded bg-white/8 px-1.5 py-0.5 text-xs text-foreground"
+      translate="no"
+    >
       {children}
     </code>
   );

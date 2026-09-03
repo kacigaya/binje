@@ -64,7 +64,10 @@ export default function ContinueWatching() {
 
         <div
           ref={scrollRef}
-          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 py-2"
+          tabIndex={0}
+          role="group"
+          aria-label={t("Continue Watching")}
+          className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
         >
           {items.map((item) => {
             const image = item.backdrop_path
@@ -97,7 +100,7 @@ export default function ContinueWatching() {
                   onClick={(event) => removeItem(event, item)}
                   label={`${t("Remove from continue watching")}: ${item.title}`}
                   iconSize={14}
-                  className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-accent-red focus:outline-none focus:ring-2 focus:ring-accent-red/70"
+                  className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-accent-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/70"
                 />
                 <Link
                   href={localizedHref(locale, getPlayHistoryHref(item))}

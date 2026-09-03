@@ -9,6 +9,7 @@ import {
   Search,
   Tv,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { localizedHref, type TranslationKey } from "@/lib/i18n";
@@ -139,8 +140,13 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
               className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
             />
             <input
+              // The palette only ever opens from an explicit shortcut or
+              // click, so focusing its single input is what was asked for.
               autoFocus
-              type="text"
+              type="search"
+              name="q"
+              autoComplete="off"
+              spellCheck={false}
               value={query}
               onChange={(event) => {
                 setQuery(event.target.value);
@@ -165,21 +171,25 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
             id="command-menu-list"
             role="listbox"
             aria-label={t("Results")}
-            className="max-h-80 overflow-y-auto p-1.5"
+            className="max-h-80 overflow-y-auto overscroll-contain p-1.5"
           >
             {items.map((item, index) => {
               const Icon = item.icon;
               const active = index === activeIndex;
 
               return (
-                <button
+                // A link, so a result can be opened in a new tab, and
+                // tabIndex={-1} because the input owns focus and points at the
+                // active option through aria-activedescendant.
+                <Link
                   key={item.key}
                   id={item.key}
-                  type="button"
+                  href={localizedHref(locale, item.href)}
                   role="option"
                   aria-selected={active}
+                  tabIndex={-1}
                   onMouseEnter={() => setHighlightedIndex(index)}
-                  onClick={() => select(item.href)}
+                  onClick={() => setOpen(false)}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 ${
                     active
                       ? "bg-white/10 text-foreground"
@@ -191,7 +201,7 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
                   <span className="shrink-0 text-xs uppercase tracking-wider text-muted-foreground">
                     {item.hint}
                   </span>
-                </button>
+                </Link>
               );
             })}
 

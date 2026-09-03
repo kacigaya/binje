@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import Link from "next/link";
-import { Info } from "lucide-react";
+import { Info, Pause, Play } from "lucide-react";
+import { useReducedMotion } from "motion/react";
 import WatchNowLink from "@/components/WatchNowLink";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
 import { logoUrl } from "@/lib/tmdb";
 import ExpandableOverview from "@/components/ExpandableOverview";
-import { localizedHref } from "@/lib/i18n";
+import { formatRating, localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 
@@ -54,6 +55,9 @@ function heroLogoBox(width?: number, height?: number) {
 export default function Hero({ items }: HeroProps) {
   const { locale, t } = useTranslations();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const reducedMotion = useReducedMotion() ?? false;
+  const rotates = !reducedMotion;
 
   const safeItems = useMemo(
     () => items.filter((item) => Boolean(item?.id)),
@@ -61,14 +65,16 @@ export default function Hero({ items }: HeroProps) {
   );
 
   useEffect(() => {
-    if (safeItems.length <= 1) return;
+    // A rotation the visitor cannot stop is exactly what the reduced-motion
+    // setting asks us to drop, and the control below covers everyone else.
+    if (safeItems.length <= 1 || paused || !rotates) return;
 
     const intervalId = window.setInterval(() => {
       setActiveIndex((previousIndex) => (previousIndex + 1) % safeItems.length);
     }, 15000);
 
     return () => window.clearInterval(intervalId);
-  }, [safeItems.length]);
+  }, [paused, rotates, safeItems.length]);
 
   const normalizedIndex =
     safeItems.length > 0 ? activeIndex % safeItems.length : 0;
@@ -86,9 +92,7 @@ export default function Hero({ items }: HeroProps) {
     activeItem.media_type === "tv"
       ? `/watch/tv/${activeItem.id}`
       : `/watch/${activeItem.id}`;
-  const rating = Number.isFinite(activeItem.vote_average)
-    ? activeItem.vote_average.toFixed(1)
-    : t("N/A");
+  const rating = formatRating(locale, activeItem.vote_average) ?? t("N/A");
 
   return (
     <section className="relative w-full h-[70vh] sm:h-[80vh] overflow-hidden">
@@ -110,6 +114,24 @@ export default function Hero({ items }: HeroProps) {
       <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
       <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
 
+      {rotates && safeItems.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setPaused((previous) => !previous)}
+          aria-pressed={paused}
+          aria-label={
+            paused ? t("Resume featured titles") : t("Pause featured titles")
+          }
+          className="absolute bottom-6 right-4 z-20 flex size-9 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/50 text-white/80 backdrop-blur transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 sm:bottom-8 sm:right-6"
+        >
+          {paused ? (
+            <Play aria-hidden="true" className="size-4" />
+          ) : (
+            <Pause aria-hidden="true" className="size-4" />
+          )}
+        </button>
+      )}
+
       <div className="absolute inset-0 flex items-end">
         <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16 sm:pb-24">
           <div className="max-w-2xl space-y-4">
@@ -121,16 +143,23 @@ export default function Hero({ items }: HeroProps) {
             */}
             <div className="flex min-h-28 items-end sm:min-h-36">
               {logo ? (
-                <Image
-                  src={logo}
-                  alt={`${activeItem.title} logo`}
-                  width={activeItem.logo_width ?? 500}
-                  height={activeItem.logo_height ?? 200}
-                  priority
-                  sizes={logoBox.sizes}
-                  style={logoBox.style}
-                  className="h-28 w-(--logo-width) object-contain object-left-bottom sm:h-36 sm:w-(--logo-width-sm)"
-                />
+                <>
+                  {/* The logo carries the title visually. The heading keeps it
+                      in the document outline, which is otherwise empty of an
+                      h1 on the whole home page. */}
+                  <h1 className="sr-only">{activeItem.title}</h1>
+                  <Image
+                    src={logo}
+                    alt=""
+                    aria-hidden="true"
+                    width={activeItem.logo_width ?? 500}
+                    height={activeItem.logo_height ?? 200}
+                    priority
+                    sizes={logoBox.sizes}
+                    style={logoBox.style}
+                    className="h-28 w-(--logo-width) object-contain object-left-bottom sm:h-36 sm:w-(--logo-width-sm)"
+                  />
+                </>
               ) : (
                 <h1
                   className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-balance"

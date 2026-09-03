@@ -1,9 +1,11 @@
 "use client";
 
 import type Hls from "hls.js";
+import { RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import CastControls from "@/components/CastControls";
+import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { fetchResolve } from "@/lib/resolve-client";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
@@ -87,6 +89,9 @@ export default function Player({
   const [loading, setLoading] = useState(true);
   const [resolvedMedia, setResolvedMedia] = useState<ResolvedMedia | null>(null);
   const [googleCasting, setGoogleCasting] = useState(false);
+  // Bumped by the retry control so the resolve below runs again without a
+  // full page reload.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -184,7 +189,7 @@ export default function Player({
       hls?.destroy();
       if (masterUrl) URL.revokeObjectURL(masterUrl);
     };
-  }, [sourceUrl]);
+  }, [reloadKey, sourceUrl]);
 
   useEffect(() => {
     if (!error) return;
@@ -233,13 +238,15 @@ export default function Player({
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/50 p-1 backdrop-blur">
-        {LANGS.map((l) => (
+        <div role="group" aria-label={t("Audio track")} className="flex gap-1">
+          {LANGS.map((l) => (
           <button
             key={l.id}
             type="button"
             onClick={() => setLang(l.id)}
+            aria-pressed={lang === l.id}
             className={cn(
-              "rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-accent-red/60",
+              "rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60",
               lang === l.id
                 ? "bg-accent-red text-white"
                 : "text-white/70 hover:text-white hover:bg-white/10",
@@ -247,7 +254,8 @@ export default function Player({
           >
             {l.label}
           </button>
-        ))}
+          ))}
+        </div>
         {qualities.length > 0 && (
           <Select
             ariaLabel={t("Quality")}
@@ -275,6 +283,7 @@ export default function Player({
       </div>
       <video
         ref={videoRef}
+        aria-label={`${t("Video player")}: ${title}`}
         controls={!googleCasting}
         playsInline
         onTimeUpdate={onTimeUpdate}
@@ -293,15 +302,31 @@ export default function Player({
       </video>
       {(loading || error) && (
         <div
-          role="status"
-          aria-live="polite"
-          className="absolute inset-0 flex items-center justify-center text-sm text-white/70 pointer-events-none"
+          className={cn(
+            "absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-sm text-white/70",
+            // While loading the overlay must not swallow the native controls;
+            // the error state has a control of its own to click.
+            !error && "pointer-events-none",
+          )}
         >
-          {error
-            ? lang === "vf"
-              ? t("No VF stream for this title.")
-              : t("Stream unavailable. Try again later.")
-            : t("Loading…")}
+          <p role="status" aria-live="polite">
+            {error
+              ? lang === "vf"
+                ? t("No VF stream for this title.")
+                : t("Stream unavailable. Try again later.")
+              : t("Loading…")}
+          </p>
+          {error && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setReloadKey((previous) => previous + 1)}
+              className="h-9 cursor-pointer gap-2 rounded-full px-4"
+            >
+              <RotateCcw aria-hidden="true" className="size-4" />
+              {t("Try Again")}
+            </Button>
+          )}
         </div>
       )}
     </div>

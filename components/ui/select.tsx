@@ -46,7 +46,7 @@ function Select<T extends string | number>({
       </BaseSelect.Trigger>
       <BaseSelect.Portal>
         <BaseSelect.Positioner sideOffset={6} className="z-50 outline-none">
-          <BaseSelect.Popup className="max-h-72 overflow-y-auto rounded-2xl border border-white/10 bg-background/95 p-1 text-sm text-foreground shadow-lg shadow-black/40 backdrop-blur">
+          <BaseSelect.Popup className="max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-background/95 p-1 text-sm text-foreground shadow-lg shadow-black/40 backdrop-blur">
             {items.map((item) => (
               <BaseSelect.Item
                 key={String(item.value)}

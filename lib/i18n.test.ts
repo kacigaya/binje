@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { localizedHref, preferredLocale, translate } from "@/lib/i18n";
+import {
+  formatRating,
+  localizedHref,
+  pluralize,
+  preferredLocale,
+  translate,
+} from "@/lib/i18n";
 
 describe("i18n", () => {
   test("selects supported language by quality", () => {
@@ -12,6 +18,14 @@ describe("i18n", () => {
     expect(localizedHref("fr", "/movie/12?play=1")).toBe("/fr/movie/12?play=1");
     expect(localizedHref("en", "/")).toBe("/en");
     expect(localizedHref("fr", "https://example.com")).toBe("https://example.com");
+  });
+
+  test("formats ratings and plurals for the active locale", () => {
+    expect(formatRating("en", 7.25)).toBe("7.3");
+    expect(formatRating("fr", 7.25)).toBe("7,3");
+    expect(formatRating("fr", Number.NaN)).toBeNull();
+    expect(pluralize("en", 1, "Season", "Seasons")).toBe("Season");
+    expect(pluralize("fr", 2, "Season", "Seasons")).toBe("Saisons");
   });
 
   // An unknown key falls through to the English identity, so a missing French

@@ -83,10 +83,22 @@ export default async function RootLayout({
           <Suspense fallback={null}>
             <LocaleValidation params={params} />
           </Suspense>
+          {/* First tab stop on every page: the fixed nav and the carousels
+              below it are a long way to travel one link at a time. */}
+          <a
+            href="#main"
+            className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-100 focus-visible:rounded-full focus-visible:bg-accent-red focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-semibold focus-visible:text-white"
+          >
+            {translate(locale, "Skip to content")}
+          </a>
           <Navbar />
           <CommandMenuLoader />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <main id="main" tabIndex={-1} className="flex-1 outline-none">
+            {children}
+          </main>
+          <Suspense fallback={null}>
+            <Footer />
+          </Suspense>
           <CookiesBanner />
           <LazyToaster />
         </LocaleProvider>

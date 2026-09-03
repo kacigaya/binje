@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import type { MediaItem } from "@/types/tmdb";
 import { posterUrl } from "@/lib/tmdb";
-import { localizedHref } from "@/lib/i18n";
+import { formatRating, localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 
 export default function MediaCard({
@@ -17,9 +17,7 @@ export default function MediaCard({
   const poster = posterUrl(item.poster_path, "w342");
   const href =
     item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
-  const rating = Number.isFinite(item.vote_average)
-    ? item.vote_average.toFixed(1)
-    : t("N/A");
+  const rating = formatRating(locale, item.vote_average) ?? t("N/A");
 
   return (
     <Link href={localizedHref(locale, href)} className="group block shrink-0">
@@ -34,7 +32,7 @@ export default function MediaCard({
             className="object-cover transition-transform duration-200 group-hover:scale-110"
             sizes="(max-width: 640px) 160px, 185px"
           />
-          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent transition-opacity duration-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-visible:opacity-100" />
 
           <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
             <Star className="size-3 fill-accent-red" />
@@ -47,7 +45,7 @@ export default function MediaCard({
             </div>
           )}
 
-          <div className="absolute bottom-0 left-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="absolute bottom-0 left-0 right-0 p-3 transition-opacity duration-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-visible:opacity-100">
             <p className="text-sm font-semibold text-white leading-tight line-clamp-2">
               {item.title}
             </p>

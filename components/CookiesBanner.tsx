@@ -59,10 +59,11 @@ export default function CookiesBanner() {
     // elements: an element that both animates and carries a backdrop-filter
     // cannot be composited, so the transform would run on the main thread.
     // The keyframe itself lives in globals.css for the same reason.
+    // A landmark rather than a dialog: focus is never moved into it and it
+    // does not trap, so announcing it as a dialog would misdescribe it.
     <div
-      role="dialog"
+      role="region"
       aria-label={t("Cookie consent")}
-      aria-live="polite"
       className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 right-4 z-40 mx-auto max-w-md sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] sm:left-auto sm:right-6 animate-banner-enter"
     >
       <div className="relative rounded-2xl border border-white/10 bg-background/95 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -71,7 +72,7 @@ export default function CookiesBanner() {
           onClick={dismiss}
           {...dismissFeedback}
           aria-label={t("Dismiss")}
-          className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/8 hover:text-foreground"
+          className="absolute right-2 top-2 inline-flex size-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/8 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
         >
           <XIcon ref={dismissIcon} size={16} />
         </button>

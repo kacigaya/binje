@@ -24,7 +24,7 @@ import ExpandableOverview from "@/components/ExpandableOverview";
 import TVPlayer from "./TVPlayer";
 import Link from "next/link";
 import StreamTechBadges from "@/components/StreamTechBadges";
-import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
+import { formatRating, isLocale, localizedHref, pluralize, translate, type Locale } from "@/lib/i18n";
 import { WatchTVInfoLoading, WatchTVPlayerLoading } from "./loading";
 
 export async function generateMetadata({
@@ -105,17 +105,22 @@ async function WatchTVInfo({
           <Link
             href={localizedHref(locale, `/tv/${show.id}`)}
             className="inline-block"
-            aria-label={show.name}
           >
             {logo && showLogoUrl ? (
-              <Image
-                src={showLogoUrl}
-                alt={`${show.name} logo`}
-                width={logo.width}
-                height={logo.height}
-                className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
-                priority
-              />
+              <>
+                {/* The logo replaces the title visually; the heading keeps
+                    the page from rendering without an h1. */}
+                <h1 className="sr-only">{show.name}</h1>
+                <Image
+                  src={showLogoUrl}
+                  alt=""
+                  aria-hidden="true"
+                  width={logo.width}
+                  height={logo.height}
+                  className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
+                  priority
+                />
+              </>
             ) : (
               <h1
                 className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
@@ -148,7 +153,7 @@ async function WatchTVInfo({
                 aria-hidden="true"
                 className="h-4 w-auto shrink-0"
               />
-              {show.vote_average.toFixed(1)}
+              {formatRating(locale, show.vote_average) ?? translate(locale, "N/A")}
             </div>
             <RottenTomatoesRating imdbId={show.external_ids.imdb_id} />
             {contentRating && (
@@ -156,11 +161,11 @@ async function WatchTVInfo({
             )}
             <div className="flex items-center gap-1">
               <Layers className="size-4" />
-              {show.number_of_seasons} {show.number_of_seasons === 1 ? translate(locale, "Season") : translate(locale, "Seasons")}
+              {show.number_of_seasons} {pluralize(locale, show.number_of_seasons, "Season", "Seasons")}
             </div>
             <div className="flex items-center gap-1">
               <Tv className="size-4" />
-              {show.number_of_episodes} {show.number_of_episodes === 1 ? translate(locale, "Episode") : translate(locale, "Episodes")}
+              {show.number_of_episodes} {pluralize(locale, show.number_of_episodes, "Episode", "Episodes")}
             </div>
             {show.first_air_date && (
               <div className="flex items-center gap-1">
