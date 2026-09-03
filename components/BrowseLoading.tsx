@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@appica/ui-react/skeleton";
 
 const SECTION_COUNT = 10;
 
