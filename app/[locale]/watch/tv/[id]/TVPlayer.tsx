@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type MouseEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Play, Clock } from "lucide-react";
 import { ChevronLeftIcon } from "@/components/ui/chevron-left";
 import { ChevronRightIcon } from "@/components/ui/chevron-right";
@@ -82,10 +83,28 @@ export default function TVPlayer({
     scroll: scrollEpisodes,
   } = useHorizontalScroll(`${episodesSeason}:${episodes.length}:${loading}`);
 
+  function episodeHref(s: number, e: number) {
+    return localizedHref(locale, `/watch/tv/${showId}?s=${s}&e=${e}`);
+  }
+
   function navigate(s: number, e: number) {
     setSeason(s);
     setEpisode(e);
-    router.replace(localizedHref(locale, `/watch/tv/${showId}?s=${s}&e=${e}`), { scroll: false });
+    router.replace(episodeHref(s, e), { scroll: false });
+  }
+
+  /**
+   * Swapping episodes only changes the player source, so it is handled here
+   * rather than by following the link. Modified clicks fall through untouched
+   * so an episode can still be opened in its own tab.
+   */
+  function selectEpisode(
+    event: MouseEvent<HTMLAnchorElement>,
+    episodeNumber: number,
+  ) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    navigate(season, episodeNumber);
   }
 
   function prevEpisode() {
@@ -191,12 +210,12 @@ export default function TVPlayer({
       </div>
 
       <div className="px-4 sm:px-0">
-        <h3
+        <h2
           className="text-lg font-semibold mb-3"
           style={{ fontFamily: "var(--font-heading)" }}
         >
           {t("Episodes")}
-        </h3>
+        </h2>
 
         {loading ? (
           <div className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2">
@@ -230,10 +249,12 @@ export default function TVPlayer({
               const still = stillUrl(ep.still_path, "w300");
               const isActive = ep.episode_number === episode;
               return (
-                <button
+                <Link
                   key={ep.id}
-                  onClick={() => navigate(season, ep.episode_number)}
-                  className={`group relative w-72 sm:w-80 shrink-0 text-left aspect-video rounded-2xl overflow-hidden ring-1 transition-[box-shadow] cursor-pointer ${
+                  href={episodeHref(season, ep.episode_number)}
+                  onClick={(event) => selectEpisode(event, ep.episode_number)}
+                  aria-current={isActive ? "true" : undefined}
+                  className={`group relative w-72 sm:w-80 shrink-0 text-left aspect-video rounded-2xl overflow-hidden ring-1 transition-[box-shadow] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red ${
                     isActive
                       ? "ring-2 ring-white"
                       : "ring-white/10 hover:ring-white/30"
@@ -285,7 +306,7 @@ export default function TVPlayer({
                   {isActive && (
                     <span className="absolute inset-x-0 bottom-0 h-1 bg-accent-red transition-opacity group-hover:opacity-0" />
                   )}
-                </button>
+                </Link>
               );
               })}
             </div>
