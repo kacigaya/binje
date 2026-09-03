@@ -268,8 +268,8 @@ export default function Navbar() {
                       required
                       minLength={MIN_SUGGESTION_QUERY_LENGTH}
                       disabled={pending}
-                      placeholder={t("Search movies & TV...")}
-                      aria-label={t("Search movies & TV...")}
+                      placeholder={t("Search movies & TV…")}
+                      aria-label={t("Search movies & TV…")}
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
                       className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent-red/50 focus:border-accent-red/50 transition disabled:opacity-60"
@@ -278,7 +278,7 @@ export default function Navbar() {
                       type="submit"
                       disabled={pending || query.trim().length < MIN_SUGGESTION_QUERY_LENGTH}
                       {...submitFeedback}
-                      aria-label={t("Search movies & TV...")}
+                      aria-label={t("Search movies & TV…")}
                       className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:opacity-40 disabled:pointer-events-none"
                     >
                       {pending ? (

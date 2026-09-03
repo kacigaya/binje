@@ -11,7 +11,7 @@ export default function RouteError({
   error,
   reset,
   title = "Something went wrong",
-  message = "We couldn't load the content. This might be temporary. Please try again.",
+  message = "We couldn’t load the content. This might be temporary. Please try again.",
 }: {
   error: Error & { digest?: string };
   reset: () => void;
@@ -21,8 +21,8 @@ export default function RouteError({
   const { t } = useTranslations();
   const [retryIcon, retryFeedback] = useAnimatedIcon();
   const localizedTitle = title === "Something went wrong" ? t(title) : title;
-  const localizedMessage = message.startsWith("We couldn't load")
-    ? t("We couldn't load the content. This might be temporary. Please try again.")
+  const localizedMessage = message.startsWith("We couldn’t load")
+    ? t("We couldn’t load the content. This might be temporary. Please try again.")
     : message;
   useEffect(() => {
     console.error(error);

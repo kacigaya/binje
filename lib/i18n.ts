@@ -10,8 +10,8 @@ const FRENCH = {
   "TV Shows": "Séries",
   Watchlist: "Ma liste",
   Search: "Rechercher",
-  "Search movies & TV...": "Rechercher des films et séries...",
-  "Search movies & TV shows...": "Rechercher des films et séries...",
+  "Search movies & TV…": "Rechercher des films et séries…",
+  "Search movies & TV shows…": "Rechercher des films et séries…",
   "Open menu": "Ouvrir le menu",
   "Close menu": "Fermer le menu",
   "Open search": "Ouvrir la recherche",
@@ -68,7 +68,7 @@ const FRENCH = {
   "How b!nje handles your data: local watch history, no tracking, no third-party cookies.":
     "Comment b!nje gère vos données : historique local, aucun suivi et aucun cookie tiers.",
   "What we store": "Ce que nous stockons",
-  "What we don't do": "Ce que nous ne faisons pas",
+  "What we don’t do": "Ce que nous ne faisons pas",
   "Third parties": "Services tiers",
   "Managing your data": "Gérer vos données",
   Contact: "Contact",
@@ -91,7 +91,7 @@ const FRENCH = {
   Accept: "Accepter",
   Refuse: "Refuser",
   "Something went wrong": "Une erreur est survenue",
-  "We couldn't load the content. This might be temporary. Please try again.":
+  "We couldn’t load the content. This might be temporary. Please try again.":
     "Impossible de charger le contenu. Le problème est peut-être temporaire. Veuillez réessayer.",
   "Try Again": "Réessayer",
   All: "Tout",
@@ -128,7 +128,7 @@ const FRENCH = {
   "Remove from continue watching": "Retirer de la liste Continuer à regarder",
   "N/A": "N/D",
   "Page not found": "Page introuvable",
-  "This page doesn't exist or has moved. Check the address or head back home.":
+  "This page doesn’t exist or has moved. Check the address or head back home.":
     "Cette page n’existe pas ou a été déplacée. Vérifiez l’adresse ou revenez à l’accueil.",
   "Back to home": "Retour à l’accueil",
   "Search or jump to…": "Rechercher ou aller à…",
