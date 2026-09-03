@@ -105,17 +105,22 @@ async function WatchMovieInfo({
           <Link
             href={localizedHref(locale, `/movie/${movie.id}`)}
             className="inline-block"
-            aria-label={movie.title}
           >
             {logo && movieLogoUrl ? (
-              <Image
-                src={movieLogoUrl}
-                alt={`${movie.title} logo`}
-                width={logo.width}
-                height={logo.height}
-                className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
-                priority
-              />
+              <>
+                {/* The logo replaces the title visually; the heading keeps
+                    the page from rendering without an h1. */}
+                <h1 className="sr-only">{movie.title}</h1>
+                <Image
+                  src={movieLogoUrl}
+                  alt=""
+                  aria-hidden="true"
+                  width={logo.width}
+                  height={logo.height}
+                  className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
+                  priority
+                />
+              </>
             ) : (
               <h1
                 className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"

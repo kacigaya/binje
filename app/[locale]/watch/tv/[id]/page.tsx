@@ -105,17 +105,22 @@ async function WatchTVInfo({
           <Link
             href={localizedHref(locale, `/tv/${show.id}`)}
             className="inline-block"
-            aria-label={show.name}
           >
             {logo && showLogoUrl ? (
-              <Image
-                src={showLogoUrl}
-                alt={`${show.name} logo`}
-                width={logo.width}
-                height={logo.height}
-                className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
-                priority
-              />
+              <>
+                {/* The logo replaces the title visually; the heading keeps
+                    the page from rendering without an h1. */}
+                <h1 className="sr-only">{show.name}</h1>
+                <Image
+                  src={showLogoUrl}
+                  alt=""
+                  aria-hidden="true"
+                  width={logo.width}
+                  height={logo.height}
+                  className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
+                  priority
+                />
+              </>
             ) : (
               <h1
                 className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
