@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import Link from "next/link";
-import { Info } from "lucide-react";
+import { Info, Pause, Play } from "lucide-react";
+import { useReducedMotion } from "motion/react";
 import WatchNowLink from "@/components/WatchNowLink";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
@@ -54,6 +55,9 @@ function heroLogoBox(width?: number, height?: number) {
 export default function Hero({ items }: HeroProps) {
   const { locale, t } = useTranslations();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const reducedMotion = useReducedMotion() ?? false;
+  const rotates = !reducedMotion;
 
   const safeItems = useMemo(
     () => items.filter((item) => Boolean(item?.id)),
@@ -61,14 +65,16 @@ export default function Hero({ items }: HeroProps) {
   );
 
   useEffect(() => {
-    if (safeItems.length <= 1) return;
+    // A rotation the visitor cannot stop is exactly what the reduced-motion
+    // setting asks us to drop, and the control below covers everyone else.
+    if (safeItems.length <= 1 || paused || !rotates) return;
 
     const intervalId = window.setInterval(() => {
       setActiveIndex((previousIndex) => (previousIndex + 1) % safeItems.length);
     }, 15000);
 
     return () => window.clearInterval(intervalId);
-  }, [safeItems.length]);
+  }, [paused, rotates, safeItems.length]);
 
   const normalizedIndex =
     safeItems.length > 0 ? activeIndex % safeItems.length : 0;
@@ -109,6 +115,24 @@ export default function Hero({ items }: HeroProps) {
 
       <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
       <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
+
+      {rotates && safeItems.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setPaused((previous) => !previous)}
+          aria-pressed={paused}
+          aria-label={
+            paused ? t("Resume featured titles") : t("Pause featured titles")
+          }
+          className="absolute bottom-6 right-4 z-20 flex size-9 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/50 text-white/80 backdrop-blur transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 sm:bottom-8 sm:right-6"
+        >
+          {paused ? (
+            <Play aria-hidden="true" className="size-4" />
+          ) : (
+            <Pause aria-hidden="true" className="size-4" />
+          )}
+        </button>
+      )}
 
       <div className="absolute inset-0 flex items-end">
         <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16 sm:pb-24">

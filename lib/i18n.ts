@@ -145,6 +145,8 @@ const FRENCH = {
   Searching: "Recherche",
   Undo: "Annuler",
   "Skip to content": "Aller au contenu",
+  "Pause featured titles": "Mettre en pause les titres à la une",
+  "Resume featured titles": "Reprendre les titres à la une",
 } as const;
 
 export type TranslationKey = keyof typeof FRENCH;
