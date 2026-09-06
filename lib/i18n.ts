@@ -107,6 +107,7 @@ const FRENCH = {
     "Flux indisponible. Réessayez plus tard.",
   "Loading…": "Chargement…",
   Quality: "Qualité",
+  Source: "Source",
   Auto: "Auto",
   "Cast to a device": "Diffuser sur un appareil",
   "Stop casting": "Arrêter la diffusion",
