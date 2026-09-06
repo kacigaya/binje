@@ -127,7 +127,7 @@ export default function Player({
 
     (async () => {
       try {
-        const data = await fetchResolve(sourceUrl);
+        const data = await fetchResolve(sourceUrl, reloadKey > 0);
         if (cancelled) return;
 
         const nextTracks = (data.tracks ?? []).filter((t) => t.file);

@@ -298,3 +298,17 @@ test("keeps a playable CDN stream when the fallback server fails", async () => {
   });
   expect(vsrcAttempts).toBe(3);
 });
+
+test("rejects unknown playback sources", async () => {
+  const response = await GET(new NextRequest("https://binje.test/api/resolve?source=unknown&type=movie&id=278&title=Movie&year=1994"));
+  expect(response.status).toBe(400);
+});
+
+test("dispatches VidZee and keeps upstream headers server-side", async () => {
+  globalThis.fetch = mock(async (input: string | URL | Request) => Response.json(
+    String(input).includes("/subs/") ? [] : { url: "https://cdn.test/new-stream", headers: { Referer: "https://provider.test/" } },
+  )) as unknown as typeof fetch;
+  const response = await GET(new NextRequest("https://binje.test/api/resolve?source=vidzee&type=movie&id=987654&title=Movie&year=1994"));
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ url: "https://cdn.test/new-stream", tracks: [] });
+});
