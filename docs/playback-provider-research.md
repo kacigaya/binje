@@ -104,3 +104,6 @@ No paid account, borrowed credential, or hosted addon configuration was used.
 No iframe-only candidate is silently substituted into the native player. Public
 provider code and captures do not establish Dulo's full provider inventory.
 Raw cookies, opaque URLs, and unredacted browser traffic stay outside Git.
+
+Implementation and remaining verification gaps are recorded in
+[the validation report](playback-provider-validation.md).
