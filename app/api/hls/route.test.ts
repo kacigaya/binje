@@ -85,6 +85,8 @@ test("rejects HTML and redirects into private networks", async () => {
   const request = new NextRequest("https://binje.test/api/hls?url=https://203.0.113.13/master");
   globalThis.fetch = mock(async () => new Response("<html>blocked</html>", { headers: { "content-type": "text/html" } })) as unknown as typeof fetch;
   expect((await GET(request)).status).toBe(502);
+  globalThis.fetch = mock(async () => new Response("<script>alert(1)</script>", { status: 403, headers: { "content-type": "text/html" } })) as unknown as typeof fetch;
+  expect((await GET(request)).status).toBe(502);
   globalThis.fetch = mock(async () => new Response(null, { status: 302, headers: { location: "http://127.0.0.1/private" } })) as unknown as typeof fetch;
   expect((await GET(request)).status).toBe(502);
 });

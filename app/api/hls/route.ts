@@ -262,7 +262,14 @@ export async function GET(request: NextRequest) {
   }
 
   const contentType = response.headers.get("content-type") ?? "";
-  const responseHeaders = new Headers();
+  if (!response.ok && contentType.includes("text/html")) {
+    await response.body?.cancel();
+    return NextResponse.json({ error: "Upstream request failed." }, { status: 502 });
+  }
+  const responseHeaders = new Headers({
+    "content-security-policy": "default-src 'none'; sandbox",
+    "x-content-type-options": "nosniff",
+  });
   if (castHeaders) {
     for (const [key, value] of castHeaders) responseHeaders.set(key, value);
   }
