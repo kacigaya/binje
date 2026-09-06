@@ -1,7 +1,7 @@
 import { apiRequest } from "../../api/client";
 import type { StreamResponse } from "../../types/api";
 
-export type AudioVariant = "vo" | "vf";
+export type AudioVariant = "vo" | "vf" | "vidzee";
 export type StreamMedia = {
   type: "movie" | "tv";
   id: number;
@@ -41,7 +41,7 @@ function isPlayableUrl(value: unknown): value is string {
 export async function resolveStream(media: StreamMedia, variant: AudioVariant): Promise<StreamResponse> {
   const endpoint = variant === "vf" ? "resolve-vf" : "resolve";
   const result = await apiRequest<StreamResponse>(`/api/${endpoint}`, {
-    query: buildResolveQuery(media),
+    query: { ...buildResolveQuery(media), ...(variant === "vidzee" ? { source: "vidzee" } : {}) },
   });
   if (!isPlayableUrl(result.url)) throw new Error("The server did not return a playable stream.");
   return {
