@@ -244,23 +244,12 @@ export default function Player({
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/50 p-1 backdrop-blur">
         <Select
+          ariaLabel={t("Source")}
           value={source}
-          onValueChange={(value) => {
-            if (value === "en" || value === "vf" || value === "vidzee") setSource(value);
-          }}
+          onValueChange={setSource}
           items={PLAYBACK_SOURCES.map(({ id, label }) => ({ value: id, label }))}
-          size="sm"
-          variant="soft"
-        >
-          <SelectTrigger aria-label={t("Source")} className="rounded-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PLAYBACK_SOURCES.map(({ id, label }) => (
-              <SelectItem key={id} value={id}>{label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white"
+        />
         {qualities.length > 0 && (
           <Select
             ariaLabel={t("Quality")}
