@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { allowStreamHosts } from "@/lib/hls-hosts";
+import { resolveVidzeeStream } from "@/lib/vidzee";
+import { allowStreamHost, allowStreamHosts } from "@/lib/hls-hosts";
 import { cachedResolveVideasyStream } from "@/lib/resolve-cache";
 
 export const maxDuration = 20;
@@ -7,6 +8,7 @@ export const maxDuration = 20;
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
   const type = query.get("type");
+  const source = query.get("source") ?? "videasy";
   const id = query.get("id");
   const title = query.get("title")?.trim() ?? "";
   const year = query.get("year") ?? "";
@@ -17,6 +19,7 @@ export async function GET(request: NextRequest) {
     type !== "tv" || (/^[1-9]\d*$/.test(season) && /^[1-9]\d*$/.test(episode));
 
   if (
+    (source !== "videasy" && source !== "vidzee") ||
     (type !== "movie" && type !== "tv") ||
     !/^\d+$/.test(id ?? "") ||
     !title ||
@@ -29,7 +32,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await cachedResolveVideasyStream({
+    const params = {
       type,
       id: id!,
       title,
@@ -37,7 +40,11 @@ export async function GET(request: NextRequest) {
       imdbId,
       season,
       episode,
-    });
+    };
+    const result = source === "vidzee"
+      ? await resolveVidzeeStream({ ...params, type })
+      : await cachedResolveVideasyStream({ ...params, type });
+    if ("referer" in result && typeof result.referer === "string") allowStreamHost(result.url, result.referer);
     allowStreamHosts([
       result.url,
       ...result.tracks.map((track) => track.file),
@@ -45,7 +52,7 @@ export async function GET(request: NextRequest) {
     ]);
     // Private and short: the URLs are signed and single-viewer, but a reload or
     // a detail-page-to-watch-page hop should not pay for the chain twice.
-    return NextResponse.json(result, {
+    return NextResponse.json({ url: result.url, tracks: result.tracks, sources: result.sources }, {
       headers: { "cache-control": "private, max-age=300" },
     });
   } catch {

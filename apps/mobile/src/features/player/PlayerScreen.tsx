@@ -273,15 +273,16 @@ export function PlayerScreen({
               onDisconnect={handleCastDisconnect}
               onRemoteProgress={handleRemoteProgress}
             />
-            {(["vo", "vf"] as const).map((item) => (
+            {(["vo", "vf", "vidzee"] as const).map((item) => (
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ selected: variant === item }}
+                accessibilityLabel={item === "vo" ? "Videasy · VO" : item === "vf" ? "French · VF" : "VidZee · EN"}
                 key={item}
                 onPress={() => setVariant(item)}
                 style={[styles.playerPill, variant === item && styles.playerPillActive]}
               >
-                <Text style={[styles.playerPillText, variant !== item && styles.playerPillTextDim]}>{item.toUpperCase()}</Text>
+                <Text style={[styles.playerPillText, variant !== item && styles.playerPillTextDim]}>{item === "vidzee" ? "VidZee" : item.toUpperCase()}</Text>
               </Pressable>
             ))}
             {qualityHeights.length > 0 ? (

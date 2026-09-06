@@ -29,6 +29,13 @@ describe("native stream resolver", () => {
     expect(request).toHaveBeenNthCalledWith(2, "/api/resolve-vf", { query: expect.objectContaining({ season: 2, episode: 3 }) });
   });
 
+  test("selects VidZee without changing episode coordinates", async () => {
+    await resolveStream({ type: "tv", id: 9, title: "Show", year: "2024", season: 2, episode: 3 }, "vidzee");
+    expect(request).toHaveBeenCalledWith("/api/resolve", {
+      query: expect.objectContaining({ source: "vidzee", season: 2, episode: 3 }),
+    });
+  });
+
   test("rejects a malformed stream response", async () => {
     request.mockResolvedValueOnce({ url: "javascript:alert(1)" });
     await expect(resolveStream({ type: "movie", id: 1, title: "X", year: "2020" }, "vo")).rejects.toThrow("playable stream");

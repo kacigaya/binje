@@ -18,10 +18,11 @@ type Quality = { index: number; height: number; bitrate: number };
 type StreamSource = { file: string; height: number };
 type ResolvedMedia = { url: string; tracks: Track[]; sources: StreamSource[] };
 
-type Lang = "en" | "vf";
-const LANGS: { id: Lang; label: string }[] = [
-  { id: "en", label: "VO" },
-  { id: "vf", label: "VF" },
+type PlaybackSource = "en" | "vf" | "vidzee";
+const PLAYBACK_SOURCES: { id: PlaybackSource; label: string }[] = [
+  { id: "en", label: "Videasy · VO" },
+  { id: "vf", label: "French · VF" },
+  { id: "vidzee", label: "VidZee · EN" },
 ];
 
 export const RESOLVE_BASE = "/api";
@@ -61,7 +62,7 @@ export default function Player({
   episode?: number;
 }) {
   const { t } = useTranslations();
-  const [lang, setLang] = useState<Lang>("en");
+  const [source, setSource] = useState<PlaybackSource>("en");
 
   const sourceUrl = useMemo(() => {
     const params = new URLSearchParams({
@@ -75,9 +76,10 @@ export default function Player({
       params.set("season", String(season ?? 1));
       params.set("episode", String(episode ?? 1));
     }
-    const endpoint = lang === "vf" ? "resolve-vf" : "resolve";
+    if (source === "vidzee") params.set("source", "vidzee");
+    const endpoint = source === "vf" ? "resolve-vf" : "resolve";
     return `${RESOLVE_BASE}/${endpoint}?${params.toString()}`;
-  }, [episode, imdbId, lang, season, title, tmdbId, type, year]);
+  }, [episode, imdbId, source, season, title, tmdbId, type, year]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -125,7 +127,7 @@ export default function Player({
 
     (async () => {
       try {
-        const data = await fetchResolve(sourceUrl);
+        const data = await fetchResolve(sourceUrl, reloadKey > 0);
         if (cancelled) return;
 
         const nextTracks = (data.tracks ?? []).filter((t) => t.file);
@@ -187,6 +189,9 @@ export default function Player({
       cancelled = true;
       if (hlsRef.current === hls) hlsRef.current = null;
       hls?.destroy();
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
       if (masterUrl) URL.revokeObjectURL(masterUrl);
     };
   }, [reloadKey, sourceUrl]);
@@ -194,11 +199,11 @@ export default function Player({
   useEffect(() => {
     if (!error) return;
     toast.error(
-      lang === "vf"
+      source === "vf"
         ? t("No VF stream for this title.")
         : t("Stream unavailable. Try again later."),
     );
-  }, [error, lang, t]);
+  }, [error, source, t]);
 
   function changeQuality(index: number) {
     setQuality(index);
@@ -238,24 +243,13 @@ export default function Player({
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/50 p-1 backdrop-blur">
-        <div role="group" aria-label={t("Audio track")} className="flex gap-1">
-          {LANGS.map((l) => (
-          <button
-            key={l.id}
-            type="button"
-            onClick={() => setLang(l.id)}
-            aria-pressed={lang === l.id}
-            className={cn(
-              "rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60",
-              lang === l.id
-                ? "bg-accent-red text-white"
-                : "text-white/70 hover:text-white hover:bg-white/10",
-            )}
-          >
-            {l.label}
-          </button>
-          ))}
-        </div>
+        <Select
+          ariaLabel={t("Source")}
+          value={source}
+          onValueChange={setSource}
+          items={PLAYBACK_SOURCES.map(({ id, label }) => ({ value: id, label }))}
+          className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white"
+        />
         {qualities.length > 0 && (
           <Select
             ariaLabel={t("Quality")}
@@ -311,7 +305,7 @@ export default function Player({
         >
           <p role="status" aria-live="polite">
             {error
-              ? lang === "vf"
+              ? source === "vf"
                 ? t("No VF stream for this title.")
                 : t("Stream unavailable. Try again later.")
               : t("Loading…")}
