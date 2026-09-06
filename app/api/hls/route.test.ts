@@ -61,3 +61,30 @@ describe("Cast HLS access", () => {
     expect(segmentUrl.searchParams.get("castToken")).toBe(token);
   });
 });
+
+test("rewrites mislabeled redirected playlists against the final URL and inherits referer", async () => {
+  allowStreamHost("https://203.0.113.11/opaque", "https://provider.test/");
+  const seen: string[] = [];
+  globalThis.fetch = mock(async (_input: unknown, init?: RequestInit) => {
+    seen.push(new Headers(init?.headers).get("referer") ?? "");
+    return seen.length === 1
+      ? new Response(null, { status: 302, headers: { location: "https://203.0.113.12/path/master" } })
+      : new Response("#EXTM3U\nvariant/index.m3u8\n", { headers: { "content-type": "text/html" } });
+  }) as unknown as typeof fetch;
+  const result = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.11/opaque"));
+  expect(result.status).toBe(200);
+  expect(result.headers.get("content-type")).toBe("application/vnd.apple.mpegurl");
+  const child = new URL((await result.text()).trim().split("\n")[1], "https://binje.test");
+  expect(child.searchParams.get("url")).toBe("https://203.0.113.12/path/variant/index.m3u8");
+  await GET(new NextRequest(child));
+  expect(seen).toEqual(Array(3).fill("https://provider.test/"));
+});
+
+test("rejects HTML and redirects into private networks", async () => {
+  allowStreamHost("https://203.0.113.13/master");
+  const request = new NextRequest("https://binje.test/api/hls?url=https://203.0.113.13/master");
+  globalThis.fetch = mock(async () => new Response("<html>blocked</html>", { headers: { "content-type": "text/html" } })) as unknown as typeof fetch;
+  expect((await GET(request)).status).toBe(502);
+  globalThis.fetch = mock(async () => new Response(null, { status: 302, headers: { location: "http://127.0.0.1/private" } })) as unknown as typeof fetch;
+  expect((await GET(request)).status).toBe(502);
+});

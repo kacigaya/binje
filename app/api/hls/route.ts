@@ -4,7 +4,7 @@ import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
 import { Agent } from "undici";
 import { isValidCastToken } from "@/lib/cast-token";
-import { allowStreamHost, isAllowedStreamHost } from "@/lib/hls-hosts";
+import { allowStreamHost, isAllowedStreamHost, streamReferer } from "@/lib/hls-hosts";
 
 const PLAYER_ORIGIN = "https://player.videasy.to";
 const BROWSER_USER_AGENT =
@@ -144,21 +144,22 @@ async function safeFetch(start: URL, init: RequestInit) {
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const response = await fetch(current, { ...init, redirect: "manual", dispatcher } as RequestInit);
-    if (response.status < 300 || response.status >= 400) return response;
+    if (response.status < 300 || response.status >= 400) return { response, finalUrl: current };
 
     const location = response.headers.get("location");
     const next = location ? getTargetUrl(new URL(location, current).toString()) : null;
     if (!next || !(await isSafeHost(next))) throw new Error("Blocked redirect target.");
     // The hop came from an already-allowed host, so trust it for later segments.
-    allowStreamHost(next);
+    allowStreamHost(next, new Headers(init.headers).get("referer") ?? undefined);
+    await response.body?.cancel();
     current = next;
   }
 
   throw new Error("Too many redirects.");
 }
 
-function proxiedUrl(url: string | URL, requestUrl: string, castToken: string | null) {
-  allowStreamHost(url);
+function proxiedUrl(url: string | URL, requestUrl: string, castToken: string | null, referer?: string) {
+  allowStreamHost(url, referer);
   const proxyUrl = new URL("/api/hls", requestUrl);
   proxyUrl.searchParams.set("url", String(url));
   if (castToken) proxyUrl.searchParams.set("castToken", castToken);
@@ -170,6 +171,7 @@ function rewritePlaylist(
   targetUrl: URL,
   requestUrl: string,
   castToken: string | null,
+  referer?: string,
 ) {
   return text
     .split("\n")
@@ -178,10 +180,10 @@ function rewritePlaylist(
       if (!trimmed) return line;
       if (trimmed.startsWith("#")) {
         return line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
-          return `URI="${proxiedUrl(new URL(uri, targetUrl), requestUrl, castToken)}"`;
+          return `URI="${proxiedUrl(new URL(uri, targetUrl), requestUrl, castToken, referer)}"`;
         });
       }
-      return proxiedUrl(new URL(trimmed, targetUrl), requestUrl, castToken);
+      return proxiedUrl(new URL(trimmed, targetUrl), requestUrl, castToken, referer);
     })
     .join("\n");
 }
@@ -232,10 +234,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
   }
 
+  const referer = streamReferer(targetUrl) ?? `${PLAYER_ORIGIN}/`;
   const headers = new Headers({
     accept: request.headers.get("accept") ?? "*/*",
-    origin: PLAYER_ORIGIN,
-    referer: `${PLAYER_ORIGIN}/`,
+    origin: new URL(referer).origin,
+    referer,
     "user-agent": request.headers.get("user-agent") ?? BROWSER_USER_AGENT,
   });
   const range = request.headers.get("range");
@@ -245,12 +248,13 @@ export async function GET(request: NextRequest) {
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   let response: Response;
+  let finalUrl: URL;
   try {
-    response = await safeFetch(targetUrl, {
+    ({ response, finalUrl } = await safeFetch(targetUrl, {
       cache: "no-store",
       headers,
       signal: controller.signal,
-    });
+    }));
   } catch {
     return NextResponse.json({ error: "Upstream request failed." }, { status: 502 });
   } finally {
@@ -267,13 +271,15 @@ export async function GET(request: NextRequest) {
     if (value) responseHeaders.set(header, value);
   }
 
-  if (response.ok && (contentType.includes("mpegurl") || targetUrl.pathname.endsWith(".m3u8"))) {
+  if (response.ok && (contentType.includes("mpegurl") || finalUrl.pathname.endsWith(".m3u8") || contentType.includes("text/html"))) {
+    const text = await response.text();
+    if (!text.trimStart().startsWith("#EXTM3U")) {
+      return NextResponse.json({ error: "Invalid upstream playlist." }, { status: 502 });
+    }
     responseHeaders.set("content-type", "application/vnd.apple.mpegurl");
     responseHeaders.set("cache-control", PLAYLIST_CACHE_CONTROL);
     responseHeaders.delete("content-length");
-    return new NextResponse(await response.text().then((text) =>
-      rewritePlaylist(text, targetUrl, request.nextUrl.href, castToken)
-    ), {
+    return new NextResponse(rewritePlaylist(text, finalUrl, request.nextUrl.href, castToken, referer), {
       status: response.status,
       headers: responseHeaders,
     });

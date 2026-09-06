@@ -6,9 +6,9 @@
 const TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_HOSTS = 1000;
 
-const hosts = new Map<string, number>();
+const hosts = new Map<string, { expiresAt: number; referer?: string }>();
 
-export function allowStreamHost(url: string | URL): void {
+export function allowStreamHost(url: string | URL, referer?: string): void {
   let host: string;
   try {
     host = new URL(String(url)).host;
@@ -17,9 +17,9 @@ export function allowStreamHost(url: string | URL): void {
   }
   if (hosts.size >= MAX_HOSTS) {
     const now = Date.now();
-    for (const [key, expiresAt] of hosts) if (now > expiresAt) hosts.delete(key);
+    for (const [key, entry] of hosts) if (now > entry.expiresAt) hosts.delete(key);
   }
-  hosts.set(host, Date.now() + TTL_MS);
+  hosts.set(host, { expiresAt: Date.now() + TTL_MS, referer: referer ?? hosts.get(host)?.referer });
 }
 
 export function allowStreamHosts(urls: (string | undefined)[]): void {
@@ -27,11 +27,15 @@ export function allowStreamHosts(urls: (string | undefined)[]): void {
 }
 
 export function isAllowedStreamHost(url: URL): boolean {
-  const expiresAt = hosts.get(url.host);
-  if (expiresAt === undefined) return false;
-  if (Date.now() > expiresAt) {
+  const entry = hosts.get(url.host);
+  if (entry === undefined) return false;
+  if (Date.now() > entry.expiresAt) {
     hosts.delete(url.host);
     return false;
   }
   return true;
+}
+
+export function streamReferer(url: URL): string | undefined {
+  return isAllowedStreamHost(url) ? hosts.get(url.host)?.referer : undefined;
 }
