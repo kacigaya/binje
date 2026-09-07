@@ -19,7 +19,7 @@ const BASE_HEADERS = {
   "user-agent": BROWSER_USER_AGENT,
 };
 
-export type StreamTechInfo = StreamTech & { height: number | null };
+type StreamTechInfo = StreamTech & { height: number | null };
 
 const cache = createTtlCache<StreamTechInfo>(TECH_TTL_MS);
 

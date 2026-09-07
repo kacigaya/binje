@@ -4,7 +4,7 @@ const CAST_SCRIPT_ID = "google-cast-sender-sdk";
 const CAST_SCRIPT_URL =
   "https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1";
 
-export type CastMediaTrack = {
+type CastMediaTrack = {
   trackContentId?: string;
   trackContentType?: string;
   language?: string;
@@ -12,23 +12,23 @@ export type CastMediaTrack = {
   subtype?: string;
 };
 
-export type CastMediaInfo = {
+type CastMediaInfo = {
   metadata?: { title?: string };
   tracks?: CastMediaTrack[];
 };
 
-export type CastLoadRequest = {
+type CastLoadRequest = {
   autoplay: boolean;
   currentTime: number;
   activeTrackIds?: number[];
 };
 
-export type CastSession = {
+type CastSession = {
   loadMedia(request: CastLoadRequest): Promise<void>;
   getCastDevice(): { friendlyName?: string };
 };
 
-export type CastContext = {
+type CastContext = {
   setOptions(options: {
     receiverApplicationId: string;
     autoJoinPolicy: string;
@@ -41,7 +41,7 @@ export type CastContext = {
   removeEventListener(type: string, listener: (event: CastEvent) => void): void;
 };
 
-export type CastEvent = {
+type CastEvent = {
   castState?: string;
   sessionState?: string;
 };

@@ -3,7 +3,7 @@
 // ponytail: per-instance and lost on restart, same trade-off as lib/hls-hosts.ts.
 type Entry<T> = { value: Promise<T>; expiresAt: number };
 
-export type TtlCache<T> = {
+type TtlCache<T> = {
   get(key: string, load: () => Promise<T>): Promise<T>;
   clear(): void;
 };

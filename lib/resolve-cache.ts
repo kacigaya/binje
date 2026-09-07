@@ -6,7 +6,7 @@ import { resolveVideasyStream, type ResolverResult } from "@/lib/videasy";
 // tech badges and the watch page resolves the same title again seconds later,
 // so without this the same chain runs several times per visitor.
 // The window stays short because provider URLs are signed and expire.
-export const RESOLVE_TTL_MS = 10 * 60 * 1000;
+const RESOLVE_TTL_MS = 10 * 60 * 1000;
 
 export type ResolveParams = {
   type: "movie" | "tv";
@@ -22,7 +22,7 @@ const cache = createTtlCache<ResolverResult>(RESOLVE_TTL_MS);
 
 // Title and year only steer the provider lookup; the stream is identified by
 // tmdb id plus episode, so they stay out of the key.
-export function resolveCacheKey({ type, id, season, episode }: ResolveParams) {
+function resolveCacheKey({ type, id, season, episode }: ResolveParams) {
   return type === "tv" ? `tv:${id}:${season}:${episode}` : `movie:${id}`;
 }
 

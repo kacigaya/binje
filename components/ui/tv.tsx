@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
  * has no `tv` entry, and the nav row needs the real Lucide glyph rather than a
  * near-miss like `airplay` or `monitor-check`.
  */
-export interface TvIconHandle {
+interface TvIconHandle {
   startAnimation: () => void;
   stopAnimation: () => void;
 }

@@ -12,7 +12,7 @@ import { updatePlayHistoryProgress } from "@/lib/play-history";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
-export type PlayerMediaType = "movie" | "tv";
+type PlayerMediaType = "movie" | "tv";
 type Track = { file: string; label?: string };
 type Quality = { index: number; height: number; bitrate: number };
 type StreamSource = { file: string; height: number };
@@ -25,9 +25,9 @@ const PLAYBACK_SOURCES: { id: PlaybackSource; label: string }[] = [
   { id: "vidzee", label: "VidZee · EN" },
 ];
 
-export const RESOLVE_BASE = "/api";
+const RESOLVE_BASE = "/api";
 
-export function proxied(url: string) {
+function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
 }
 

@@ -7,7 +7,7 @@ import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface ChevronLeftIconHandle {
+interface ChevronLeftIconHandle {
   startAnimation: () => void;
   stopAnimation: () => void;
 }

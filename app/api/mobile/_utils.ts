@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { unstable_rethrow } from "next/navigation";
 import { ApiValidationError } from "@/lib/api-validation";
 
-export const MOBILE_CACHE_HEADERS = {
+const MOBILE_CACHE_HEADERS = {
   "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
 };
 export function mobileJson(data: unknown, status = 200, cache = status === 200) {

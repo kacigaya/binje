@@ -1,5 +1,5 @@
 
-export type ResolveResult = {
+type ResolveResult = {
   url: string;
   tracks?: { file: string; label?: string }[];
   sources?: { file: string; height: number }[];

@@ -21,7 +21,7 @@ export function LocaleProvider({
   return <LocaleContext value={locale}>{children}</LocaleContext>;
 }
 
-export function useLocale() {
+function useLocale() {
   return useContext(LocaleContext);
 }
 

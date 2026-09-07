@@ -1,8 +1,8 @@
 import type { MobileLocale, MobileMediaType } from "@/types/mobile-api";
 
-export type MovieCategory = "trending" | "popular" | "top-rated" | "now-playing" | "upcoming";
-export type TVCategory = "trending" | "popular" | "top-rated" | "airing-today" | "on-the-air";
-export type BrowseCategory = MovieCategory | TVCategory;
+type MovieCategory = "trending" | "popular" | "top-rated" | "now-playing" | "upcoming";
+type TVCategory = "trending" | "popular" | "top-rated" | "airing-today" | "on-the-air";
+type BrowseCategory = MovieCategory | TVCategory;
 
 export class ApiValidationError extends Error {
   readonly code = "INVALID_REQUEST" as const;
@@ -25,7 +25,7 @@ export function parseMediaType(value: string): MobileMediaType {
 }
 export const parseId = (value: string) => integer(value, "ID");
 export const parseSeason = (value: string) => integer(value, "season", true);
-export const parsePage = (value: string | null) => value === null || value === "" ? 1 : integer(value, "page");
+const parsePage = (value: string | null) => value === null || value === "" ? 1 : integer(value, "page");
 
 const MOVIE = new Set<MovieCategory>(["trending", "popular", "top-rated", "now-playing", "upcoming"]);
 const TV = new Set<TVCategory>(["trending", "popular", "top-rated", "airing-today", "on-the-air"]);

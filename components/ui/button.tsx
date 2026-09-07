@@ -64,4 +64,3 @@ function Button({
 }
 
 export { Button, buttonClassName }
-export type { ButtonSize, ButtonVariant }

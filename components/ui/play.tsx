@@ -7,7 +7,7 @@ import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-export interface PlayIconHandle {
+interface PlayIconHandle {
   startAnimation: () => void;
   stopAnimation: () => void;
 }
