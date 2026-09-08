@@ -155,8 +155,10 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
               onKeyDown={onInputKeyDown}
               placeholder={t("Search or jump to…")}
               aria-label={t("Search or jump to…")}
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={items.length > 0}
               aria-controls="command-menu-list"
-              aria-activedescendant={items[activeIndex]?.key}
               className="h-14 w-full bg-transparent pl-11 pr-4 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-red/50"
             />
             {loading && (
@@ -169,7 +171,7 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
 
           <div
             id="command-menu-list"
-            role="listbox"
+            role="group"
             aria-label={t("Results")}
             className="max-h-80 overflow-y-auto overscroll-contain p-1.5"
           >
@@ -178,17 +180,16 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
               const active = index === activeIndex;
 
               return (
-                // A link, so a result can be opened in a new tab, and
-                // tabIndex={-1} because the input owns focus and points at the
-                // active option through aria-activedescendant.
+                // A link, so a result can be opened in a new tab. It stays a
+                // plain link: `role="option"` would strip the link semantics,
+                // and the input no longer points at it via
+                // aria-activedescendant. Arrows/Enter are an enhancement;
+                // Tab reaches every result directly.
                 <Link
                   key={item.key}
-                  id={item.key}
                   href={localizedHref(locale, item.href)}
-                  role="option"
-                  aria-selected={active}
-                  tabIndex={-1}
                   onMouseEnter={() => setHighlightedIndex(index)}
+                  onFocus={() => setHighlightedIndex(index)}
                   onClick={() => setOpen(false)}
                   className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 ${
                     active

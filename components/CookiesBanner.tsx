@@ -55,10 +55,10 @@ export default function CookiesBanner() {
   }
 
   return (
-    // The enter animation and the backdrop blur are deliberately on separate
-    // elements: an element that both animates and carries a backdrop-filter
-    // cannot be composited, so the transform would run on the main thread.
-    // The keyframe itself lives in globals.css for the same reason.
+    // The enter keyframe lives in globals.css and stays on the compositor
+    // (transform/opacity only). The panel is near-opaque, so it carries no
+    // backdrop-filter: blurring behind bg-background/95 costs GPU for no
+    // visible effect.
     // A landmark rather than a dialog: focus is never moved into it and it
     // does not trap, so announcing it as a dialog would misdescribe it.
     <div
@@ -66,7 +66,7 @@ export default function CookiesBanner() {
       aria-label={t("Cookie consent")}
       className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 right-4 z-40 mx-auto max-w-md sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] sm:left-auto sm:right-6 animate-banner-enter"
     >
-      <div className="relative rounded-2xl border border-white/10 bg-background/95 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <div className="relative rounded-2xl border border-white/10 bg-background/95 p-4 shadow-2xl shadow-black/40">
         <button
           type="button"
           onClick={dismiss}
