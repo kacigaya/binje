@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { locale as getRootLocale } from "next/root-params";
 import { connection } from "next/server";
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
 import { Calendar, Layers, Tv } from "lucide-react";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +68,10 @@ export async function generateMetadata({
   }
 }
 
+// Request-memoized so the info and player Suspense branches share one
+// underlying show-details read instead of fetching it twice.
+const getCachedTVDetails = cache(getTVDetails);
+
 export default async function WatchTVPage({
   params,
   searchParams,
@@ -98,7 +102,7 @@ async function WatchTVInfo({
   const { locale, id } = await params;
   const showId = parseTmdbId(id);
   if (showId === null) notFound();
-  const showPromise = getTVDetails(showId, locale);
+  const showPromise = getCachedTVDetails(showId, locale);
   const [show, images] = await Promise.all([
     showPromise,
     getTVImages(showId, locale),
@@ -216,7 +220,7 @@ async function WatchTVPlayer({
 
   const season = s ? parseInt(s, 10) : 1;
   const episode = e ? parseInt(e, 10) : 1;
-  const show = await getTVDetails(showId, locale);
+  const show = await getCachedTVDetails(showId, locale);
   const initialEpisodes = await getSeasonEpisodes(showId, season, locale).catch(
     () => [],
   );

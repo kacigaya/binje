@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { locale as getRootLocale } from "next/root-params";
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
 import { Clock, Calendar } from "lucide-react";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import StreamTechBadges from "@/components/StreamTechBadges";
@@ -60,6 +60,10 @@ export async function generateMetadata({
   }
 }
 
+// Request-memoized so the info and player Suspense branches share one
+// underlying read instead of issuing the same details fetch twice.
+const getCachedMovieDetails = cache(getMovieDetails);
+
 export default async function WatchPage({
   params,
 }: {
@@ -88,7 +92,7 @@ async function WatchMovieInfo({
   const { locale, id } = await params;
   const movieId = parseTmdbId(id);
   if (movieId === null) notFound();
-  const moviePromise = getMovieDetails(movieId, locale);
+  const moviePromise = getCachedMovieDetails(movieId, locale);
   const [movie, images] = await Promise.all([
     moviePromise,
     getMovieImages(movieId, locale),
@@ -210,7 +214,7 @@ async function WatchMoviePlayer({
   const { locale, id } = await params;
   const movieId = parseTmdbId(id);
   if (movieId === null) notFound();
-  const movie = await getMovieDetails(movieId, locale);
+  const movie = await getCachedMovieDetails(movieId, locale);
 
   return (
     <div

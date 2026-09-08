@@ -7,10 +7,19 @@ const LIMITS: [prefix: string, max: number][] = [
 ];
 const DEFAULT_LIMIT = 60;
 
+const MAX_BUCKETS = 10_000;
+
 const hits = new Map<string, { count: number; resetAt: number }>();
 
 export function bucketFor(pathname: string): [string, number] {
   return LIMITS.find(([prefix]) => pathname.startsWith(prefix)) ?? ["/api", DEFAULT_LIMIT];
+}
+
+/** Seconds until the caller's window resets, for `Retry-After` responses. */
+export function retryAfterSeconds(ip: string, pathname: string): number {
+  const entry = hits.get(`${ip}:${bucketFor(pathname)[0]}`);
+  if (!entry) return 0;
+  return Math.max(0, Math.ceil((entry.resetAt - Date.now()) / 1000));
 }
 
 // Only the right-most x-forwarded-for entry is trustworthy: it is the one the
@@ -28,8 +37,16 @@ export function isRateLimited(ip: string, pathname: string): boolean {
   const entry = hits.get(key);
 
   if (!entry || now > entry.resetAt) {
-    if (hits.size > 10_000) {
-      for (const [k, v] of hits) if (now > v.resetAt) hits.delete(k);
+    // Expired windows are swept on every new window (not only when full),
+    // and the map is hard-capped by evicting the oldest buckets first so a
+    // flood of distinct IPs cannot grow memory without bound. Note this is
+    // still per-instance: behind multiple servers each instance enforces
+    // its own window.
+    for (const [k, v] of hits) if (now > v.resetAt) hits.delete(k);
+    while (hits.size >= MAX_BUCKETS) {
+      const oldest = hits.keys().next();
+      if (oldest.done) break;
+      hits.delete(oldest.value);
     }
     hits.set(key, { count: 1, resetAt: now + WINDOW_MS });
     return false;

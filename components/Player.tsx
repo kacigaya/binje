@@ -31,13 +31,42 @@ function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
 }
 
+// Upstream only reports height, never bitrate, so map each rendition to a
+// conservative H.264 bitrate-ladder value instead of inventing bandwidth
+// from a quadratic. Values are bits/sec ceilings typical for the height;
+// unknown heights fall back to the nearest lower rung.
+const BITRATE_LADDER: [height: number, bandwidth: number][] = [
+  [2160, 16_000_000],
+  [1440, 10_000_000],
+  [1080, 6_000_000],
+  [720, 3_000_000],
+  [480, 1_400_000],
+  [360, 800_000],
+  [240, 400_000],
+];
+
+function ladderBandwidth(height: number): number {
+  for (const [rung, bandwidth] of BITRATE_LADDER) {
+    if (height >= rung) return bandwidth;
+  }
+  return BITRATE_LADDER[BITRATE_LADDER.length - 1][1];
+}
+
 function createMasterPlaylist(sources: StreamSource[]) {
   const lines = ["#EXTM3U", "#EXT-X-VERSION:3"];
-  for (const source of sources) {
+  const seen = new Set<number>();
+  const renditions = [...sources]
+    .filter((source) => {
+      if (!Number.isFinite(source.height) || source.height <= 0) return false;
+      if (seen.has(source.height)) return false;
+      seen.add(source.height);
+      return true;
+    })
+    .sort((a, b) => b.height - a.height);
+  for (const source of renditions) {
     const width = Math.round((source.height * 16) / 9 / 2) * 2;
-    const bandwidth = Math.round(source.height * source.height * 5);
     lines.push(
-      `#EXT-X-STREAM-INF:BANDWIDTH=${bandwidth},RESOLUTION=${width}x${source.height}`,
+      `#EXT-X-STREAM-INF:BANDWIDTH=${ladderBandwidth(source.height)},RESOLUTION=${width}x${source.height}`,
       new URL(proxied(source.file), window.location.origin).href,
     );
   }

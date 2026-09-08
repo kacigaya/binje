@@ -1,14 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isLocale, preferredLocale } from "@/lib/i18n";
-import { clientIp, isRateLimited } from "@/lib/rate-limit";
+import { clientIp, isRateLimited, retryAfterSeconds } from "@/lib/rate-limit";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/api/")) {
-    return isRateLimited(clientIp(request.headers), pathname)
-      ? NextResponse.json({ error: "Too many requests" }, { status: 429 })
-      : NextResponse.next();
+    const ip = clientIp(request.headers);
+    if (!isRateLimited(ip, pathname)) return NextResponse.next();
+    return NextResponse.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(Math.max(1, retryAfterSeconds(ip, pathname))) },
+      },
+    );
   }
 
   const [, locale] = pathname.split("/");

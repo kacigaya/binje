@@ -195,7 +195,7 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 z-50">
-      <div className="mx-auto max-w-7xl rounded-[2rem] bg-background/50 backdrop-blur-xl border border-white/10 shadow-lg shadow-black/30">
+      <div className="mx-auto max-w-7xl rounded-[2rem] bg-background/70 backdrop-blur-md border border-white/10 shadow-lg shadow-black/30">
         <div className="flex items-center justify-between px-4 sm:px-6 h-16">
         <Link
           href={localizedHref(locale, "/")}
@@ -307,11 +307,6 @@ export default function Navbar() {
                           ? "navbar-search-suggestions"
                           : undefined
                       }
-                      aria-activedescendant={
-                        activeSuggestion
-                          ? `navbar-suggestion-${activeSuggestion.media_type}-${activeSuggestion.id}`
-                          : undefined
-                      }
                       value={query}
                       onChange={(event) => {
                         setQuery(event.target.value);
@@ -342,9 +337,8 @@ export default function Navbar() {
                     {suggestions.length > 0 && (
                       <ul
                         id="navbar-search-suggestions"
-                        role="listbox"
                         aria-label={t("Results")}
-                        className="absolute right-0 top-12 w-72 overflow-hidden overscroll-contain rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40 backdrop-blur-xl"
+                        className="absolute right-0 top-12 w-72 overflow-hidden overscroll-contain rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40"
                       >
                         {suggestions.map((suggestion, index) => {
                           const title =
@@ -354,21 +348,18 @@ export default function Navbar() {
                           const year = date ? new Date(date).getFullYear() : null;
 
                           return (
-                            <li
-                              key={`${suggestion.media_type}-${suggestion.id}`}
-                              role="presentation"
-                            >
-                            {/* A suggestion is a destination, so it is a link:
-                                Cmd-click and middle-click have to work. */}
+                            <li key={`${suggestion.media_type}-${suggestion.id}`}>
+                            {/* Suggestions are destinations, so they stay links:
+                                Cmd-click and middle-click keep working, Tab
+                                reaches them, and arrows/Enter are an enhancement.
+                                `role="option"` would strip the link semantics,
+                                so the list stays a plain list instead. */}
                             <Link
-                              id={`navbar-suggestion-${suggestion.media_type}-${suggestion.id}`}
                               href={localizedHref(locale, suggestionHref(suggestion))}
-                              role="option"
-                              aria-selected={index === normalizedSuggestionIndex}
-                              tabIndex={-1}
                               onMouseEnter={() => setActiveSuggestionIndex(index)}
+                              onFocus={() => setActiveSuggestionIndex(index)}
                               onClick={() => close()}
-                              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 ${
+                              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-red/60 ${
                                 index === normalizedSuggestionIndex ? "bg-white/8" : ""
                               }`}
                             >
