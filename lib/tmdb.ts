@@ -18,15 +18,19 @@ import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n";
 const BASE_URL = "https://api.themoviedb.org/3";
 const API_KEY = process.env.TMDB_API_KEY;
 
+// Caching is owned by `"use cache"` in `@/lib/cached-tmdb` (and by
+// response `Cache-Control` in API routes), so no legacy `next.revalidate`
+// is set here. The numeric second argument is kept so existing callers
+// do not need to change.
 async function tmdbFetch<T>(
   endpoint: string,
-  revalidate: number = 3600,
+  _revalidate: number = 3600,
   locale: Locale = DEFAULT_LOCALE,
 ): Promise<T> {
+  void _revalidate;
   const separator = endpoint.includes("?") ? "&" : "?";
   const res = await fetch(
     `${BASE_URL}${endpoint}${separator}api_key=${API_KEY}&language=${locale === "fr" ? "fr-FR" : "en-US"}`,
-    { next: { revalidate } },
   );
   if (!res.ok) throw new Error(`TMDB API error: ${res.status}`);
   return res.json();

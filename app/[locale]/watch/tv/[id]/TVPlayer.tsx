@@ -292,7 +292,7 @@ export default function TVPlayer({
                     </p>
                     {ep.runtime ? (
                       <span className="flex items-center gap-1 text-[11px] text-white/60">
-                        <Clock className="size-3" />
+                        <Clock aria-hidden="true" className="size-3" />
                         {ep.runtime}m
                       </span>
                     ) : null}

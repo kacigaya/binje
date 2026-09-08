@@ -41,6 +41,7 @@ export async function generateMetadata({
     locale,
     "Discover and stream thousands of movies. Your cinematic journey starts here.",
   );
+  const ogImage = `${SITE_URL}/icon.svg`;
   return {
     metadataBase: new URL(SITE_URL),
     title: { default: "b!nje", template: "%s | b!nje" },
@@ -53,8 +54,14 @@ export async function generateMetadata({
       description,
       url: `/${locale}`,
       locale: locale === "fr" ? "fr_FR" : "en_US",
+      images: [{ url: ogImage }],
     },
-    twitter: { card: "summary_large_image" },
+    twitter: {
+      card: "summary_large_image",
+      title: "b!nje",
+      description,
+      images: [ogImage],
+    },
   };
 }
 
@@ -87,7 +94,7 @@ export default async function RootLayout({
               below it are a long way to travel one link at a time. */}
           <a
             href="#main"
-            className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-100 focus-visible:rounded-full focus-visible:bg-accent-red focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-semibold focus-visible:text-white"
+            className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-full focus-visible:bg-accent-red focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-semibold focus-visible:text-white"
           >
             {translate(locale, "Skip to content")}
           </a>

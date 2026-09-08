@@ -433,7 +433,7 @@ export default function Navbar() {
 
         <div
           id="mobile-menu"
-          className={`grid md:hidden overflow-hidden transition-[grid-template-rows,opacity,transform] duration-300 ease-out motion-reduce:transition-none ${
+          className={`grid md:hidden overflow-hidden transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none ${
             menuOpen
               ? "grid-rows-[1fr] opacity-100 translate-y-0"
               : "grid-rows-[0fr] -translate-y-2 opacity-0 pointer-events-none"

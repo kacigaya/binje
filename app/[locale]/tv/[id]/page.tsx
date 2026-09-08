@@ -37,21 +37,30 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, id } = await params;
   const showId = parseTmdbId(id);
-  if (showId === null) return {};
-  const show = await getTVDetails(showId, locale);
-  const image = backdropUrl(show.backdrop_path, "w1280");
-  return {
-    title: show.name,
-    description: show.overview,
-    alternates: { canonical: `/${locale}/tv/${showId}` },
-    openGraph: {
-      type: "video.tv_show",
+  if (showId === null) return { title: translate(locale, "TV") };
+  try {
+    const show = await getTVDetails(showId, locale);
+    const image = backdropUrl(show.backdrop_path, "w1280");
+    const fallback = translate(
+      locale,
+      "Discover and stream thousands of movies. Your cinematic journey starts here.",
+    );
+    const description = show.overview || fallback;
+    return {
       title: show.name,
-      description: show.overview,
-      url: `/${locale}/tv/${showId}`,
-      ...(image ? { images: [image] } : {}),
-    },
-  };
+      description,
+      alternates: { canonical: `/${locale}/tv/${showId}` },
+      openGraph: {
+        type: "video.tv_show",
+        title: show.name,
+        description,
+        url: `/${locale}/tv/${showId}`,
+        ...(image ? { images: [image] } : {}),
+      },
+    };
+  } catch {
+    return { title: translate(locale, "TV") };
+  }
 }
 
 export default async function TVShowPage({
@@ -158,16 +167,16 @@ async function TVShowDetails({
                 <div className="font-semibold text-accent-red">{contentRating}</div>
               )}
               <div className="flex items-center gap-1">
-                <Layers className="size-4" />
+                <Layers aria-hidden="true" className="size-4" />
                 {show.number_of_seasons} {pluralize(locale, show.number_of_seasons, "Season", "Seasons")}
               </div>
               <div className="flex items-center gap-1">
-                <Tv className="size-4" />
+                <Tv aria-hidden="true" className="size-4" />
                 {show.number_of_episodes} {pluralize(locale, show.number_of_episodes, "Episode", "Episodes")}
               </div>
               {show.first_air_date && (
                 <div className="flex items-center gap-1">
-                  <Calendar className="size-4" />
+                  <Calendar aria-hidden="true" className="size-4" />
                   {new Date(show.first_air_date).toLocaleDateString(intlLocale(locale), {
                     year: "numeric",
                     month: "long",

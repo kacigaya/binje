@@ -67,25 +67,34 @@ function SearchContent() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [filter, setFilter] = useState<FilterType>(initialType);
+  const abortRef = useRef<AbortController | null>(null);
 
   const doSearch = useCallback(async (q: string) => {
+    abortRef.current?.abort();
     if (!q.trim()) {
       setResults([]);
       setSearched(false);
+      setLoading(false);
       return;
     }
+    const controller = new AbortController();
+    abortRef.current = controller;
     setLoading(true);
     setSearched(true);
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&lang=${locale}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&lang=${locale}`, {
+        signal: controller.signal,
+      });
       const data: SearchApiResponse = await res.json();
-      setResults(data.results ?? []);
+      if (!controller.signal.aborted) setResults(data.results ?? []);
     } catch {
-      setResults([]);
+      if (!controller.signal.aborted) setResults([]);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [locale]);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -150,7 +159,7 @@ function SearchContent() {
         )}
       </div>
 
-      <div className="flex items-center justify-center gap-2 mb-8">
+      <div role="group" aria-label={t("Results")} className="flex items-center justify-center gap-2 mb-8">
         {FILTER_TYPES.map((type) => (
           <button
             key={type}
@@ -213,7 +222,7 @@ function SearchContent() {
 
                   {rating && (
                     <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
-                      <Star className="size-3 fill-accent-red" />
+                      <Star aria-hidden="true" className="size-3 fill-accent-red" />
                       {rating}
                     </div>
                   )}
@@ -243,7 +252,7 @@ function SearchContent() {
 
       {!loading && searched && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <Search className="size-12 text-muted-foreground/40 mb-4" />
+          <Search aria-hidden="true" className="size-12 text-muted-foreground/40 mb-4" />
           <h2
             className="text-xl font-semibold mb-2"
             style={{ fontFamily: "var(--font-heading)" }}
@@ -253,12 +262,18 @@ function SearchContent() {
           <p className="text-muted-foreground">
             {t("Try a different search term or check the spelling.")}
           </p>
+          <Link
+            href={localizedHref(locale, "/movies")}
+            className="mt-6 inline-flex h-11 items-center rounded-full bg-accent-red px-6 text-base font-semibold text-white transition-colors hover:bg-accent-red/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          >
+            {t("Movies")}
+          </Link>
         </div>
       )}
 
       {!loading && !searched && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <Search className="size-12 text-muted-foreground/40 mb-4" />
+          <Search aria-hidden="true" className="size-12 text-muted-foreground/40 mb-4" />
           <h2
             className="text-xl font-semibold mb-2"
             style={{ fontFamily: "var(--font-heading)" }}
@@ -268,6 +283,12 @@ function SearchContent() {
           <p className="text-muted-foreground">
             {t("Start typing to search thousands of titles.")}
           </p>
+          <Link
+            href={localizedHref(locale, "/movies")}
+            className="mt-6 inline-flex h-11 items-center rounded-full bg-accent-red px-6 text-base font-semibold text-white transition-colors hover:bg-accent-red/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          >
+            {t("Movies")}
+          </Link>
         </div>
       )}
     </div>

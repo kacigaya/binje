@@ -43,7 +43,7 @@ export default function Watchlist() {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-white/10 bg-card/40 px-6 py-20 text-center">
-        <Bookmark className="size-10 text-muted-foreground" />
+        <Bookmark aria-hidden="true" className="size-10 text-muted-foreground" />
         <p className="text-lg font-semibold">{t("Your watchlist is empty")}</p>
         <p className="max-w-md text-sm text-muted-foreground">
           {t("Browse movies and TV shows, then tap")}{" "}
@@ -84,7 +84,7 @@ export default function Watchlist() {
                 <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/15 to-transparent" />
 
                 <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
-                  <Star className="size-3 fill-accent-red" />
+                  <Star aria-hidden="true" className="size-3 fill-accent-red" />
                   {rating}
                 </div>
 

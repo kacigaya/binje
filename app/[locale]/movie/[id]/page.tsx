@@ -36,21 +36,30 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, id } = await params;
   const movieId = parseTmdbId(id);
-  if (movieId === null) return {};
-  const movie = await getMovieDetails(movieId, locale);
-  const image = backdropUrl(movie.backdrop_path, "w1280");
-  return {
-    title: movie.title,
-    description: movie.overview,
-    alternates: { canonical: `/${locale}/movie/${movieId}` },
-    openGraph: {
-      type: "video.movie",
+  if (movieId === null) return { title: translate(locale, "Movie") };
+  try {
+    const movie = await getMovieDetails(movieId, locale);
+    const image = backdropUrl(movie.backdrop_path, "w1280");
+    const fallback = translate(
+      locale,
+      "Discover and stream thousands of movies. Your cinematic journey starts here.",
+    );
+    const description = movie.overview || fallback;
+    return {
       title: movie.title,
-      description: movie.overview,
-      url: `/${locale}/movie/${movieId}`,
-      ...(image ? { images: [image] } : {}),
-    },
-  };
+      description,
+      alternates: { canonical: `/${locale}/movie/${movieId}` },
+      openGraph: {
+        type: "video.movie",
+        title: movie.title,
+        description,
+        url: `/${locale}/movie/${movieId}`,
+        ...(image ? { images: [image] } : {}),
+      },
+    };
+  } catch {
+    return { title: translate(locale, "Movie") };
+  }
 }
 
 export default async function MoviePage({
@@ -158,13 +167,13 @@ async function MovieDetails({
               )}
               {movie.runtime > 0 && (
                 <div className="flex items-center gap-1">
-                  <Clock className="size-4" />
+                  <Clock aria-hidden="true" className="size-4" />
                   {Math.floor(movie.runtime / 60)}&nbsp;h {movie.runtime % 60}&nbsp;m
                 </div>
               )}
               {movie.release_date && (
                 <div className="flex items-center gap-1">
-                  <Calendar className="size-4" />
+                  <Calendar aria-hidden="true" className="size-4" />
                   {new Date(movie.release_date).toLocaleDateString(intlLocale(locale), {
                     year: "numeric",
                     month: "long",
