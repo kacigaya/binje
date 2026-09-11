@@ -4,7 +4,9 @@ import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
 import { Agent } from "undici";
 import { isValidCastToken } from "@/lib/cast-token";
-import { allowStreamHost, isAllowedStreamHost, streamReferer } from "@/lib/hls-hosts";
+import { type Manifest, masterPlaylist, mediaPlaylist, parseMpd } from "@/lib/dash-to-hls";
+import { allowStreamHost, isAllowedStreamHost, streamCookie, streamReferer } from "@/lib/hls-hosts";
+import { createTtlCache } from "@/lib/ttl-cache";
 
 const PLAYER_ORIGIN = "https://player.videasy.to";
 const BROWSER_USER_AGENT =
@@ -21,6 +23,10 @@ const MAX_DNS_ENTRIES = 200;
 // change. Playlists do change, but slowly enough to survive a seek.
 const SEGMENT_CACHE_CONTROL = "public, max-age=3600, immutable";
 const PLAYLIST_CACHE_CONTROL = "public, max-age=30";
+// A DASH manifest becomes one master plus one media playlist per
+// representation; the parsed manifest is shared between those requests.
+const MANIFEST_TTL_MS = 60_000;
+const manifestCache = createTtlCache<Manifest>(MANIFEST_TTL_MS);
 
 // The pending lookup is what gets cached, not its result: a cold cache under a
 // segment burst would otherwise fire one resolution per in-flight request.
@@ -150,7 +156,13 @@ async function safeFetch(start: URL, init: RequestInit) {
     const next = location ? getTargetUrl(new URL(location, current).toString()) : null;
     if (!next || !(await isSafeHost(next))) throw new Error("Blocked redirect target.");
     // The hop came from an already-allowed host, so trust it for later segments.
-    allowStreamHost(next, new Headers(init.headers).get("referer") ?? undefined);
+    const headers = new Headers(init.headers);
+    allowStreamHost(next, headers.get("referer") ?? undefined);
+    // A signed cookie is scoped to a path; it must not follow a hop elsewhere.
+    const cookie = streamCookie(next);
+    if (cookie) headers.set("cookie", cookie);
+    else headers.delete("cookie");
+    init = { ...init, headers };
     await response.body?.cancel();
     current = next;
   }
@@ -186,6 +198,78 @@ function rewritePlaylist(
       return proxiedUrl(new URL(trimmed, targetUrl), requestUrl, castToken, referer);
     })
     .join("\n");
+}
+
+// DASH is served as HLS: the manifest URL answers with a master playlist and
+// `rep=<id>` selects the media playlist of one representation. Segments go
+// through the regular proxy path, so the cookie scope and host allowlist apply.
+async function serveDashAsHls(
+  request: NextRequest,
+  targetUrl: URL,
+  headers: Headers,
+  castToken: string | null,
+  castHeaders: Headers | null,
+  rep: string | null,
+) {
+  if (rep !== null && !/^[\w-]{1,32}$/.test(rep)) {
+    return NextResponse.json({ error: "Invalid representation." }, { status: 400 });
+  }
+  let manifest: Manifest;
+  try {
+    manifest = await manifestCache.get(targetUrl.href, async () => {
+      const { response, finalUrl } = await safeFetch(targetUrl, {
+        cache: "no-store",
+        headers,
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new Error("Upstream manifest failed.");
+      }
+      return parseMpd(await response.text(), finalUrl);
+    });
+  } catch {
+    return NextResponse.json({ error: "Invalid upstream manifest." }, { status: 502 });
+  }
+
+  return renderDashAsHls(request, targetUrl, manifest, castToken, castHeaders, rep);
+}
+
+function renderDashAsHls(
+  request: NextRequest,
+  targetUrl: URL,
+  manifest: Manifest,
+  castToken: string | null,
+  castHeaders: Headers | null,
+  rep: string | null,
+) {
+
+  const referer = streamReferer(targetUrl);
+  let body: string;
+  if (rep === null) {
+    body = masterPlaylist(manifest, (representation) => {
+      const variant = new URL("/api/hls", request.nextUrl.href);
+      variant.searchParams.set("url", targetUrl.href);
+      variant.searchParams.set("rep", representation.id);
+      if (castToken) variant.searchParams.set("castToken", castToken);
+      return `${variant.pathname}${variant.search}`;
+    });
+  } else {
+    const representation = [...manifest.video, ...manifest.audio].find((item) => item.id === rep);
+    if (!representation) return NextResponse.json({ error: "Unknown representation." }, { status: 404 });
+    body = mediaPlaylist(representation, (url) => proxiedUrl(url, request.nextUrl.href, castToken, referer));
+  }
+
+  const responseHeaders = new Headers({
+    "content-security-policy": "default-src 'none'; sandbox",
+    "x-content-type-options": "nosniff",
+    "content-type": "application/vnd.apple.mpegurl",
+    "cache-control": PLAYLIST_CACHE_CONTROL,
+  });
+  if (castHeaders) {
+    for (const [key, value] of castHeaders) responseHeaders.set(key, value);
+  }
+  return new NextResponse(body, { headers: responseHeaders });
 }
 
 function getCastCorsHeaders(request: NextRequest, castToken: string | null) {
@@ -243,6 +327,12 @@ export async function GET(request: NextRequest) {
   });
   const range = request.headers.get("range");
   if (range) headers.set("range", range);
+  const cookie = streamCookie(targetUrl);
+  if (cookie) headers.set("cookie", cookie);
+  const rep = request.nextUrl.searchParams.get("rep");
+  if (targetUrl.pathname.endsWith(".mpd") || rep !== null) {
+    return serveDashAsHls(request, targetUrl, headers, castToken, castHeaders, rep);
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -265,6 +355,26 @@ export async function GET(request: NextRequest) {
   if (!response.ok && contentType.includes("text/html")) {
     await response.body?.cancel();
     return NextResponse.json({ error: "Upstream request failed." }, { status: 502 });
+  }
+  const mayBeDash =
+    response.ok &&
+    !range &&
+    !/\.(?:m4s|mp4|m4a|ts|aac|vtt|srt)$/i.test(finalUrl.pathname) &&
+    (contentType.includes("xml") || contentType.includes("dash") || contentType.includes("application/octet-stream"));
+  if (mayBeDash) {
+    const text = await response.clone().text();
+    const start = text.trimStart();
+    if (start.startsWith("<?xml") || start.startsWith("<MPD")) {
+      if (!text.includes("<MPD")) {
+        return NextResponse.json({ error: "Invalid upstream manifest." }, { status: 502 });
+      }
+      try {
+        const manifest = await manifestCache.get(finalUrl.href, async () => parseMpd(text, finalUrl));
+        return renderDashAsHls(request, finalUrl, manifest, castToken, castHeaders, null);
+      } catch {
+        return NextResponse.json({ error: "Invalid upstream manifest." }, { status: 502 });
+      }
+    }
   }
   const responseHeaders = new Headers({
     "content-security-policy": "default-src 'none'; sandbox",

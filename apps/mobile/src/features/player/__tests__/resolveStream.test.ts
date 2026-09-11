@@ -36,6 +36,13 @@ describe("native stream resolver", () => {
     });
   });
 
+  test("selects MovieBox through the resolve route", async () => {
+    await resolveStream({ type: "movie", id: 27205, title: "Inception", year: "2010" }, "moviebox");
+    expect(request).toHaveBeenCalledWith("/api/resolve", {
+      query: expect.objectContaining({ source: "moviebox", id: 27205 }),
+    });
+  });
+
   test("rejects a malformed stream response", async () => {
     request.mockResolvedValueOnce({ url: "javascript:alert(1)" });
     await expect(resolveStream({ type: "movie", id: 1, title: "X", year: "2020" }, "vo")).rejects.toThrow("playable stream");

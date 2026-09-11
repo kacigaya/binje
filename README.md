@@ -24,7 +24,7 @@
 - Dedicated `/movies` and `/tv-shows` browse pages
 - Detailed movie and TV show pages (ratings, cast, seasons, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
-- Watch pages with Videasy VO, optional VF, subtitles, and manual HLS quality selection
+- Watch pages with Videasy VO, VidZee, MovieBox, optional VF, subtitles, and manual HLS quality selection
 - Google Cast on web, Android, and iOS, plus AirPlay on supported Apple devices
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
 - "Continue Watching" row backed by local play history
@@ -71,7 +71,7 @@ Posters, backdrops, and logos in these screenshots come from TMDB.
 - UI: React 19, Tailwind CSS 4, shadcn tokens, Lucide icons
 - Styling: clsx, tailwind-merge
 - Data: TMDB (movies/TV), OMDb (optional Rotten Tomatoes scores)
-- Player: hls.js with Videasy Yoru HQ/Neon fallback, server-side stream decryption, and `/api/hls`
+- Player: hls.js with Videasy Yoru HQ/Neon fallback, server-side stream decryption, and `/api/hls` (which also serves MovieBox DASH manifests as HLS)
 - Language: TypeScript
 - Testing: Bun test
 - Mobile: Expo Router, React Native, expo-video, TanStack Query, AsyncStorage

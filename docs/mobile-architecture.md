@@ -17,7 +17,7 @@
 
 ## Playback
 
-The Expo app asks `/api/resolve` or `/api/resolve-vf` for a stream and plays the proxied HLS URL with `expo-video`. Provider extraction and browser-like request headers remain on the server. Playback progress is throttled and stored locally after consent.
+The Expo app asks `/api/resolve` (optionally with `source=vidzee` or `source=moviebox`) or `/api/resolve-vf` for a stream and plays the proxied HLS URL with `expo-video`. Provider extraction and browser-like request headers remain on the server. Playback progress is throttled and stored locally after consent.
 
 For Google Cast, the native sender requests a short-lived token from `/api/cast`,
 loads the token-bound HLS proxy URL in Google's Default Media Receiver, and transfers

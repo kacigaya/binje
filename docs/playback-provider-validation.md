@@ -1,4 +1,40 @@
-# Playback provider validation — 2026-09-06
+# Playback provider validation
+
+## MovieBox (2026-09-11)
+
+Implemented `source=moviebox` (`lib/moviebox.ts`), path-scoped upstream cookies in
+`lib/hls-hosts.ts`, and DASH-to-HLS translation for `.mpd` targets in `/api/hls`
+(`lib/dash-to-hls.ts`). Web and mobile source selectors list "MovieBox · EN".
+No dependency was added.
+
+Verified locally:
+
+- `bun run test`, `bun run lint`, TypeScript, `bun run mobile:test`,
+  `bun run mobile:typecheck` and `bun run mobile:lint` pass.
+- `/api/resolve?source=moviebox` for Inception (27205), Breaking Bad S1E1 and
+  S2E3 (1396) and Dark S1E1 (70523) returned the expected `index.mpd` URLs in
+  about one second; the undubbed subject was chosen although MovieBox lists the
+  Hindi upload first. `source=unknown` still answers 400.
+- `/api/hls?url=<mpd>` returned an HLS master with an audio group and 1080/720/480
+  variants; `rep=0` returned a 1,480-segment VOD playlist with `EXT-X-MAP`. The init
+  and first segment came back HTTP 200 through the proxy with the scoped cookie,
+  and `ffprobe` identified HEVC Main 1920x1080 in the concatenated bytes.
+- Headless Chromium (Playwright): selecting "MovieBox · EN" on the watch page
+  issued the MovieBox resolve, loaded the master, chose the 1080p variant and audio
+  group, fetched init and media segments, parsed a 2h28m duration and listed
+  Auto/1080p/720p/480p in the quality control. Switching back to another source
+  still works.
+
+Not verified:
+
+- Decoded frames. The installed Chromium reports no MSE support for HEVC or H.264,
+  so no source, including the existing ones, renders video here. Playback needs a
+  browser or device with an HEVC decoder.
+- Safari, physical iOS/Android devices and Cast receivers.
+- Videasy's default resolve returned 502 during these checks (its seed request
+  fails upstream); this is independent of the change.
+
+## VidZee (2026-09-06)
 
 ## Implemented
 

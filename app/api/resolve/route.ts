@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { allowStreamCookie, allowStreamHost, allowStreamHosts } from "@/lib/hls-hosts";
+import { resolveMovieboxStream } from "@/lib/moviebox";
+import { cachedResolveVideasyStream, type ResolveParams } from "@/lib/resolve-cache";
+import type { ResolverResult } from "@/lib/videasy";
 import { resolveVidzeeStream } from "@/lib/vidzee";
-import { allowStreamHost, allowStreamHosts } from "@/lib/hls-hosts";
-import { cachedResolveVideasyStream } from "@/lib/resolve-cache";
 
 export const maxDuration = 20;
+
+// Upstream headers a resolver hands back stay on the server: the proxy
+// attaches them, the JSON response never carries them.
+type Resolved = ResolverResult & { referer?: string; cookie?: string; cookieScope?: string };
+const RESOLVERS: Record<string, (params: ResolveParams) => Promise<Resolved>> = {
+  videasy: cachedResolveVideasyStream,
+  vidzee: resolveVidzeeStream,
+  moviebox: resolveMovieboxStream,
+};
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
@@ -19,7 +30,7 @@ export async function GET(request: NextRequest) {
     type !== "tv" || (/^[1-9]\d*$/.test(season) && /^[1-9]\d*$/.test(episode));
 
   if (
-    (source !== "videasy" && source !== "vidzee") ||
+    !Object.hasOwn(RESOLVERS, source) ||
     (type !== "movie" && type !== "tv") ||
     !/^\d+$/.test(id ?? "") ||
     !title ||
@@ -32,19 +43,9 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const params = {
-      type,
-      id: id!,
-      title,
-      year,
-      imdbId,
-      season,
-      episode,
-    };
-    const result = source === "vidzee"
-      ? await resolveVidzeeStream({ ...params, type })
-      : await cachedResolveVideasyStream({ ...params, type });
-    if ("referer" in result && typeof result.referer === "string") allowStreamHost(result.url, result.referer);
+    const result = await RESOLVERS[source]({ type, id: id!, title, year, imdbId, season, episode });
+    if (result.referer) allowStreamHost(result.url, result.referer);
+    if (result.cookie && result.cookieScope) allowStreamCookie(result.cookieScope, result.cookie);
     allowStreamHosts([
       result.url,
       ...result.tracks.map((track) => track.file),

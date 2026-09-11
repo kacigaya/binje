@@ -18,11 +18,12 @@ type Quality = { index: number; height: number; bitrate: number };
 type StreamSource = { file: string; height: number };
 type ResolvedMedia = { url: string; tracks: Track[]; sources: StreamSource[] };
 
-type PlaybackSource = "en" | "vf" | "vidzee";
+type PlaybackSource = "en" | "vf" | "vidzee" | "moviebox";
 const PLAYBACK_SOURCES: { id: PlaybackSource; label: string }[] = [
   { id: "en", label: "Videasy · VO" },
   { id: "vf", label: "French · VF" },
   { id: "vidzee", label: "VidZee · EN" },
+  { id: "moviebox", label: "MovieBox · EN" },
 ];
 
 const RESOLVE_BASE = "/api";
@@ -105,7 +106,8 @@ export default function Player({
       params.set("season", String(season ?? 1));
       params.set("episode", String(episode ?? 1));
     }
-    if (source === "vidzee") params.set("source", "vidzee");
+    // "en" is the resolve route's default provider and "vf" has its own route.
+    if (source !== "en" && source !== "vf") params.set("source", source);
     const endpoint = source === "vf" ? "resolve-vf" : "resolve";
     return `${RESOLVE_BASE}/${endpoint}?${params.toString()}`;
   }, [episode, imdbId, source, season, title, tmdbId, type, year]);

@@ -39,3 +39,38 @@ export function isAllowedStreamHost(url: URL): boolean {
 export function streamReferer(url: URL): string | undefined {
   return isAllowedStreamHost(url) ? hosts.get(url.host)?.referer : undefined;
 }
+
+// Some CDNs sign a directory rather than a host (CloudFront policy cookies),
+// so the cookie is keyed by URL prefix and only sent to URLs beneath it. The
+// scope also allows its host, since nothing else hands those URLs out.
+const cookies = new Map<string, { expiresAt: number; cookie: string }>();
+
+export function allowStreamCookie(scope: string, cookie: string): void {
+  let prefix: string;
+  try {
+    prefix = new URL(scope).href;
+  } catch {
+    return;
+  }
+  if (cookies.size >= MAX_HOSTS) {
+    const now = Date.now();
+    for (const [key, entry] of cookies) if (now > entry.expiresAt) cookies.delete(key);
+  }
+  cookies.set(prefix, { expiresAt: Date.now() + TTL_MS, cookie });
+  allowStreamHost(prefix);
+}
+
+export function streamCookie(url: URL): string | undefined {
+  const now = Date.now();
+  let match: { prefix: string; cookie: string } | undefined;
+  for (const [prefix, entry] of cookies) {
+    if (now > entry.expiresAt) {
+      cookies.delete(prefix);
+      continue;
+    }
+    if (url.href.startsWith(prefix) && (!match || prefix.length > match.prefix.length)) {
+      match = { prefix, cookie: entry.cookie };
+    }
+  }
+  return match?.cookie;
+}
