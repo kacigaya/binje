@@ -33,4 +33,20 @@ describe("hls-hosts", () => {
     expect(streamCookie(new URL("https://signed.stream.test/dash/movie-1"))).toBeUndefined();
     expect(streamCookie(new URL("https://other.stream.test/dash/movie-1/chunk-1.m4s"))).toBeUndefined();
   });
+
+  test("expires scoped cookies after six hours", () => {
+    const originalNow = Date.now;
+    let now = originalNow();
+    Date.now = () => now;
+    try {
+      const segment = new URL("https://expiring.stream.test/dash/movie/chunk.m4s");
+      allowStreamCookie("https://expiring.stream.test/dash/movie/", "CloudFront-Policy=short-lived");
+      expect(streamCookie(segment)).toBe("CloudFront-Policy=short-lived");
+
+      now += 6 * 60 * 60 * 1000 + 1;
+      expect(streamCookie(segment)).toBeUndefined();
+    } finally {
+      Date.now = originalNow;
+    }
+  });
 });
