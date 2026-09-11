@@ -18,6 +18,13 @@ import { proxiedHlsUrl, resolveStream, type AudioVariant } from "./resolveStream
 import NativeCastControls from "./CastControls";
 import type { MobileMediaType, StreamResponse } from "../../types/api";
 
+const VARIANTS: { id: AudioVariant; label: string; pill: string }[] = [
+  { id: "vo", label: "Videasy · VO", pill: "VO" },
+  { id: "vf", label: "French · VF", pill: "VF" },
+  { id: "vidzee", label: "VidZee · EN", pill: "VidZee" },
+  { id: "moviebox", label: "MovieBox · EN", pill: "MovieBox" },
+];
+
 export function PlayerScreen({
   type,
   id,
@@ -273,16 +280,16 @@ export function PlayerScreen({
               onDisconnect={handleCastDisconnect}
               onRemoteProgress={handleRemoteProgress}
             />
-            {(["vo", "vf", "vidzee"] as const).map((item) => (
+            {VARIANTS.map(({ id: item, label, pill }) => (
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ selected: variant === item }}
-                accessibilityLabel={item === "vo" ? "Videasy · VO" : item === "vf" ? "French · VF" : "VidZee · EN"}
+                accessibilityLabel={label}
                 key={item}
                 onPress={() => setVariant(item)}
                 style={[styles.playerPill, variant === item && styles.playerPillActive]}
               >
-                <Text style={[styles.playerPillText, variant !== item && styles.playerPillTextDim]}>{item === "vidzee" ? "VidZee" : item.toUpperCase()}</Text>
+                <Text style={[styles.playerPillText, variant !== item && styles.playerPillTextDim]}>{pill}</Text>
               </Pressable>
             ))}
             {qualityHeights.length > 0 ? (
