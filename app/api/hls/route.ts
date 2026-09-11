@@ -4,7 +4,7 @@ import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
 import { Agent } from "undici";
 import { isValidCastToken } from "@/lib/cast-token";
-import { allowStreamHost, isAllowedStreamHost, streamReferer } from "@/lib/hls-hosts";
+import { allowStreamHost, isAllowedStreamHost, streamCookie, streamReferer } from "@/lib/hls-hosts";
 
 const PLAYER_ORIGIN = "https://player.videasy.to";
 const BROWSER_USER_AGENT =
@@ -150,7 +150,13 @@ async function safeFetch(start: URL, init: RequestInit) {
     const next = location ? getTargetUrl(new URL(location, current).toString()) : null;
     if (!next || !(await isSafeHost(next))) throw new Error("Blocked redirect target.");
     // The hop came from an already-allowed host, so trust it for later segments.
-    allowStreamHost(next, new Headers(init.headers).get("referer") ?? undefined);
+    const headers = new Headers(init.headers);
+    allowStreamHost(next, headers.get("referer") ?? undefined);
+    // A signed cookie is scoped to a path; it must not follow a hop elsewhere.
+    const cookie = streamCookie(next);
+    if (cookie) headers.set("cookie", cookie);
+    else headers.delete("cookie");
+    init = { ...init, headers };
     await response.body?.cancel();
     current = next;
   }
@@ -243,6 +249,8 @@ export async function GET(request: NextRequest) {
   });
   const range = request.headers.get("range");
   if (range) headers.set("range", range);
+  const cookie = streamCookie(targetUrl);
+  if (cookie) headers.set("cookie", cookie);
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);

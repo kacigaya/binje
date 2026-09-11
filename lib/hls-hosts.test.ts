@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { allowStreamHost, allowStreamHosts, isAllowedStreamHost } from "./hls-hosts";
+import { allowStreamCookie, allowStreamHost, allowStreamHosts, isAllowedStreamHost, streamCookie } from "./hls-hosts";
 
 describe("hls-hosts", () => {
   test("only proxies hosts a resolver handed out", () => {
@@ -19,5 +19,18 @@ describe("hls-hosts", () => {
   test("ignores junk urls and undefined entries", () => {
     allowStreamHosts(["not a url", undefined, "https://tracks.stream.test/en.vtt"]);
     expect(isAllowedStreamHost(new URL("https://tracks.stream.test/en.vtt"))).toBe(true);
+  });
+
+  test("sends a scoped cookie only beneath its prefix and allows the host", () => {
+    allowStreamCookie("https://signed.stream.test/dash/movie-1/", "CloudFront-Policy=a; CloudFront-Signature=b");
+    allowStreamCookie("https://signed.stream.test/dash/movie-1/extra/", "CloudFront-Policy=c");
+    allowStreamCookie("not a url", "ignored");
+
+    expect(isAllowedStreamHost(new URL("https://signed.stream.test/dash/movie-1/index.mpd"))).toBe(true);
+    expect(streamCookie(new URL("https://signed.stream.test/dash/movie-1/chunk-1.m4s"))).toBe("CloudFront-Policy=a; CloudFront-Signature=b");
+    expect(streamCookie(new URL("https://signed.stream.test/dash/movie-1/extra/init.m4s"))).toBe("CloudFront-Policy=c");
+    expect(streamCookie(new URL("https://signed.stream.test/dash/movie-10/chunk-1.m4s"))).toBeUndefined();
+    expect(streamCookie(new URL("https://signed.stream.test/dash/movie-1"))).toBeUndefined();
+    expect(streamCookie(new URL("https://other.stream.test/dash/movie-1/chunk-1.m4s"))).toBeUndefined();
   });
 });

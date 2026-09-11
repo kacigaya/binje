@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { NextRequest } from "next/server";
 import { createCastToken } from "@/lib/cast-token";
-import { allowStreamHost } from "@/lib/hls-hosts";
+import { allowStreamCookie, allowStreamHost } from "@/lib/hls-hosts";
 import { GET, OPTIONS } from "./route";
 
 const originalFetch = globalThis.fetch;
@@ -89,4 +89,21 @@ test("rejects HTML and redirects into private networks", async () => {
   expect((await GET(request)).status).toBe(502);
   globalThis.fetch = mock(async () => new Response(null, { status: 302, headers: { location: "http://127.0.0.1/private" } })) as unknown as typeof fetch;
   expect((await GET(request)).status).toBe(502);
+});
+
+test("sends a scoped cookie to the signed path and drops it on redirects elsewhere", async () => {
+  allowStreamCookie("https://203.0.113.14/dash/title/", "CloudFront-Policy=p; CloudFront-Signature=s");
+  allowStreamHost("https://203.0.113.15/");
+  const cookies: (string | null)[] = [];
+  globalThis.fetch = mock(async (_input: unknown, init?: RequestInit) => {
+    cookies.push(new Headers(init?.headers).get("cookie"));
+    return cookies.length === 1
+      ? new Response(null, { status: 302, headers: { location: "https://203.0.113.15/mirror/chunk.m4s" } })
+      : new Response("bytes", { headers: { "content-type": "video/iso.segment" } });
+  }) as unknown as typeof fetch;
+  const response = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.14/dash/title/chunk.m4s"));
+  expect(response.status).toBe(200);
+  expect(cookies).toEqual(["CloudFront-Policy=p; CloudFront-Signature=s", null]);
+  await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.14/dash/other/chunk.m4s"));
+  expect(cookies[2]).toBeNull();
 });
