@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { NextRequest } from "next/server";
 import { GET } from "./route";
+import { streamCookie } from "@/lib/hls-hosts";
+import { clearMovieboxSession } from "@/lib/moviebox";
 import { parseVideasyResult, resolveVideasyStream } from "@/lib/videasy";
 
 const originalFetch = globalThis.fetch;
@@ -311,4 +313,20 @@ test("dispatches VidZee and keeps upstream headers server-side", async () => {
   const response = await GET(new NextRequest("https://binje.test/api/resolve?source=vidzee&type=movie&id=987654&title=Movie&year=1994"));
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ url: "https://cdn.test/new-stream", tracks: [] });
+});
+
+test("dispatches MovieBox and keeps the signed cookie server-side", async () => {
+  clearMovieboxSession();
+  const policy = Buffer.from(JSON.stringify({ Statement: [{ Resource: "https://sacdn.test/dash/42/*" }] })).toString("base64");
+  globalThis.fetch = mock(async (input: string | URL | Request) => {
+    const url = String(input);
+    if (url.includes("/visitor-login")) return Response.json({ data: { token: "visitor" } });
+    if (url.includes("/search/v2")) return Response.json({ data: { results: [{ subjects: [{ subjectId: "42", title: "Movie", subjectType: 1, releaseDate: "1994-01-01" }] }] } });
+    if (url.includes("/play-info/v2")) return Response.json({ data: { streams: [{ id: 7, signCookie: `CloudFront-Policy=${policy};CloudFront-Signature=s;CloudFront-Key-Pair-Id=k` }] } });
+    return Response.json({ data: { extCaptions: [] } });
+  }) as unknown as typeof fetch;
+  const response = await GET(new NextRequest("https://binje.test/api/resolve?source=moviebox&type=movie&id=424242&title=Movie&year=1994"));
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ url: "https://sacdn.test/dash/42/index.mpd", tracks: [] });
+  expect(streamCookie(new URL("https://sacdn.test/dash/42/chunk-1.m4s"))).toContain("CloudFront-Signature=s");
 });
