@@ -199,14 +199,20 @@ async function authedRequest(method: "GET" | "POST", path: string, body?: string
   }
 }
 
-// Dubbed uploads carry a bracketed tag ("Inception [Hindi]"); the tag is
-// removed for matching and counts against the candidate.
+// Search rows are per upload: dubbed uploads carry a bracketed tag
+// ("Inception [Hindi]") and series rows a season marker ("Breaking Bad S5",
+// one row per season sharing the subject id). Tags and markers are removed for
+// matching, and a dub tag counts against the candidate.
+const DUB_TAG = /\[[^\]]*\]/;
+
 function normalizeTitle(value: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/\s*[[(][^\])]*[\])]\s*$/g, "")
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\([^)]*\)\s*$/, "")
+    .replace(/\bs\d{1,3}\s*$/, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
@@ -222,7 +228,7 @@ export function pickSubject(
     if (subject.subjectType !== wantedType || normalizeTitle(subject.title) !== wantedTitle) return [];
     const year = Number(subject.releaseDate?.slice(0, 4));
     const score =
-      (/[[(][^\])]*[\])]\s*$/.test(subject.title.trim()) ? 0 : 2) +
+      (DUB_TAG.test(subject.title) ? 0 : 2) +
       (Number.isFinite(year) && Math.abs(year - wantedYear) <= 1 ? 1 : 0);
     return [{ subject, score, index }];
   });
@@ -278,22 +284,6 @@ export function dashManifestFromSignCookie(signCookie: unknown): { url: string; 
   }
 }
 
-async function captionTracks(subjectId: string, resourceId: string) {
-  const payload = record(await authedRequest(
-    "GET",
-    `${BFF}/subject-api/get-ext-captions?subjectId=${subjectId}&resourceId=${resourceId}`,
-  ));
-  const captions = Array.isArray(payload?.extCaptions) ? payload.extCaptions : [];
-  return captions.flatMap((item: unknown) => {
-    const caption = record(item);
-    const url = httpsUrl(caption?.url);
-    const size = Number(caption?.size ?? 0);
-    // <track> only understands WebVTT, and tiny files are empty placeholders.
-    if (!url || !url.pathname.endsWith(".vtt") || (size > 0 && size <= 50)) return [];
-    return [{ file: url.href, label: asString(caption?.lanName) || asString(caption?.lan) || undefined }];
-  });
-}
-
 export function resolveMovieboxStream(params: {
   type: "movie" | "tv"; id: string; title: string; year: string; season: string; episode: string;
 }): Promise<Result> {
@@ -309,13 +299,12 @@ export function resolveMovieboxStream(params: {
     const episodeQuery = type === "tv" ? `&se=${season}&ep=${episode}` : "";
     const playInfo = record(await authedRequest("GET", `${BFF}/subject-api/play-info/v2?subjectId=${subjectId}${episodeQuery}`));
     const streams = Array.isArray(playInfo?.streams) ? playInfo.streams : [];
+    // Subtitles are left out: MovieBox only serves SRT files (keyed by upload
+    // resource id via subject-api/resource + get-ext-captions), and <track>
+    // needs WebVTT. Add a converter in the proxy before wiring them up.
     for (const item of streams) {
-      const stream = record(item);
-      const manifest = dashManifestFromSignCookie(stream?.signCookie);
-      if (!manifest) continue;
-      const resourceId = asString(stream?.id);
-      const tracks = resourceId ? await captionTracks(subjectId, resourceId).catch(() => []) : [];
-      return { url: manifest.url, tracks, cookie: manifest.cookie, cookieScope: manifest.scope };
+      const manifest = dashManifestFromSignCookie(record(item)?.signCookie);
+      if (manifest) return { url: manifest.url, tracks: [], cookie: manifest.cookie, cookieScope: manifest.scope };
     }
     throw new MovieboxError("No MovieBox stream.");
   });

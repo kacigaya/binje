@@ -39,11 +39,10 @@ function mockApi(handler: (call: Call, index: number) => Response | Promise<Resp
   return calls;
 }
 
-function api(call: Call, subjects: object[] = [], streams: object[] = [], captions: object[] = []) {
+function api(call: Call, subjects: object[] = [], streams: object[] = []) {
   if (call.url.includes("/visitor-login")) return Response.json({ code: 0, data: { token: jwt(Math.floor(Date.now() / 1000) + 3600) } });
   if (call.url.includes("/search/v2")) return Response.json({ code: 0, data: { results: [{ subjects }] } });
   if (call.url.includes("/play-info/v2")) return Response.json({ code: 0, data: { streams } });
-  if (call.url.includes("/get-ext-captions")) return Response.json({ code: 0, data: { extCaptions: captions } });
   return new Response(null, { status: 404 });
 }
 
@@ -91,24 +90,27 @@ test("prefers the plain title over dubbed uploads and matches type and year", ()
   expect(pickSubject(subjects.slice(0, 1), { type: "movie", title: "Inception", year: "2010" })?.subjectId).toBe("1");
   expect(pickSubject(subjects, { type: "movie", title: "Interstellar", year: "2014" })).toBeUndefined();
   expect(pickSubject([{ subjectId: "5", title: "Amélie", subjectType: 1 }], { type: "movie", title: "Amelie!", year: "2001" })?.subjectId).toBe("5");
+
+  const seasons = [
+    { subjectId: "6", title: "Breaking Bad [Hindi] S5", subjectType: 2, releaseDate: "2012-07-15" },
+    { subjectId: "6", title: "Breaking Bad [Hindi] S1", subjectType: 2, releaseDate: "2008-01-20" },
+    { subjectId: "7", title: "Breaking Bad S5", subjectType: 2, releaseDate: "2012-07-15" },
+    { subjectId: "7", title: "Breaking Bad S1", subjectType: 2, releaseDate: "2008-01-20" },
+  ];
+  expect(pickSubject(seasons, { type: "tv", title: "Breaking Bad", year: "2008" })?.subjectId).toBe("7");
+  expect(pickSubject(seasons, { type: "tv", title: "Breaking Bad", year: "2008" })?.title).toBe("Breaking Bad S1");
 });
 
-test("resolves a TV episode to the signed manifest and filters captions", async () => {
+test("resolves a TV episode to the signed manifest", async () => {
   const calls = mockApi((call) => api(
     call,
     [{ subjectId: "77", title: "Breaking Bad", subjectType: 2, releaseDate: "2008-01-20" }],
     [{ id: 9, url: "https://macdn.aoneroom.com/other/notice.mp4", signCookie: cloudFrontCookie() }],
-    [
-      { url: "https://subs.test/en.vtt", lanName: "English", size: 4000 },
-      { url: "https://subs.test/fr.srt", lanName: "French", size: 4000 },
-      { url: "https://subs.test/empty.vtt", lan: "de", size: 20 },
-      { url: "http://subs.test/plain.vtt", lan: "es", size: 4000 },
-    ],
   ));
   const result = await resolveMovieboxStream({ type: "tv", id: "1396", title: "Breaking Bad", year: "2008", season: "1", episode: "2" });
   expect(result).toEqual({
     url: `${SCOPE}index.mpd`,
-    tracks: [{ file: "https://subs.test/en.vtt", label: "English" }],
+    tracks: [],
     cookie: expect.stringContaining("CloudFront-Signature=sig"),
     cookieScope: SCOPE,
   });
@@ -116,7 +118,6 @@ test("resolves a TV episode to the signed manifest and filters captions", async 
     "https://api6.aoneroom.com/wefeed-mobile-bff/user-api/visitor-login",
     "https://api6.aoneroom.com/wefeed-mobile-bff/subject-api/search/v2",
     "https://api6.aoneroom.com/wefeed-mobile-bff/subject-api/play-info/v2?subjectId=77&se=1&ep=2",
-    "https://api6.aoneroom.com/wefeed-mobile-bff/subject-api/get-ext-captions?subjectId=77&resourceId=9",
   ]);
   expect(calls[1].body).toBe(JSON.stringify({ keyword: "Breaking Bad", page: 1, perPage: 15, subjectType: 0 }));
   expect(calls[2].headers.get("authorization")).toMatch(/^Bearer h\./);
@@ -146,14 +147,13 @@ test("re-logs in once when the session is rejected", async () => {
   expect(calls.filter((call) => call.url.includes("/search/v2"))).toHaveLength(8);
 });
 
-test("falls back to the next host and tolerates caption failures", async () => {
+test("falls back to the next host when one fails", async () => {
   const calls = mockApi((call) => {
     if (call.url.startsWith("https://api6.aoneroom.com/")) return new Response(null, { status: 503 });
-    if (call.url.includes("/get-ext-captions")) return new Response(null, { status: 500 });
     return api(call, [{ subjectId: "4", title: "Movie", subjectType: 1 }], [{ id: 1, signCookie: cloudFrontCookie() }]);
   });
   const result = await resolveMovieboxStream({ type: "movie", id: "204", title: "Movie", year: "2001", season: "1", episode: "1" });
-  expect(result.tracks).toEqual([]);
+  expect(result.url).toBe(`${SCOPE}index.mpd`);
   expect(calls.some((call) => call.url.startsWith("https://api5.aoneroom.com/"))).toBe(true);
 });
 
