@@ -232,6 +232,18 @@ async function serveDashAsHls(
     return NextResponse.json({ error: "Invalid upstream manifest." }, { status: 502 });
   }
 
+  return renderDashAsHls(request, targetUrl, manifest, castToken, castHeaders, rep);
+}
+
+function renderDashAsHls(
+  request: NextRequest,
+  targetUrl: URL,
+  manifest: Manifest,
+  castToken: string | null,
+  castHeaders: Headers | null,
+  rep: string | null,
+) {
+
   const referer = streamReferer(targetUrl);
   let body: string;
   if (rep === null) {
@@ -317,8 +329,9 @@ export async function GET(request: NextRequest) {
   if (range) headers.set("range", range);
   const cookie = streamCookie(targetUrl);
   if (cookie) headers.set("cookie", cookie);
-  if (targetUrl.pathname.endsWith(".mpd")) {
-    return serveDashAsHls(request, targetUrl, headers, castToken, castHeaders, request.nextUrl.searchParams.get("rep"));
+  const rep = request.nextUrl.searchParams.get("rep");
+  if (targetUrl.pathname.endsWith(".mpd") || rep !== null) {
+    return serveDashAsHls(request, targetUrl, headers, castToken, castHeaders, rep);
   }
 
   const controller = new AbortController();
@@ -342,6 +355,26 @@ export async function GET(request: NextRequest) {
   if (!response.ok && contentType.includes("text/html")) {
     await response.body?.cancel();
     return NextResponse.json({ error: "Upstream request failed." }, { status: 502 });
+  }
+  const mayBeDash =
+    response.ok &&
+    !range &&
+    !/\.(?:m4s|mp4|m4a|ts|aac|vtt|srt)$/i.test(finalUrl.pathname) &&
+    (contentType.includes("xml") || contentType.includes("dash") || contentType.includes("application/octet-stream"));
+  if (mayBeDash) {
+    const text = await response.clone().text();
+    const start = text.trimStart();
+    if (start.startsWith("<?xml") || start.startsWith("<MPD")) {
+      if (!text.includes("<MPD")) {
+        return NextResponse.json({ error: "Invalid upstream manifest." }, { status: 502 });
+      }
+      try {
+        const manifest = await manifestCache.get(finalUrl.href, async () => parseMpd(text, finalUrl));
+        return renderDashAsHls(request, finalUrl, manifest, castToken, castHeaders, null);
+      } catch {
+        return NextResponse.json({ error: "Invalid upstream manifest." }, { status: 502 });
+      }
+    }
   }
   const responseHeaders = new Headers({
     "content-security-policy": "default-src 'none'; sandbox",

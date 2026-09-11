@@ -158,3 +158,23 @@ test("rejects DASH manifests it cannot translate", async () => {
   const response = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.17/live/index.mpd"));
   expect(response.status).toBe(502);
 });
+
+test("detects a DASH manifest served from an opaque URL", async () => {
+  allowStreamHost("https://203.0.113.18/");
+  globalThis.fetch = mock(async () =>
+    new Response(`<?xml version="1.0"?>${MPD}`, {
+      headers: { "content-type": "application/octet-stream" },
+    }),
+  ) as unknown as typeof fetch;
+
+  const target = "https://203.0.113.18/playback?id=1";
+  const response = await GET(
+    new NextRequest(`https://binje.test/api/hls?url=${encodeURIComponent(target)}`),
+  );
+  const playlist = await response.text();
+
+  expect(response.status).toBe(200);
+  expect(response.headers.get("content-type")).toBe("application/vnd.apple.mpegurl");
+  expect(playlist).toContain(`#EXT-X-MEDIA:TYPE=AUDIO`);
+  expect(playlist).toContain(`url=${encodeURIComponent(target)}&rep=0`);
+});
