@@ -4,7 +4,9 @@ import { isIP } from "node:net";
 import { NextRequest, NextResponse } from "next/server";
 import { Agent } from "undici";
 import { isValidCastToken } from "@/lib/cast-token";
+import { type Manifest, masterPlaylist, mediaPlaylist, parseMpd } from "@/lib/dash-to-hls";
 import { allowStreamHost, isAllowedStreamHost, streamCookie, streamReferer } from "@/lib/hls-hosts";
+import { createTtlCache } from "@/lib/ttl-cache";
 
 const PLAYER_ORIGIN = "https://player.videasy.to";
 const BROWSER_USER_AGENT =
@@ -21,6 +23,10 @@ const MAX_DNS_ENTRIES = 200;
 // change. Playlists do change, but slowly enough to survive a seek.
 const SEGMENT_CACHE_CONTROL = "public, max-age=3600, immutable";
 const PLAYLIST_CACHE_CONTROL = "public, max-age=30";
+// A DASH manifest becomes one master plus one media playlist per
+// representation; the parsed manifest is shared between those requests.
+const MANIFEST_TTL_MS = 60_000;
+const manifestCache = createTtlCache<Manifest>(MANIFEST_TTL_MS);
 
 // The pending lookup is what gets cached, not its result: a cold cache under a
 // segment burst would otherwise fire one resolution per in-flight request.
@@ -194,6 +200,66 @@ function rewritePlaylist(
     .join("\n");
 }
 
+// DASH is served as HLS: the manifest URL answers with a master playlist and
+// `rep=<id>` selects the media playlist of one representation. Segments go
+// through the regular proxy path, so the cookie scope and host allowlist apply.
+async function serveDashAsHls(
+  request: NextRequest,
+  targetUrl: URL,
+  headers: Headers,
+  castToken: string | null,
+  castHeaders: Headers | null,
+  rep: string | null,
+) {
+  if (rep !== null && !/^[\w-]{1,32}$/.test(rep)) {
+    return NextResponse.json({ error: "Invalid representation." }, { status: 400 });
+  }
+  let manifest: Manifest;
+  try {
+    manifest = await manifestCache.get(targetUrl.href, async () => {
+      const { response, finalUrl } = await safeFetch(targetUrl, {
+        cache: "no-store",
+        headers,
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new Error("Upstream manifest failed.");
+      }
+      return parseMpd(await response.text(), finalUrl);
+    });
+  } catch {
+    return NextResponse.json({ error: "Invalid upstream manifest." }, { status: 502 });
+  }
+
+  const referer = streamReferer(targetUrl);
+  let body: string;
+  if (rep === null) {
+    body = masterPlaylist(manifest, (representation) => {
+      const variant = new URL("/api/hls", request.nextUrl.href);
+      variant.searchParams.set("url", targetUrl.href);
+      variant.searchParams.set("rep", representation.id);
+      if (castToken) variant.searchParams.set("castToken", castToken);
+      return `${variant.pathname}${variant.search}`;
+    });
+  } else {
+    const representation = [...manifest.video, ...manifest.audio].find((item) => item.id === rep);
+    if (!representation) return NextResponse.json({ error: "Unknown representation." }, { status: 404 });
+    body = mediaPlaylist(representation, (url) => proxiedUrl(url, request.nextUrl.href, castToken, referer));
+  }
+
+  const responseHeaders = new Headers({
+    "content-security-policy": "default-src 'none'; sandbox",
+    "x-content-type-options": "nosniff",
+    "content-type": "application/vnd.apple.mpegurl",
+    "cache-control": PLAYLIST_CACHE_CONTROL,
+  });
+  if (castHeaders) {
+    for (const [key, value] of castHeaders) responseHeaders.set(key, value);
+  }
+  return new NextResponse(body, { headers: responseHeaders });
+}
+
 function getCastCorsHeaders(request: NextRequest, castToken: string | null) {
   if (!castToken || !isValidCastToken(castToken)) return null;
   const origin = request.headers.get("origin");
@@ -251,6 +317,9 @@ export async function GET(request: NextRequest) {
   if (range) headers.set("range", range);
   const cookie = streamCookie(targetUrl);
   if (cookie) headers.set("cookie", cookie);
+  if (targetUrl.pathname.endsWith(".mpd")) {
+    return serveDashAsHls(request, targetUrl, headers, castToken, castHeaders, request.nextUrl.searchParams.get("rep"));
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
