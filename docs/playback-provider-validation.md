@@ -1,5 +1,17 @@
 # Playback provider validation
 
+## Provider outage follow-up (2026-09-21)
+
+- Videasy's seed endpoint timed out or returned a server error during repeated
+  live checks. Web and mobile players now start with VidZee; Videasy remains in
+  both source selectors.
+- MovieBox replaced its CloudFront policy cookie with an `Edge-Cache-Cookie`
+  containing a signed, encoded CDN path. The resolver now accepts both formats.
+- Inception resolved through MovieBox, translated from DASH to HLS, and returned
+  a 1,024-byte ranged media response with HTTP 206 through `/api/hls`.
+- The local Chromium fetched VidZee playlists and H.264/AAC segments. It could
+  not decode them because that Chromium build lacks H.264 MSE support.
+
 ## MovieBox (2026-09-11)
 
 Implemented `source=moviebox` (`lib/moviebox.ts`), path-scoped upstream cookies in
@@ -39,7 +51,9 @@ Not verified:
 ## Implemented
 
 - Added independent VidZee English v4 resolution for movie and TV requests.
-- Retained Videasy as the initial default and the existing French resolver.
+- Added VidZee alongside the initial Videasy default and existing French
+  resolver. VidZee became the initial source on 2026-09-21 after a Videasy
+  upstream outage.
 - Added source selection to the web player and native mobile controls. Selection
   lasts for the mounted player; it is not saved between visits.
 - Preserved the native HLS player, subtitles, quality discovery and Cast paths.

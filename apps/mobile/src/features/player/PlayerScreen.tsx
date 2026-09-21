@@ -38,7 +38,8 @@ export function PlayerScreen({
 }) {
   const { locale, t } = useLocale();
   const toast = useToast();
-  const [variant, setVariant] = useState<AudioVariant>("vo");
+  // VidZee remains usable when Videasy's seed service is unavailable.
+  const [variant, setVariant] = useState<AudioVariant>("vidzee");
   const [season, setSeason] = useState(initialSeason ?? 1);
   const [episode, setEpisode] = useState(initialEpisode ?? 1);
   const [streamError, setStreamError] = useState<string | null>(null);

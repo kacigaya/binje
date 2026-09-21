@@ -263,22 +263,36 @@ async function findSubject(params: { type: "movie" | "tv"; id: string; title: st
   });
 }
 
-// Playback is a CloudFront DASH manifest. The stream's `url` is a shared
-// placeholder mp4; the real location is the resource path inside the signed
-// CloudFront policy, and the cookie pairs must accompany every segment request.
+// Playback is a signed DASH manifest. The stream's `url` is a shared
+// placeholder mp4; the real location is encoded in either a CloudFront policy
+// or the newer edge-cache cookie, which must accompany every segment request.
 export function dashManifestFromSignCookie(signCookie: unknown): { url: string; cookie: string; scope: string } | undefined {
   if (typeof signCookie !== "string") return;
-  const pairs = signCookie.split(";").map((pair) => pair.trim()).filter((pair) => pair.startsWith("CloudFront-"));
-  const policy = pairs.find((pair) => pair.startsWith("CloudFront-Policy="))?.slice("CloudFront-Policy=".length);
-  if (!policy || pairs.length < 3) return;
+  const pairs = signCookie.split(";").map((pair) => pair.trim()).filter(Boolean);
   try {
-    const decoded = Buffer.from(policy.replace(/-/g, "+").replace(/_/g, "=").replace(/~/g, "/"), "base64").toString();
-    const statement = record(JSON.parse(decoded))?.Statement;
-    const resource = Array.isArray(statement) ? record(statement[0])?.Resource : undefined;
-    const scopeUrl = httpsUrl(typeof resource === "string" ? resource.replace(/\*$/, "") : undefined);
+    const cloudFrontPairs = pairs.filter((pair) => pair.startsWith("CloudFront-"));
+    const policy = cloudFrontPairs.find((pair) => pair.startsWith("CloudFront-Policy="))?.slice("CloudFront-Policy=".length);
+    let scopeUrl: URL | undefined;
+    let cookie: string;
+
+    if (policy && cloudFrontPairs.length >= 3) {
+      const decoded = Buffer.from(policy.replace(/-/g, "+").replace(/_/g, "=").replace(/~/g, "/"), "base64").toString();
+      const statement = record(JSON.parse(decoded))?.Statement;
+      const resource = Array.isArray(statement) ? record(statement[0])?.Resource : undefined;
+      scopeUrl = httpsUrl(typeof resource === "string" ? resource.replace(/\*$/, "") : undefined);
+      cookie = cloudFrontPairs.join("; ");
+    } else {
+      const edgePair = pairs.find((pair) => pair.startsWith("Edge-Cache-Cookie="));
+      const value = edgePair?.slice("Edge-Cache-Cookie=".length);
+      const match = value?.match(/^urlprefix=([A-Za-z0-9_-]+):sign=([A-Za-z0-9_-]+):t=(\d+)$/);
+      if (!match) return;
+      scopeUrl = httpsUrl(Buffer.from(match[1], "base64url").toString());
+      cookie = `Edge-Cache-Cookie=${value}`;
+    }
+
     if (!scopeUrl || scopeUrl.search || scopeUrl.hash) return;
     const scope = scopeUrl.href.endsWith("/") ? scopeUrl.href : `${scopeUrl.href}/`;
-    return { url: `${scope}index.mpd`, cookie: pairs.join("; "), scope };
+    return { url: `${scope}index.mpd`, cookie, scope };
   } catch {
     return;
   }

@@ -78,6 +78,17 @@ test("derives the DASH manifest and cookie scope from the signed policy", () => 
   expect(dashManifestFromSignCookie(undefined)).toBeUndefined();
 });
 
+test("derives the DASH manifest from the current edge-cache cookie", () => {
+  const prefix = Buffer.from(SCOPE).toString("base64url");
+  expect(dashManifestFromSignCookie(`Edge-Cache-Cookie=urlprefix=${prefix}:sign=abc123:t=1790014924`)).toEqual({
+    url: `${SCOPE}index.mpd`,
+    cookie: `Edge-Cache-Cookie=urlprefix=${prefix}:sign=abc123:t=1790014924`,
+    scope: SCOPE,
+  });
+  expect(dashManifestFromSignCookie("Edge-Cache-Cookie=urlprefix=bad!:sign=x:t=1")).toBeUndefined();
+  expect(dashManifestFromSignCookie(`Edge-Cache-Cookie=urlprefix=${Buffer.from("http://sacdn.test/dash/1/").toString("base64url")}:sign=x:t=1`)).toBeUndefined();
+});
+
 test("prefers the plain title over dubbed uploads and matches type and year", () => {
   const subjects = [
     { subjectId: "1", title: "Inception [Hindi]", subjectType: 1, releaseDate: "2010-09-01" },

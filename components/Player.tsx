@@ -92,7 +92,9 @@ export default function Player({
   episode?: number;
 }) {
   const { t } = useTranslations();
-  const [source, setSource] = useState<PlaybackSource>("en");
+  // Videasy's seed service has recurring outages; start with the provider that
+  // can currently resolve and leave Videasy available as a manual alternative.
+  const [source, setSource] = useState<PlaybackSource>("vidzee");
 
   const sourceUrl = useMemo(() => {
     const params = new URLSearchParams({
