@@ -3,13 +3,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 const SECTION_COUNT = 10;
 
 /** Shared skeleton for the /movies and /tv-shows browse pages. */
-export default function BrowseLoading({ titleWidth }: { titleWidth: string }) {
+export default function BrowseLoading({ titleWidth }: { titleWidth: "w-36" | "w-44" }) {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 pb-16 pt-24 sm:pt-28">
       <div className="px-4 sm:px-6">
         <div className="flex items-center gap-3">
           <Skeleton className="size-7 rounded-md sm:h-8 sm:w-8" />
-          <Skeleton className={`h-9 ${titleWidth}`} />
+          <Skeleton className={titleWidth === "w-44" ? "h-9 w-44" : "h-9 w-36"} />
         </div>
         <Skeleton className="mt-5 h-px w-full" />
       </div>
