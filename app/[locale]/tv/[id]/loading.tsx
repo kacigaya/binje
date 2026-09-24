@@ -29,7 +29,7 @@ export default function TVShowLoading({ heading }: { heading?: string } = {}) {
               <Skeleton className="h-12 w-75 max-w-full" />
             )}
             <Skeleton className="h-5 w-64" />
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
               <Skeleton className="h-5 w-20" />
               <Skeleton className="h-5 w-24" />
               <Skeleton className="h-5 w-28" />
@@ -49,7 +49,7 @@ export default function TVShowLoading({ heading }: { heading?: string } = {}) {
         {}
         <div className="mt-12 space-y-4">
           <Skeleton className="h-7 w-24" />
-          <div className="flex gap-4">
+          <div className="flex gap-4 overflow-hidden">
             {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton
                 key={i}
@@ -62,7 +62,7 @@ export default function TVShowLoading({ heading }: { heading?: string } = {}) {
         {}
         <div className="mt-12 space-y-4">
           <Skeleton className="h-7 w-20" />
-          <div className="flex gap-4">
+          <div className="flex gap-4 overflow-hidden">
             {Array.from({ length: 8 }).map((_, i) => (
               <div
                 key={i}
