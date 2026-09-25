@@ -43,7 +43,7 @@
     "@shadcn/lint": "^0.2.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/bun": "^1.3.14",
-    "@types/node": "^20.19.43",
+    "@types/node": "^26.6.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.5",
