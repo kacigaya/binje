@@ -4,3 +4,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # Native major upgrades must follow an Expo SDK migration.
+      - dependency-name: "react-native-gesture-handler"
+        update-types: ["version-update:semver-major"]
