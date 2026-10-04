@@ -17,7 +17,7 @@ function Trigger({ onAction }: { onAction?: () => void }) {
 
 test('shows a toast message and runs its action', async () => {
   jest.useFakeTimers();
-  const user = userEvent.setup();
+  const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTimeAsync });
   const onAction = jest.fn();
   render(
     <ToastProvider>
@@ -39,7 +39,7 @@ test('shows a toast message and runs its action', async () => {
 
 test('auto-dismisses after the timeout', async () => {
   jest.useFakeTimers();
-  const user = userEvent.setup();
+  const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTimeAsync });
   render(
     <ToastProvider>
       <Trigger />
