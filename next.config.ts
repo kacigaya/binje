@@ -39,6 +39,9 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1280, 1920, 2048],
     imageSizes: [92, 154, 185, 300, 342, 500, 780],
     minimumCacheTTL: 60 * 60 * 24 * 30,
+    // Unset, Next claims half the free disk at startup; that grew to ~27 GB on
+    // a host shared with other services. Past this cap it evicts LRU entries.
+    maximumDiskCacheSize: 2_000_000_000,
     remotePatterns: [
       {
         protocol: "https",
