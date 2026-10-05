@@ -1,5 +1,5 @@
 import * as client from "../../../api/client";
-import { buildResolveQuery, resolveStream } from "../resolveStream";
+import { buildResolveQuery, fetchAvailableSources, resolveStream } from "../resolveStream";
 
 jest.mock("../../../api/client", () => ({ apiRequest: jest.fn() }));
 const request = client.apiRequest as jest.Mock;
@@ -21,12 +21,23 @@ describe("native stream resolver", () => {
     expect(() => buildResolveQuery({ type: "tv", id: 9, title: "Show", year: "2024" })).toThrow("season and episode");
   });
 
-  test("uses VO and VF endpoints", async () => {
+  test("resolves every source, French included, through the resolve route", async () => {
     const media = { type: "tv" as const, id: 9, title: "Show", year: "2024", season: 2, episode: 3 };
-    await resolveStream(media, "vo");
+    await resolveStream(media, "videasy");
     await resolveStream(media, "vf");
-    expect(request).toHaveBeenNthCalledWith(1, "/api/resolve", { query: expect.objectContaining({ season: 2, episode: 3 }) });
-    expect(request).toHaveBeenNthCalledWith(2, "/api/resolve-vf", { query: expect.objectContaining({ season: 2, episode: 3 }) });
+    expect(request).toHaveBeenNthCalledWith(1, "/api/resolve", {
+      query: expect.objectContaining({ source: "videasy", season: 2, episode: 3 }),
+    });
+    expect(request).toHaveBeenNthCalledWith(2, "/api/resolve", {
+      query: expect.objectContaining({ source: "vf", season: 2, episode: 3 }),
+    });
+  });
+
+  test("lists available sources in server order and drops unknown ids", async () => {
+    request.mockResolvedValueOnce({ sources: ["vsrc", "future-provider", "vidzee", 7] });
+    const sources = await fetchAvailableSources({ type: "movie", id: 1, title: "X", year: "2020" });
+    expect(sources).toEqual(["vsrc", "vidzee"]);
+    expect(request).toHaveBeenCalledWith("/api/sources", expect.objectContaining({ query: expect.objectContaining({ id: 1 }) }));
   });
 
   test("selects VidZee without changing episode coordinates", async () => {
@@ -45,6 +56,6 @@ describe("native stream resolver", () => {
 
   test("rejects a malformed stream response", async () => {
     request.mockResolvedValueOnce({ url: "javascript:alert(1)" });
-    await expect(resolveStream({ type: "movie", id: 1, title: "X", year: "2020" }, "vo")).rejects.toThrow("playable stream");
+    await expect(resolveStream({ type: "movie", id: 1, title: "X", year: "2020" }, "videasy")).rejects.toThrow("playable stream");
   });
 });

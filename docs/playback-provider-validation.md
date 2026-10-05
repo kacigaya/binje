@@ -1,5 +1,58 @@
 # Playback provider validation
 
+## Additional native sources and availability filter (2026-10-05)
+
+Added six resolvers found by inspecting cine.su and 2embed.cc, plus
+`/api/sources`, which resolves every provider for a title in parallel and lists
+only those whose manifest loads (15-second deadline per source, cached two
+minutes). Players show only listed sources, start VidZee before the list
+arrives, and drop any source that then fails to resolve or play on the device.
+
+| Source | Resolver | Notes |
+| --- | --- | --- |
+| Vidnest | `lib/vidnest.ts` | `new.vidnest.fun/<backend>/…` JSON, base64 over a shuffled alphabet; seven backends tried in order |
+| Vsrc / Videm | `lib/vsrc.ts` | Same player on vidsrc.buzz and videm.xyz; `api.php?a=play` mints a stream bound to the minting User-Agent |
+| 2Embed | `lib/twoembed.ts` | StreamHG file named on the 2Embed page; host read from `swish.js`; packed player script lists HLS variants |
+| MoviesAPI | `lib/moviesapi.ts` | `/api/vidora/v1/…` with the `x-player-key` constant read from the player bundle; AES-128 HLS |
+| Vidrock | `lib/vidrock.ts` | 02pcembed (Vidlux's backend) JSON; its relay URLs are unwrapped so playback uses b!nje's proxy |
+
+Proxy changes: hosts can pin a User-Agent next to the Referer; playlists are
+recognised by content (`.txt`, `text/plain`, `application/javascript`);
+segments labelled as images or text are served as `video/mp2t`, with a leading
+PNG stripped. Upstream HTML is still never served. The SSRF guard moved to
+`lib/safe-fetch.ts` and also covers resolver playability checks.
+
+Verified locally:
+
+- Spider-Man: Brand New Day (969681) listed VidZee, MovieBox, Vidnest, Vsrc,
+  Videm, 2Embed and MoviesAPI. Lanterns S1E1 (95350) listed MovieBox, Vidnest,
+  Vsrc, Videm, 2Embed, MoviesAPI and Vidrock. Videasy (seed outage) and VF (no
+  French release) were hidden.
+- For every listed source, master, variant, key (MoviesAPI) and first segment
+  returned HTTP 200 through `/api/hls`. `ffprobe` identified H.264/AAC in the
+  unwrapped Vsrc, Vidnest and Vidrock segments.
+- Headless Chromium: the movie selector listed exactly the seven sources and
+  switched to Vsrc. On Lanterns, VidZee failed to resolve and MovieBox (HEVC,
+  undecodable in that Chromium) failed to play; both were dropped and Vidnest
+  started. Switching to Vidrock loaded its stream.
+
+Not added:
+
+| Candidate | Reason |
+| --- | --- |
+| Vidcore / Vcr, Vidfast | No stream request observable from a headless browser, even after clicks |
+| vidsrc.sh, vsembed, VidApi (vaplayer.ru) | Stream URLs encrypted by a WASM ChaCha20 module that rotates every five minutes; executing it server-side was rejected. Vidnest's `nextgencloudfabric` backend covers the same upstream |
+| VidLink | WASM-encrypted API serving MovieBox's HEVC files, already a source |
+| Peachify | Cloudflare challenge |
+| Vidsync | Origin unreachable (Cloudflare 523) |
+| cine.su Glendale | Grants issued only after a Cloudflare Turnstile check |
+| Vidlux | Same 02pcembed backend as the Vidrock source |
+
+Limits: providers change hosts, keys and response shapes often, and each
+resolver fails closed (the source disappears from the list). Availability
+probing costs one resolve per provider per title every two minutes;
+`/api/sources` has its own rate limit of 20 per minute per IP.
+
 ## Provider outage follow-up (2026-09-21)
 
 - Videasy's seed endpoint timed out or returned a server error during repeated

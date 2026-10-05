@@ -13,6 +13,7 @@ export type {
   MobileSeason,
   MobileSeasonResponse,
   MobileStreamMetadata,
+  PlaybackSource,
 } from "../../../../types/mobile-api";
 
 export type SearchResponse = {
@@ -31,6 +32,8 @@ export type SearchResponse = {
   page: number;
   totalPages: number;
 };
+
+export type SourcesResponse = { sources?: unknown };
 
 export type StreamResponse = {
   url: string;

@@ -4,6 +4,8 @@ const WINDOW_MS = 60_000;
 const LIMITS: [prefix: string, max: number][] = [
   ["/api/hls", 600],
   ["/api/resolve", 20],
+  // Each call resolves every provider for one title, so it is the costliest route.
+  ["/api/sources", 20],
 ];
 const DEFAULT_LIMIT = 60;
 

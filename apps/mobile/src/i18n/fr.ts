@@ -9,7 +9,7 @@ export const fr: Record<keyof typeof en, string> = {
   addToWatchlist: 'Ajouter à ma liste', removeFromWatchlist: 'Retirer de ma liste', addedToWatchlist: 'Ajouté à ma liste', removedFromWatchlist: 'Retiré de ma liste', undo: 'Annuler', myWatchlist: 'Ma liste', emptyWatchlist: 'Votre liste est vide',
   privacy: 'Confidentialité', privacyPolicy: 'Politique de confidentialité', consentTitle: 'Nous utilisons le stockage local', consentBody: 'Nous enregistrons votre historique sur cet appareil pour reprendre là où vous vous êtes arrêté. Aucun suivi.', accept: 'Accepter', dismiss: 'Fermer', allowStorage: 'Autoriser cookies et stockage local',
   errorTitle: 'Une erreur est survenue', errorBody: 'Impossible de charger le contenu. Le problème est peut-être temporaire. Veuillez réessayer.', retry: 'Réessayer', loading: 'Chargement…',
-  back: 'Retour', quality: 'Qualité', auto: 'Auto',
+  back: 'Retour', quality: 'Qualité', auto: 'Auto', source: 'Source',
   castToDevice: 'Diffuser sur un appareil', stopCasting: 'Arrêter la diffusion', castUnavailable: 'Impossible de diffuser. Réessayez.',
   nowWatching: 'Lecture en cours', watching: 'En lecture', noPreview: 'Aucun aperçu', noEpisodes: 'Aucun aperçu d’épisode disponible.',
   noResults: 'Aucun résultat', browseEmptyBody: 'Rien pour le moment. Essayez une autre catégorie ou revenez plus tard.', noPoster: 'Aucune affiche', searchPlaceholder: 'Rechercher des films et séries…', season: 'Saison', episode: 'Épisode', previous: 'Précédent', next: 'Suivant',

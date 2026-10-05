@@ -6,9 +6,11 @@
 const TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_HOSTS = 1000;
 
-const hosts = new Map<string, { expiresAt: number; referer?: string }>();
+const hosts = new Map<string, { expiresAt: number; referer?: string; userAgent?: string }>();
 
-export function allowStreamHost(url: string | URL, referer?: string): void {
+// Some providers sign a stream for the User-Agent that minted it, so a host
+// can pin one; the proxy otherwise forwards the viewer's own.
+export function allowStreamHost(url: string | URL, referer?: string, userAgent?: string): void {
   let host: string;
   try {
     host = new URL(String(url)).host;
@@ -19,7 +21,12 @@ export function allowStreamHost(url: string | URL, referer?: string): void {
     const now = Date.now();
     for (const [key, entry] of hosts) if (now > entry.expiresAt) hosts.delete(key);
   }
-  hosts.set(host, { expiresAt: Date.now() + TTL_MS, referer: referer ?? hosts.get(host)?.referer });
+  const previous = hosts.get(host);
+  hosts.set(host, {
+    expiresAt: Date.now() + TTL_MS,
+    referer: referer ?? previous?.referer,
+    userAgent: userAgent ?? previous?.userAgent,
+  });
 }
 
 export function allowStreamHosts(urls: (string | undefined)[]): void {
@@ -38,6 +45,10 @@ export function isAllowedStreamHost(url: URL): boolean {
 
 export function streamReferer(url: URL): string | undefined {
   return isAllowedStreamHost(url) ? hosts.get(url.host)?.referer : undefined;
+}
+
+export function streamUserAgent(url: URL): string | undefined {
+  return isAllowedStreamHost(url) ? hosts.get(url.host)?.userAgent : undefined;
 }
 
 // Some CDNs sign a directory rather than a host (CloudFront policy cookies),
