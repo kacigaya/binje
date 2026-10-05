@@ -102,7 +102,6 @@ const FRENCH = {
   "Discover movies & TV shows": "Découvrez des films et séries",
   "Start typing to search thousands of titles.":
     "Commencez à écrire pour rechercher parmi des milliers de titres.",
-  "No VF stream for this title.": "Aucun flux VF disponible pour ce titre.",
   "Stream unavailable. Try again later.":
     "Flux indisponible. Réessayez plus tard.",
   "Loading…": "Chargement…",

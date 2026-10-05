@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { fetchResolve } from "@/lib/resolve-client";
 import { updatePlayHistoryProgress } from "@/lib/play-history";
+import type { PlaybackSource } from "@/lib/sources";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -18,13 +19,33 @@ type Quality = { index: number; height: number; bitrate: number };
 type StreamSource = { file: string; height: number };
 type ResolvedMedia = { url: string; tracks: Track[]; sources: StreamSource[] };
 
-type PlaybackSource = "en" | "vf" | "vidzee" | "moviebox";
-const PLAYBACK_SOURCES: { id: PlaybackSource; label: string }[] = [
-  { id: "en", label: "Videasy · VO" },
-  { id: "vf", label: "French · VF" },
-  { id: "vidzee", label: "VidZee · EN" },
-  { id: "moviebox", label: "MovieBox · EN" },
-];
+// /api/sources lists, in preference order, only the sources whose stream
+// loads for the title; ids this build does not know are ignored.
+const SOURCE_LABELS: Record<PlaybackSource, string> = {
+  vidzee: "VidZee · EN",
+  moviebox: "MovieBox · EN",
+  vidnest: "Vidnest · VO",
+  vsrc: "Vsrc · VO",
+  videm: "Videm · VO",
+  "2embed": "2Embed · VO",
+  moviesapi: "MoviesAPI · VO",
+  vidrock: "Vidrock · VO",
+  videasy: "Videasy · VO",
+  vf: "French · VF",
+};
+// Tried before the availability list arrives, so playback does not wait on it.
+const DEFAULT_SOURCE: PlaybackSource = "vidzee";
+
+function isKnownSource(value: unknown): value is PlaybackSource {
+  return typeof value === "string" && Object.hasOwn(SOURCE_LABELS, value);
+}
+
+// The TV page keeps this component mounted across episodes, so per-title
+// state carries the media key it belongs to and is ignored once that changes.
+type Keyed<T> = { key: string; value: T };
+function forMedia<T>(state: Keyed<T> | null, key: string): T | undefined {
+  return state?.key === key ? state.value : undefined;
+}
 
 const RESOLVE_BASE = "/api";
 
@@ -92,11 +113,8 @@ export default function Player({
   episode?: number;
 }) {
   const { t } = useTranslations();
-  // Videasy's seed service has recurring outages; start with the provider that
-  // can currently resolve and leave Videasy available as a manual alternative.
-  const [source, setSource] = useState<PlaybackSource>("vidzee");
-
-  const sourceUrl = useMemo(() => {
+  const mediaKey = `${type}:${tmdbId}:${season ?? 1}:${episode ?? 1}`;
+  const mediaQuery = useMemo(() => {
     const params = new URLSearchParams({
       type,
       id: String(tmdbId),
@@ -108,11 +126,50 @@ export default function Player({
       params.set("season", String(season ?? 1));
       params.set("episode", String(episode ?? 1));
     }
-    // "en" is the resolve route's default provider and "vf" has its own route.
-    if (source !== "en" && source !== "vf") params.set("source", source);
-    const endpoint = source === "vf" ? "resolve-vf" : "resolve";
-    return `${RESOLVE_BASE}/${endpoint}?${params.toString()}`;
-  }, [episode, imdbId, source, season, title, tmdbId, type, year]);
+    return params.toString();
+  }, [episode, imdbId, season, title, tmdbId, type, year]);
+
+  // undefined while probing, null when the probe itself failed.
+  const [available, setAvailable] = useState<Keyed<PlaybackSource[] | null> | null>(null);
+  const [failed, setFailed] = useState<Keyed<PlaybackSource[]> | null>(null);
+  const [picked, setPicked] = useState<Keyed<PlaybackSource> | null>(null);
+  const [playing, setPlaying] = useState<Keyed<PlaybackSource> | null>(null);
+  const [probeKey, setProbeKey] = useState(0);
+  const availableList = forMedia(available, mediaKey);
+  const failedList = forMedia(failed, mediaKey) ?? [];
+  const usable = (id: PlaybackSource | undefined) => (id && !failedList.includes(id) ? id : undefined);
+  const playingSource = usable(forMedia(playing, mediaKey));
+  // A manual pick wins, then whatever already plays, then the first listed
+  // source that has not failed here. A failure moves on to the next one.
+  const source =
+    usable(forMedia(picked, mediaKey)) ??
+    playingSource ??
+    (availableList ?? [DEFAULT_SOURCE]).find((id) => !failedList.includes(id)) ??
+    null;
+  const options = [...(availableList ?? [])];
+  if (playingSource && !options.includes(playingSource)) options.push(playingSource);
+  const sourceOptions = options.filter((id) => !failedList.includes(id));
+  const exhausted = source === null && availableList !== undefined;
+  // Waiting for the availability list after the default source failed.
+  const awaitingSources = source === null && !exhausted;
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${RESOLVE_BASE}/sources?${mediaQuery}`, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("probe failed"))))
+      .then((data: { sources?: unknown }) => {
+        const list = Array.isArray(data.sources) ? data.sources.filter(isKnownSource) : [];
+        if (!cancelled) setAvailable({ key: mediaKey, value: list });
+      })
+      .catch(() => {
+        if (!cancelled) setAvailable({ key: mediaKey, value: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaKey, mediaQuery, probeKey]);
+
+  const sourceUrl = source ? `${RESOLVE_BASE}/resolve?${mediaQuery}&source=${source}` : null;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -120,7 +177,6 @@ export default function Player({
   const [tracks, setTracks] = useState<Track[]>([]);
   const [qualities, setQualities] = useState<Quality[]>([]);
   const [quality, setQuality] = useState(-1);
-  const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [resolvedMedia, setResolvedMedia] = useState<ResolvedMedia | null>(null);
   const [googleCasting, setGoogleCasting] = useState(false);
@@ -131,9 +187,14 @@ export default function Player({
   useEffect(() => {
     let cancelled = false;
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !source || !sourceUrl) return;
 
-    setError(false);
+    const fail = () => {
+      setFailed((previous) => {
+        const list = forMedia(previous, mediaKey) ?? [];
+        return { key: mediaKey, value: list.includes(source) ? list : [...list, source] };
+      });
+    };
     setLoading(true);
     setTracks([]);
     setQualities([]);
@@ -202,7 +263,7 @@ export default function Player({
           hls.loadSource(src);
           hls.attachMedia(video);
           hls.on(HlsModule.Events.ERROR, (_e, payload) => {
-            if (payload.fatal) setError(true);
+            if (payload.fatal && !cancelled) fail();
           });
         } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
           video.src = src;
@@ -210,10 +271,11 @@ export default function Player({
           throw new Error("HLS unsupported");
         }
         setLoading(false);
+        setPlaying({ key: mediaKey, value: source });
       } catch {
         if (!cancelled) {
-          setError(true);
           setLoading(false);
+          fail();
         }
       }
     })();
@@ -227,16 +289,20 @@ export default function Player({
       video.load();
       if (masterUrl) URL.revokeObjectURL(masterUrl);
     };
-  }, [reloadKey, sourceUrl]);
+  }, [mediaKey, reloadKey, source, sourceUrl]);
 
   useEffect(() => {
-    if (!error) return;
-    toast.error(
-      source === "vf"
-        ? t("No VF stream for this title.")
-        : t("Stream unavailable. Try again later."),
-    );
-  }, [error, source, t]);
+    if (exhausted) toast.error(t("Stream unavailable. Try again later."));
+  }, [exhausted, t]);
+
+  function retry() {
+    setFailed(null);
+    setPicked(null);
+    setPlaying(null);
+    setAvailable(null);
+    setProbeKey((previous) => previous + 1);
+    setReloadKey((previous) => previous + 1);
+  }
 
   function changeQuality(index: number) {
     setQuality(index);
@@ -271,18 +337,18 @@ export default function Player({
       resolvedMedia?.url ??
       null
     : resolvedMedia?.url ?? null;
-  const mediaKey = `${type}:${tmdbId}:${season ?? 1}:${episode ?? 1}`;
-
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/50 p-1 backdrop-blur">
-        <Select
-          ariaLabel={t("Source")}
-          value={source}
-          onValueChange={setSource}
-          items={PLAYBACK_SOURCES.map(({ id, label }) => ({ value: id, label }))}
-          className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white"
-        />
+        {source && sourceOptions.includes(source) && (
+          <Select
+            ariaLabel={t("Source")}
+            value={source}
+            onValueChange={(value) => setPicked({ key: mediaKey, value })}
+            items={sourceOptions.map((id) => ({ value: id, label: SOURCE_LABELS[id] }))}
+            className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white"
+          />
+        )}
         {qualities.length > 0 && (
           <Select
             ariaLabel={t("Quality")}
@@ -327,27 +393,23 @@ export default function Player({
           />
         ))}
       </video>
-      {(loading || error) && (
+      {(loading || awaitingSources || exhausted) && (
         <div
           className={cn(
             "absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-sm text-white/70",
             // While loading the overlay must not swallow the native controls;
             // the error state has a control of its own to click.
-            !error && "pointer-events-none",
+            !exhausted && "pointer-events-none",
           )}
         >
           <p role="status" aria-live="polite">
-            {error
-              ? source === "vf"
-                ? t("No VF stream for this title.")
-                : t("Stream unavailable. Try again later.")
-              : t("Loading…")}
+            {exhausted ? t("Stream unavailable. Try again later.") : t("Loading…")}
           </p>
-          {error && (
+          {exhausted && (
             <Button
               type="button"
               variant="outline"
-              onClick={() => setReloadKey((previous) => previous + 1)}
+              onClick={retry}
               className="h-9 cursor-pointer gap-2 rounded-full px-4"
             >
               <RotateCcw aria-hidden="true" className="size-4" />

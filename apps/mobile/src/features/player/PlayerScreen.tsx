@@ -14,16 +14,24 @@ import { useToast } from "../../providers/ToastProvider";
 import { upsertPlayHistory, updatePlayHistoryProgress } from "../../storage/playHistory";
 import { colors, fonts, spacing } from "../../theme";
 import { createProgressWriter } from "./progressWriter";
-import { proxiedHlsUrl, resolveStream, type AudioVariant } from "./resolveStream";
+import {
+  DEFAULT_SOURCE,
+  fetchAvailableSources,
+  proxiedHlsUrl,
+  resolveStream,
+  SOURCE_LABELS,
+  type PlaybackSource,
+  type StreamMedia,
+} from "./resolveStream";
 import NativeCastControls from "./CastControls";
 import type { MobileMediaType, StreamResponse } from "../../types/api";
 
-const VARIANTS: { id: AudioVariant; label: string; pill: string }[] = [
-  { id: "vo", label: "Videasy · VO", pill: "VO" },
-  { id: "vf", label: "French · VF", pill: "VF" },
-  { id: "vidzee", label: "VidZee · EN", pill: "VidZee" },
-  { id: "moviebox", label: "MovieBox · EN", pill: "MovieBox" },
-];
+// Episode changes keep this screen mounted, so per-episode source state
+// carries the media key it belongs to and is ignored once that changes.
+type Keyed<T> = { key: string; value: T };
+function forMedia<T>(state: Keyed<T> | null, key: string): T | undefined {
+  return state?.key === key ? state.value : undefined;
+}
 
 export function PlayerScreen({
   type,
@@ -38,12 +46,15 @@ export function PlayerScreen({
 }) {
   const { locale, t } = useLocale();
   const toast = useToast();
-  // VidZee remains usable when Videasy's seed service is unavailable.
-  const [variant, setVariant] = useState<AudioVariant>("vidzee");
   const [season, setSeason] = useState(initialSeason ?? 1);
   const [episode, setEpisode] = useState(initialEpisode ?? 1);
-  const [streamError, setStreamError] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
+  // undefined while probing, null when the probe itself failed.
+  const [available, setAvailable] = useState<Keyed<PlaybackSource[] | null> | null>(null);
+  const [failed, setFailed] = useState<Keyed<PlaybackSource[]> | null>(null);
+  const [picked, setPicked] = useState<Keyed<PlaybackSource> | null>(null);
+  const [playing, setPlaying] = useState<Keyed<PlaybackSource> | null>(null);
+  const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
   const [stream, setStream] = useState<StreamResponse | null>(null);
   const [qualityHeight, setQualityHeight] = useState<number | null>(null);
   const [qualityMenuOpen, setQualityMenuOpen] = useState(false);
@@ -60,6 +71,36 @@ export function PlayerScreen({
     queryFn: ({ signal }) => getSeason(id, season, locale, signal),
     enabled: type === "tv" && Number.isInteger(id) && id > 0,
   });
+
+  const mediaKey = `${type}:${id}:${type === "tv" ? `${season}:${episode}` : "movie"}`;
+  const streamMedia = useMemo<StreamMedia | null>(() => {
+    const media = details.data;
+    if (!media) return null;
+    return {
+      type,
+      id,
+      title: media.stream.originalTitle || media.title,
+      year: media.stream.year || media.date.slice(0, 4),
+      imdbId: media.stream.imdbId,
+      ...(type === "tv" ? { season, episode } : {}),
+    };
+  }, [details.data, episode, id, season, type]);
+  const availableList = forMedia(available, mediaKey);
+  const failedList = forMedia(failed, mediaKey) ?? [];
+  const usable = (source: PlaybackSource | undefined) => (source && !failedList.includes(source) ? source : undefined);
+  const playingSource = usable(forMedia(playing, mediaKey));
+  // A manual pick wins, then whatever already plays, then the first listed
+  // source that has not failed here. A failure moves on to the next one.
+  const source =
+    usable(forMedia(picked, mediaKey)) ??
+    playingSource ??
+    (availableList ?? [DEFAULT_SOURCE]).find((item) => !failedList.includes(item)) ??
+    null;
+  const sourceOptions = [...(availableList ?? [])];
+  if (playingSource && !sourceOptions.includes(playingSource)) sourceOptions.push(playingSource);
+  const visibleSources = sourceOptions.filter((item) => !failedList.includes(item));
+  const exhausted = source === null && availableList !== undefined;
+  const streamError = exhausted ? t("streamUnavailable") : null;
 
   const player = useVideoPlayer(null, (instance) => {
     instance.loop = false;
@@ -105,13 +146,40 @@ export function PlayerScreen({
   }, [player, progressWriter]);
 
   useEffect(() => {
-    const media = details.data;
-    if (!media) return;
+    if (!streamMedia) return;
     let cancelled = false;
+    fetchAvailableSources(streamMedia)
+      .then((list) => {
+        if (!cancelled) setAvailable({ key: mediaKey, value: list });
+      })
+      .catch(() => {
+        if (!cancelled) setAvailable({ key: mediaKey, value: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaKey, streamMedia]);
+
+  useEffect(() => {
+    if (exhausted) toast.show({ message: t("streamUnavailable") });
+  }, [exhausted, t, toast]);
+
+  useEffect(() => {
+    const media = details.data;
+    if (!media || !streamMedia || !source) return;
+    let cancelled = false;
+    const fail = () => {
+      setFailed((previous) => {
+        const list = forMedia(previous, mediaKey) ?? [];
+        return { key: mediaKey, value: list.includes(source) ? list : [...list, source] };
+      });
+    };
+    const subscription = player.addListener("statusChange", ({ status }) => {
+      if (status === "error" && !cancelled) fail();
+    });
     queueMicrotask(() => {
       if (!cancelled) {
         setResolving(true);
-        setStreamError(null);
         setStream(null);
       }
     });
@@ -125,39 +193,29 @@ export function PlayerScreen({
       vote_average: media.rating,
       ...(type === "tv" ? { season, episode } : {}),
     });
-    resolveStream(
-      {
-        type,
-        id,
-        title: media.stream.originalTitle || media.title,
-        year: media.stream.year || media.date.slice(0, 4),
-        imdbId: media.stream.imdbId,
-        ...(type === "tv" ? { season, episode } : {}),
-      },
-      variant,
-    )
+    resolveStream(streamMedia, source)
       .then(async (result) => {
         if (cancelled) return;
         setStream(result);
         setQualityHeight(null);
         await player.replaceAsync({ uri: proxiedHlsUrl(result.url), contentType: "hls" });
-        if (!cancelled && !castingRef.current) player.play();
-      })
-      .catch((error: unknown) => {
         if (cancelled) return;
-        const message = error instanceof Error ? error.message : t("streamUnavailable");
-        setStreamError(message);
-        toast.show({ message });
+        setPlaying({ key: mediaKey, value: source });
+        if (!castingRef.current) player.play();
+      })
+      .catch(() => {
+        if (!cancelled) fail();
       })
       .finally(() => {
         if (!cancelled) setResolving(false);
       });
     return () => {
       cancelled = true;
+      subscription.remove();
       player.pause();
       void progressWriter.flush();
     };
-  }, [details.data, episode, id, player, progressWriter, season, t, toast, type, variant]);
+  }, [details.data, episode, id, mediaKey, player, progressWriter, season, source, streamMedia, type]);
 
   const qualityHeights = [...new Set((stream?.sources ?? []).map((source) => source.height))].sort((a, b) => b - a);
 
@@ -264,12 +322,14 @@ export function PlayerScreen({
           allowsPictureInPicture
           fullscreenOptions={{ enable: true }}
         />
-        {resolving ? <View style={styles.overlay}><ActivityIndicator color="#fff" size="large" /></View> : null}
+        {resolving || (source === null && !exhausted) ? (
+          <View style={styles.overlay}><ActivityIndicator color="#fff" size="large" /></View>
+        ) : null}
         <View style={styles.playerControls}>
           <View style={styles.playerPillGroup}>
             <NativeCastControls
               player={player}
-              mediaKey={`${type}:${id}:${type === "tv" ? `${season}:${episode}` : "movie"}`}
+              mediaKey={mediaKey}
               source={stream
                 ? qualityHeight == null
                   ? stream.url
@@ -281,23 +341,29 @@ export function PlayerScreen({
               onDisconnect={handleCastDisconnect}
               onRemoteProgress={handleRemoteProgress}
             />
-            {VARIANTS.map(({ id: item, label, pill }) => (
+            {source && visibleSources.includes(source) ? (
               <Pressable
                 accessibilityRole="button"
-                accessibilityState={{ selected: variant === item }}
-                accessibilityLabel={label}
-                key={item}
-                onPress={() => setVariant(item)}
-                style={[styles.playerPill, variant === item && styles.playerPillActive]}
+                accessibilityLabel={`${t("source")}: ${SOURCE_LABELS[source].label}`}
+                accessibilityState={{ expanded: sourceMenuOpen }}
+                onPress={() => {
+                  setQualityMenuOpen(false);
+                  setSourceMenuOpen((open) => !open);
+                }}
+                style={styles.playerPill}
               >
-                <Text style={[styles.playerPillText, variant !== item && styles.playerPillTextDim]}>{pill}</Text>
+                <Text style={styles.playerPillText}>{SOURCE_LABELS[source].pill}</Text>
+                <Ionicons name={sourceMenuOpen ? "chevron-up" : "chevron-down"} size={13} color={colors.text} />
               </Pressable>
-            ))}
+            ) : null}
             {qualityHeights.length > 0 ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${t("quality")}: ${qualityHeight == null ? t("auto") : `${qualityHeight}p`}`}
-                onPress={() => setQualityMenuOpen((open) => !open)}
+                onPress={() => {
+                  setSourceMenuOpen(false);
+                  setQualityMenuOpen((open) => !open);
+                }}
                 style={styles.playerPill}
               >
                 <Text style={styles.playerPillText}>{qualityHeight == null ? t("auto") : `${qualityHeight}p`}</Text>
@@ -305,6 +371,27 @@ export function PlayerScreen({
               </Pressable>
             ) : null}
           </View>
+          {sourceMenuOpen && source ? (
+            <View style={styles.qualityMenu}>
+              {visibleSources.map((item) => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={SOURCE_LABELS[item].label}
+                  accessibilityState={{ selected: source === item }}
+                  key={item}
+                  onPress={() => {
+                    setSourceMenuOpen(false);
+                    setPicked({ key: mediaKey, value: item });
+                  }}
+                  style={styles.qualityItem}
+                >
+                  <Text style={[styles.playerPillText, source === item && styles.qualityItemActive]}>
+                    {SOURCE_LABELS[item].label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
           {qualityMenuOpen ? (
             <View style={styles.qualityMenu}>
               {[null, ...qualityHeights].map((height) => (

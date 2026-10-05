@@ -37,9 +37,9 @@ An HTTP 200 page or playlist does not prove successful video playback.
 | [MovieBox](https://github.com/mesamirh/MovieBox-Tui) | Android app BFF, documented by the open-source TUI client | Signed API answers from the server; movie and TV episodes return DASH manifests behind CloudFront cookies | Implemented as `source=moviebox`, DASH served as HLS by `/api/hls` |
 | [VidLink](https://vidlink.pro/) | Documented movie/TV embeds and `PLAYER_EVENT` messages | Pages/API 200; captured movie source is DASH/HEVC; direct MPD check 403 | Candidate requiring format/proxy work; not verified playable |
 | [VixSrc](https://vixsrc.to/) | Official indexed embed documentation; [HTML parser reference](https://github.com/tapframe/NuvioStreamsAddon/blob/master/providers/vixsrc.js) | Browser returned Cloudflare 403 | Defer live integration |
-| [VidFast](https://vidfast.pro/) | Movie/TV embed service; [independent resolver implementation](https://github.com/sharoon7171/vidfast-pro-stream-resolver) | Browser returned Cloudflare 403 | Defer; third-party resolver not executed or adopted |
+| [VidFast](https://vidfast.pro/) | Movie/TV embed service; [independent resolver implementation](https://github.com/sharoon7171/vidfast-pro-stream-resolver) | Browser returned Cloudflare 403; 2026-10-05 headless capture showed no stream request | Defer; third-party resolver not executed or adopted |
 | [SuperEmbed](https://www.superembed.stream/) / MultiEmbed | Documented `video_id`, `tmdb`, `s`, `e` iframe parameters | Movie/TV requests reached `streamingnow.mov` verification page, 403; documented `directstream.php` returned 404 | Defer |
-| [2Embed](https://www.2embed.cc/) | Official movie/TV embed URL documentation | Both routes navigated to `2embed.skin` detail pages; no video verified | Defer |
+| [2Embed](https://www.2embed.cc/) | Official movie/TV embed URL documentation | 2026-10-05: default server is a StreamHG file with plain HLS | Implemented as `source=2embed`; see validation report |
 | [VidSrc.me](https://www.vidsrc.me/) | Indexed official page announces domain migration | Current page 520; `vidsrc.xyz` DNS failure | Defer; do not treat similarly named clones as mirrors |
 | [VidSrc.cc](https://vidsrc.cc/) | Independent host with similar branding | Cloudflare 403 | Defer |
 | Embed.su | Known embed hostname | DNS failure | Defer |

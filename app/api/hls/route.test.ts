@@ -178,3 +178,38 @@ test("detects a DASH manifest served from an opaque URL", async () => {
   expect(playlist).toContain(`#EXT-X-MEDIA:TYPE=AUDIO`);
   expect(playlist).toContain(`url=${encodeURIComponent(target)}&rep=0`);
 });
+
+test("rewrites playlists served as text and pins the provider's User-Agent on children", async () => {
+  allowStreamHost("https://203.0.113.20/master.txt", "https://player.test/e/1", "Pinned/1.0");
+  const agents: (string | null)[] = [];
+  globalThis.fetch = mock(async (_input: unknown, init?: RequestInit) => {
+    agents.push(new Headers(init?.headers).get("user-agent"));
+    return new Response("#EXTM3U\n#EXTINF:4,\nhttps://203.0.113.21/seg-1.ts\n", { headers: { "content-type": "text/plain" } });
+  }) as unknown as typeof fetch;
+  const request = new NextRequest("https://binje.test/api/hls?url=https://203.0.113.20/master.txt", {
+    headers: { "user-agent": "Viewer/2.0" },
+  });
+  const result = await GET(request);
+  expect(result.headers.get("content-type")).toBe("application/vnd.apple.mpegurl");
+  const child = new URL((await result.text()).trim().split("\n")[2], "https://binje.test");
+  await GET(new NextRequest(child, { headers: { "user-agent": "Viewer/2.0" } }));
+  expect(agents).toEqual(["Pinned/1.0", "Pinned/1.0"]);
+});
+
+test("serves segments disguised as images as MPEG-TS and passes subtitles through", async () => {
+  allowStreamHost("https://203.0.113.22/");
+  const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0, 0x49, 0x45, 0x4e, 0x44, 0, 0, 0, 0];
+  const ts = Array.from({ length: 376 }, (_, index) => (index % 188 === 0 ? 0x47 : 1));
+  globalThis.fetch = mock(async (input: unknown) => String(input).endsWith(".vtt")
+    ? new Response("WEBVTT\n\n00:00.000 --> 00:01.000\nHi\n", { headers: { "content-type": "text/vtt" } })
+    : new Response(new Uint8Array([...png, ...ts]), { headers: { "content-type": "image/png" } })) as unknown as typeof fetch;
+
+  const segment = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.22/seg.image"));
+  expect(segment.headers.get("content-type")).toBe("video/mp2t");
+  expect(Array.from(new Uint8Array(await segment.arrayBuffer()))).toEqual(ts);
+
+  const subtitles = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.22/en.vtt"));
+  expect(subtitles.status).toBe(200);
+  expect(subtitles.headers.get("content-type")).toBe("text/vtt");
+  expect(await subtitles.text()).toStartWith("WEBVTT");
+});

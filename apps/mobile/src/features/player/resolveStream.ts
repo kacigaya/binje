@@ -1,7 +1,30 @@
 import { apiRequest } from "../../api/client";
-import type { StreamResponse } from "../../types/api";
+import type { PlaybackSource, SourcesResponse, StreamResponse } from "../../types/api";
 
-export type AudioVariant = "vo" | "vf" | "vidzee" | "moviebox";
+export type { PlaybackSource };
+
+// The server lists sources in preference order; ids this build does not know
+// are ignored so a newer server cannot break an older app.
+export const SOURCE_LABELS: Record<PlaybackSource, { label: string; pill: string }> = {
+  vidzee: { label: "VidZee · EN", pill: "VidZee" },
+  moviebox: { label: "MovieBox · EN", pill: "MovieBox" },
+  vidnest: { label: "Vidnest · VO", pill: "Vidnest" },
+  vsrc: { label: "Vsrc · VO", pill: "Vsrc" },
+  videm: { label: "Videm · VO", pill: "Videm" },
+  "2embed": { label: "2Embed · VO", pill: "2Embed" },
+  moviesapi: { label: "MoviesAPI · VO", pill: "MoviesAPI" },
+  vidrock: { label: "Vidrock · VO", pill: "Vidrock" },
+  videasy: { label: "Videasy · VO", pill: "VO" },
+  vf: { label: "French · VF", pill: "VF" },
+};
+// Tried before the availability list arrives, so playback does not wait on it.
+export const DEFAULT_SOURCE: PlaybackSource = "vidzee";
+// The server resolves every provider before answering.
+const SOURCES_TIMEOUT_MS = 25_000;
+
+export function isKnownSource(value: unknown): value is PlaybackSource {
+  return typeof value === "string" && Object.hasOwn(SOURCE_LABELS, value);
+}
 export type StreamMedia = {
   type: "movie" | "tv";
   id: number;
@@ -38,11 +61,17 @@ function isPlayableUrl(value: unknown): value is string {
   }
 }
 
-export async function resolveStream(media: StreamMedia, variant: AudioVariant): Promise<StreamResponse> {
-  // "vo" is the resolve route's default provider and "vf" has its own route.
-  const endpoint = variant === "vf" ? "resolve-vf" : "resolve";
-  const result = await apiRequest<StreamResponse>(`/api/${endpoint}`, {
-    query: { ...buildResolveQuery(media), ...(variant === "vo" || variant === "vf" ? {} : { source: variant }) },
+export async function fetchAvailableSources(media: StreamMedia): Promise<PlaybackSource[]> {
+  const result = await apiRequest<SourcesResponse>("/api/sources", {
+    query: buildResolveQuery(media),
+    timeoutMs: SOURCES_TIMEOUT_MS,
+  });
+  return Array.isArray(result.sources) ? result.sources.filter(isKnownSource) : [];
+}
+
+export async function resolveStream(media: StreamMedia, source: PlaybackSource): Promise<StreamResponse> {
+  const result = await apiRequest<StreamResponse>("/api/resolve", {
+    query: { ...buildResolveQuery(media), source },
   });
   if (!isPlayableUrl(result.url)) throw new Error("The server did not return a playable stream.");
   return {
