@@ -8,7 +8,11 @@ import CastControls from "@/components/CastControls";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { fetchResolve } from "@/lib/resolve-client";
-import { updatePlayHistoryProgress } from "@/lib/play-history";
+import {
+  getPlayHistory,
+  getResumePosition,
+  updatePlayHistoryProgress,
+} from "@/lib/play-history";
 import type { PlaybackSource } from "@/lib/sources";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
@@ -325,6 +329,23 @@ export default function Player({
     });
   }, [episode, season, tmdbId, type]);
 
+  // Pick up where history left off. Runs for every source that loads, so a
+  // failover to the next source resumes too; a stream already past its
+  // first second has been positioned by the viewer and is left alone.
+  function onLoadedMetadata() {
+    const video = videoRef.current;
+    if (!video || video.currentTime > 1) return;
+    const position = getResumePosition(getPlayHistory(), {
+      type,
+      id: tmdbId,
+      season,
+      episode,
+    });
+    if (position !== null && position < video.duration - 10) {
+      video.currentTime = position;
+    }
+  }
+
   function onTimeUpdate() {
     const video = videoRef.current;
     if (!video) return;
@@ -379,6 +400,7 @@ export default function Player({
         aria-label={`${t("Video player")}: ${title}`}
         controls={!googleCasting}
         playsInline
+        onLoadedMetadata={onLoadedMetadata}
         onTimeUpdate={onTimeUpdate}
         className="absolute inset-0 h-full w-full rounded-xl bg-black"
         crossOrigin="anonymous"

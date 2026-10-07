@@ -158,6 +158,23 @@ export function getPlaybackProgress(
     : null;
 }
 
+/**
+ * Saved position to resume `media` from, when history holds an unfinished
+ * entry for that exact movie or episode.
+ */
+export function getResumePosition(
+  history: PlayHistoryItem[],
+  media: Pick<PlayHistoryItem, "type" | "id" | "season" | "episode">,
+): number | null {
+  const key = getEpisodeKey(media);
+  const entry = history.find((item) => getEpisodeKey(item) === key);
+  if (!entry || getPlaybackProgress(entry) === null) return null;
+  const position = entry.positionSeconds;
+  return typeof position === "number" && Number.isFinite(position) && position > 0
+    ? position
+    : null;
+}
+
 export function getPlayHistoryHref(item: PlayHistoryItem) {
   if (item.type === "movie") return `/watch/${item.id}`;
 
