@@ -1,30 +1,47 @@
 "use client";
 
+import Link from "next/link";
 import MediaCard from "@/components/MediaCard";
 import ScrollArrows from "@/components/ScrollArrows";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
+import { useTranslations } from "@/lib/use-locale";
 import type { MediaItem } from "@/types/tmdb";
 
 export default function Carousel({
   title,
   items,
   priority = false,
+  seeAllHref,
 }: {
   title: string;
   items: MediaItem[];
   priority?: boolean;
+  /** Optional link to the full listing, shown beside the title. */
+  seeAllHref?: string;
 }) {
+  const { t } = useTranslations();
   const { scrollRef, canScrollLeft, canScrollRight, scroll } =
     useHorizontalScroll(items);
 
   return (
     <section className="relative">
-      <h2
-        className="text-xl sm:text-2xl font-bold tracking-tight mb-4 px-4 sm:px-6"
-        style={{ fontFamily: "var(--font-heading)" }}
-      >
-        {title}
-      </h2>
+      <div className="mb-4 flex items-baseline justify-between gap-4 px-4 sm:px-6">
+        <h2
+          className="text-xl sm:text-2xl font-bold tracking-tight"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          {title}
+        </h2>
+        {seeAllHref && (
+          <Link
+            href={seeAllHref}
+            className="shrink-0 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          >
+            {t("See all")}
+            <span className="sr-only">: {title}</span>
+          </Link>
+        )}
+      </div>
 
       <div className="group/scroll relative">
         <ScrollArrows

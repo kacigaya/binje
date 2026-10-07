@@ -11,16 +11,19 @@ import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
 import WatchlistButton from "@/components/WatchlistButton";
+import DetailHero from "@/components/DetailHero";
 import StreamTechBadges from "@/components/StreamTechBadges";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import {
   getMovieDetails,
   getMovieCredits,
+  getMovieImages,
   getSimilarMovies,
 } from "@/lib/cached-tmdb";
 import {
   getMovieContentRating,
   movieToMedia,
+  pickLogo,
   posterUrl,
   backdropUrl,
   profileUrl,
@@ -86,164 +89,128 @@ async function MovieDetails({
   const movieId = parseTmdbId(id);
   if (movieId === null) notFound();
 
-  const movie = await getMovieDetails(movieId, locale);
+  const [movie, images] = await Promise.all([
+    getMovieDetails(movieId, locale),
+    getMovieImages(movieId, locale).catch(() => null),
+  ]);
 
-  const backdrop = backdropUrl(movie.backdrop_path, "w1280");
-  const poster = posterUrl(movie.poster_path, "w500");
   const contentRating = getMovieContentRating(movie);
 
   return (
-    <div className="flex flex-col">
-      <div className="relative w-full h-[50vh] sm:h-[60vh]">
-        {backdrop && (
-          <Image
-            src={backdrop}
-            alt={movie.title}
-            fill
-            priority
-            className="object-cover object-top"
-            sizes="100vw"
-          />
-        )}
-        <div className="absolute inset-0 bg-linear-to-t from-background via-background/70 to-background/30" />
-      </div>
-
-      <div className="relative -mt-48 z-10 mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16">
-        <div className="flex flex-col sm:flex-row gap-8">
-          <div className="shrink-0 mx-auto sm:mx-0">
-            <div className="relative w-50 sm:w-65 aspect-2/3 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10">
+    <DetailHero
+      title={movie.title}
+      backdrop={backdropUrl(movie.backdrop_path, "w1280")}
+      poster={posterUrl(movie.poster_path, "w500")}
+      logo={images ? pickLogo(images.logos, locale) : null}
+      tagline={movie.tagline}
+      details={
+        <>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground tabular-nums">
+            <div className="flex items-center gap-1.5 font-semibold text-foreground">
               <Image
-                src={poster}
-                alt={movie.title}
-                fill
-                priority
-                className="object-cover"
-                sizes="260px"
+                src="/tmdb.svg"
+                alt="TMDB"
+                width={37}
+                height={16}
+                className="h-4 w-auto shrink-0"
               />
+              {formatRating(locale, movie.vote_average) ?? translate(locale, "N/A")}
             </div>
+            <RottenTomatoesRating imdbId={movie.imdb_id} />
+            {contentRating && (
+              <span className="rounded-md border border-white/15 px-1.5 text-xs font-semibold text-foreground/80">
+                {contentRating}
+              </span>
+            )}
+            {movie.runtime > 0 && (
+              <div className="flex items-center gap-1">
+                <Clock aria-hidden="true" className="size-4" />
+                {Math.floor(movie.runtime / 60)}&nbsp;h {movie.runtime % 60}&nbsp;m
+              </div>
+            )}
+            {movie.release_date && (
+              <div className="flex items-center gap-1">
+                <Calendar aria-hidden="true" className="size-4" />
+                {new Date(movie.release_date).toLocaleDateString(intlLocale(locale), {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </div>
+            )}
+            <StreamTechBadges
+              type="movie"
+              tmdbId={movie.id}
+              title={movie.original_title}
+              year={movie.release_date.slice(0, 4)}
+              imdbId={movie.imdb_id}
+            />
           </div>
 
-          <div className="flex-1 space-y-5 pt-4 sm:pt-16">
-            <h1
-              className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight leading-tight text-balance"
+          <div className="flex flex-wrap gap-2">
+            {movie.genres.map((g) => (
+              <Badge
+                key={g.id}
+                variant="outline"
+                className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
+              >
+                {g.name}
+              </Badge>
+            ))}
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+            <WatchNowLink
+              href={localizedHref(locale, `/watch/${movie.id}`)}
+              label={translate(locale, "Watch Now")}
+              media={{ type: "movie", id: movie.id }}
+              className={buttonClassName({
+                size: "lg",
+                className:
+                  "w-full sm:w-auto rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer",
+              })}
+            />
+            <WatchlistButton
+              item={{
+                type: "movie",
+                id: movie.id,
+                title: movie.title,
+                poster_path: movie.poster_path,
+                backdrop_path: movie.backdrop_path,
+                date: movie.release_date,
+                vote_average: movie.vote_average,
+              }}
+            />
+          </div>
+
+          <Separator className="bg-white/10" />
+
+          <div>
+            <h2
+              className="text-lg font-semibold mb-2"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              {movie.title}
-            </h1>
-
-            {movie.tagline && (
-              <p className="text-lg text-accent-red/80 italic">
-                {movie.tagline}
-              </p>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              {movie.genres.map((g) => (
-                <Badge
-                  key={g.id}
-                  variant="outline"
-                  className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
-                >
-                  {g.name}
-                </Badge>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
-              <div className="flex items-center gap-1.5 text-accent-red font-semibold">
-                <Image
-                  src="/tmdb.svg"
-                  alt=""
-                  width={37}
-                  height={16}
-                  aria-hidden="true"
-                  className="h-4 w-auto shrink-0"
-                />
-                {formatRating(locale, movie.vote_average) ?? translate(locale, "N/A")}
-              </div>
-              <RottenTomatoesRating imdbId={movie.imdb_id} />
-              {contentRating && (
-                <div className="font-semibold text-accent-red">{contentRating}</div>
-              )}
-              {movie.runtime > 0 && (
-                <div className="flex items-center gap-1">
-                  <Clock aria-hidden="true" className="size-4" />
-                  {Math.floor(movie.runtime / 60)}&nbsp;h {movie.runtime % 60}&nbsp;m
-                </div>
-              )}
-              {movie.release_date && (
-                <div className="flex items-center gap-1">
-                  <Calendar aria-hidden="true" className="size-4" />
-                  {new Date(movie.release_date).toLocaleDateString(intlLocale(locale), {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </div>
-              )}
-              <StreamTechBadges
-                type="movie"
-                tmdbId={movie.id}
-                title={movie.original_title}
-                year={movie.release_date.slice(0, 4)}
-                imdbId={movie.imdb_id}
-              />
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mt-2">
-              <WatchNowLink
-                href={localizedHref(locale, `/watch/${movie.id}`)}
-                label={translate(locale, "Watch Now")}
-                className={buttonClassName({
-                  size: "lg",
-                  className:
-                    "w-full sm:w-auto rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer",
-                })}
-              />
-              <WatchlistButton
-                item={{
-                  type: "movie",
-                  id: movie.id,
-                  title: movie.title,
-                  poster_path: movie.poster_path,
-                  backdrop_path: movie.backdrop_path,
-                  date: movie.release_date,
-                  vote_average: movie.vote_average,
-                }}
-              />
-            </div>
-
-            <div className="mt-6">
-              <Separator className="bg-white/10" />
-            </div>
-
-            <div>
-              <h2
-                className="text-lg font-semibold mb-2"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                {translate(locale, "Overview")}
-              </h2>
-              <p className="text-foreground/70 leading-relaxed">
-                {movie.overview}
-              </p>
-            </div>
-
-            <Suspense fallback={null}>
-              <MovieDirector movieId={movieId} locale={locale} />
-            </Suspense>
+              {translate(locale, "Overview")}
+            </h2>
+            <p className="text-foreground/70 leading-relaxed">
+              {movie.overview}
+            </p>
           </div>
-        </div>
 
-        <Suspense fallback={null}>
-          <MovieCast movieId={movieId} locale={locale} />
-        </Suspense>
+          <Suspense fallback={null}>
+            <MovieDirector movieId={movieId} locale={locale} />
+          </Suspense>
+        </>
+      }
+    >
+      <Suspense fallback={null}>
+        <MovieCast movieId={movieId} locale={locale} />
+      </Suspense>
 
-        <Suspense fallback={<div className="mt-12"><CarouselSkeleton /></div>}>
-          <SimilarMovies movieId={movieId} locale={locale} />
-        </Suspense>
-      </div>
-    </div>
+      <Suspense fallback={<div className="mt-12 -mx-4 sm:-mx-6"><CarouselSkeleton /></div>}>
+        <SimilarMovies movieId={movieId} locale={locale} />
+      </Suspense>
+    </DetailHero>
   );
 }
 
@@ -309,7 +276,8 @@ async function SimilarMovies({ movieId, locale }: { movieId: number; locale: Loc
   if (similar.length === 0) return null;
 
   return (
-    <div className="mt-12">
+    // The carousel pads itself to the page gutter, so step out of this one.
+    <div className="mt-12 -mx-4 sm:-mx-6">
       <Carousel title={translate(locale, "Similar Movies")} items={similar.map(movieToMedia)} />
     </div>
   );

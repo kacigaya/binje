@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import PosterCardSkeleton from "@/components/PosterCardSkeleton";
 
 const SECTION_COUNT = 10;
 
@@ -19,10 +20,7 @@ export default function BrowseLoading({ titleWidth }: { titleWidth: "w-36" | "w-
           <Skeleton className="h-8 w-48" />
           <div className="flex gap-3 overflow-hidden sm:gap-4">
             {Array.from({ length: 7 }).map((_, j) => (
-              <Skeleton
-                key={j}
-                className="aspect-2/3 w-40 shrink-0 rounded-xl sm:w-46.25"
-              />
+<PosterCardSkeleton key={j} />
             ))}
           </div>
         </div>

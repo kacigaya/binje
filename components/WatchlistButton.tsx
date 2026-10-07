@@ -4,11 +4,10 @@ import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { CheckIcon } from "@/components/ui/check";
 import { PlusIcon } from "@/components/ui/plus";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
-import { toast } from "sonner";
 import {
   isInWatchlist,
   subscribeToWatchlist,
-  toggleWatchlist,
+  toggleWatchlistWithFeedback,
   type WatchlistInput,
 } from "@/lib/watchlist";
 import { useTranslations } from "@/lib/use-locale";
@@ -45,8 +44,7 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
       {...feedback}
       onClick={() => {
         savedByClick.current = !added;
-        toggleWatchlist(item);
-        toast.success(t(added ? "Removed from watchlist" : "Added to watchlist"));
+        toggleWatchlistWithFeedback(item, added, t);
       }}
       aria-pressed={added}
       className={`inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full border h-12 px-7 text-base font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 ${

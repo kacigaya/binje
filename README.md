@@ -21,13 +21,13 @@
 
 - Browse trending and popular movies & TV shows
 - English and French interfaces at `/en` and `/fr`, with localized TMDB metadata
-- Dedicated `/movies` and `/tv-shows` browse pages
-- Detailed movie and TV show pages (ratings, cast, seasons, similar, recommendations)
+- Dedicated `/movies` and `/tv-shows` browse pages with shareable genre, sort, and decade filters
+- Detailed movie and TV show pages (ratings, cast, per-season episode list, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
-- Watch pages with ten native sources (VidZee, MovieBox, Vidnest, Vsrc, Videm, 2Embed, MoviesAPI, Vidrock, Videasy, French VF), listing only those that play the title, plus subtitles and manual HLS quality selection
+- Watch pages with ten native sources (VidZee, MovieBox, Vidnest, Vsrc, Videm, 2Embed, MoviesAPI, Vidrock, Videasy, French VF), listing only those that play the title in a source panel beside the player, plus subtitles and manual HLS quality selection
 - Google Cast on web, Android, and iOS, plus AirPlay on supported Apple devices
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
-- "Continue Watching" row backed by local play history
+- "Continue Watching" row backed by local play history; Resume/Continue buttons and the player pick up at the saved position
 - Hero with auto-rotating featured titles, two-line expandable overview, and TMDB/Rotten Tomatoes ratings
 - Lazy-loaded carousels and loading skeletons
 - Cookie consent banner that gates play-history writes, with a `/privacy` policy page

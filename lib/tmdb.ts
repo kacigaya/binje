@@ -8,6 +8,7 @@ import type {
   MultiSearchResponse,
   MultiSearchResult,
   Episode,
+  Genre,
   SeasonDetails,
   MovieImagesResponse,
   TMDBImageAsset,
@@ -129,6 +130,23 @@ export function getMoviesByGenre(genreId: number, locale: Locale = DEFAULT_LOCAL
   return fetchList<Movie>(
     `/discover/movie?with_genres=${genreId}&sort_by=popularity.desc`, locale,
   );
+}
+
+export async function getGenres(
+  type: "movie" | "tv",
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<Genre[]> {
+  const data = await tmdbFetch<{ genres: Genre[] }>(`/genre/${type}/list`, 86400, locale);
+  return data.genres;
+}
+
+/** One page of `/discover`; `endpoint` comes from `discoverEndpoint`. */
+export async function discover<T extends Movie | TVShow>(
+  endpoint: string,
+  locale: Locale = DEFAULT_LOCALE,
+): Promise<{ results: T[]; totalPages: number }> {
+  const data = await tmdbFetch<{ results: T[]; total_pages: number }>(endpoint, 3600, locale);
+  return { results: data.results, totalPages: data.total_pages };
 }
 
 export async function getMovieDetails(id: number, locale: Locale = DEFAULT_LOCALE): Promise<MovieDetails> {

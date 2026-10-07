@@ -33,6 +33,7 @@ export default function TVPlayer({
   episode: initialEpisode,
   seasons,
   initialEpisodes,
+  poster,
 }: {
   showId: number;
   title: string;
@@ -42,6 +43,7 @@ export default function TVPlayer({
   episode: number;
   seasons: SeasonInfo[];
   initialEpisodes: Episode[];
+  poster: string | null;
 }) {
   const { locale, t } = useTranslations();
   const router = useRouter();
@@ -148,6 +150,7 @@ export default function TVPlayer({
         type="tv"
         season={season}
         episode={episode}
+        poster={poster}
       />
 
       <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">

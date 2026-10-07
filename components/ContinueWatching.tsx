@@ -6,6 +6,7 @@ import type { MouseEvent } from "react";
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import {
+  getPlaybackProgress,
   getPlayHistory,
   getPlayHistoryHref,
   removePlayHistoryItem,
@@ -73,12 +74,12 @@ export default function ContinueWatching() {
             const image = item.backdrop_path
               ? backdropUrl(item.backdrop_path, "w780")
               : posterUrl(item.poster_path, "w342");
-            const progress =
-              typeof item.progress === "number" &&
-              Number.isFinite(item.progress) &&
-              item.progress > 0 &&
-              item.progress < 1
-                ? item.progress
+            const progress = getPlaybackProgress(item);
+            const minutesLeft =
+              progress !== null &&
+              typeof item.positionSeconds === "number" &&
+              typeof item.durationSeconds === "number"
+                ? Math.max(1, Math.ceil((item.durationSeconds - item.positionSeconds) / 60))
                 : null;
             // Entries saved before playback started, or before these fields
             // existed, carry no timings and get no badge.
@@ -141,6 +142,11 @@ export default function ContinueWatching() {
                 <p className="mt-2 text-sm font-semibold text-foreground leading-tight truncate">
                   {item.title}
                 </p>
+                {minutesLeft !== null && (
+                  <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                    {minutesLeft} {t("min left")}
+                  </p>
+                )}
                 </Link>
               </div>
             );

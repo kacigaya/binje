@@ -5,6 +5,7 @@ import { Tv } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
+import BrowseView, { BrowseViewSkeleton } from "@/components/BrowseView";
 import {
   getAiringTodayTV,
   getOnTheAirTV,
@@ -55,7 +56,11 @@ async function TVRail({
   );
 }
 
-export default async function TVShowsPage() {
+export default async function TVShowsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const rootLocale = await getRootLocale();
   const locale = isLocale(rootLocale) ? rootLocale : "en";
 
@@ -74,16 +79,25 @@ export default async function TVShowsPage() {
         <Separator className="mt-5 bg-white/10" />
       </header>
 
-      {SECTIONS.map(([title, load, priority]) => (
-        <Suspense key={title} fallback={<CarouselSkeleton />}>
-          <TVRail
-            locale={locale}
-            title={title}
-            load={load}
-            priority={priority}
-          />
-        </Suspense>
-      ))}
+      {/* Reading the query string makes the rest request-time, so it sits
+          in its own boundary and the header stays in the static shell. */}
+      <Suspense fallback={<BrowseViewSkeleton />}>
+        <BrowseView
+          type="tv"
+          locale={locale}
+          searchParams={searchParams}
+          rails={SECTIONS.map(([title, load, priority]) => (
+            <Suspense key={title} fallback={<CarouselSkeleton />}>
+              <TVRail
+                locale={locale}
+                title={title}
+                load={load}
+                priority={priority}
+              />
+            </Suspense>
+          ))}
+        />
+      </Suspense>
     </div>
   );
 }

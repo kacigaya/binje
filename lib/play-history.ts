@@ -1,6 +1,6 @@
 "use client";
 
-import { getConsent } from "@/lib/consent";
+import { hasStorageConsent } from "@/lib/consent";
 import { createLocalArrayStore } from "@/lib/local-array-store";
 
 const PLAY_HISTORY_STORAGE_KEY = "binje:play-history:v1";
@@ -73,7 +73,7 @@ const playHistoryStore = createLocalArrayStore<PlayHistoryItem>({
   limit: PLAY_HISTORY_LIMIT,
   isValid: isValidHistoryItem,
   sort: (a, b) => b.watchedAt - a.watchedAt,
-  canSave: () => getConsent() === "accepted",
+  canSave: hasStorageConsent,
 });
 
 export const getPlayHistory = playHistoryStore.get;
@@ -139,6 +139,40 @@ export function removePlayHistoryItem(
   );
 
   savePlayHistory(nextItems);
+}
+
+/**
+ * Fraction watched, or null when there is nothing worth showing: entries saved
+ * before playback started carry no progress, and a finished title has none
+ * left to resume.
+ */
+export function getPlaybackProgress(
+  item: Pick<PlayHistoryItem, "progress"> | undefined,
+): number | null {
+  const progress = item?.progress;
+  return typeof progress === "number" &&
+    Number.isFinite(progress) &&
+    progress > 0 &&
+    progress < 1
+    ? progress
+    : null;
+}
+
+/**
+ * Saved position to resume `media` from, when history holds an unfinished
+ * entry for that exact movie or episode.
+ */
+export function getResumePosition(
+  history: PlayHistoryItem[],
+  media: Pick<PlayHistoryItem, "type" | "id" | "season" | "episode">,
+): number | null {
+  const key = getEpisodeKey(media);
+  const entry = history.find((item) => getEpisodeKey(item) === key);
+  if (!entry || getPlaybackProgress(entry) === null) return null;
+  const position = entry.positionSeconds;
+  return typeof position === "number" && Number.isFinite(position) && position > 0
+    ? position
+    : null;
 }
 
 export function getPlayHistoryHref(item: PlayHistoryItem) {

@@ -2,8 +2,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function WatchTVInfoLoading({ heading }: { heading?: string } = {}) {
   return (
-    <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
-        <div className="space-y-4 mt-6">
+    <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-4">
+        <div className="space-y-4">
           {heading ? (
             <h1
               className="text-2xl font-bold tracking-tight sm:text-3xl"
@@ -41,11 +41,14 @@ export function WatchTVInfoLoading({ heading }: { heading?: string } = {}) {
 export function WatchTVPlayerLoading() {
   return (
     <div
-      className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8"
+      className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-6"
       data-testid="watch-tv-player-frame"
     >
         <div className="space-y-4">
-          <Skeleton className="w-full aspect-video rounded-xl" />
+          <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
+            <Skeleton className="w-full aspect-video rounded-xl" />
+            <Skeleton className="mx-4 h-28 rounded-xl sm:mx-0 lg:h-64" />
+          </div>
 
           {}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-4 sm:px-0">
@@ -76,9 +79,9 @@ export function WatchTVPlayerLoading() {
 
 export default function WatchTVLoading() {
   return (
-    <div className="flex flex-col pt-20">
-      <WatchTVInfoLoading />
+    <div className="flex flex-col pt-24">
       <WatchTVPlayerLoading />
+      <WatchTVInfoLoading />
     </div>
   );
 }

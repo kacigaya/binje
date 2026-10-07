@@ -83,12 +83,13 @@ export default async function WatchTVPage({
   const locale = isLocale(rootLocale) ? rootLocale : "en";
 
   return (
-    <div className="flex flex-col pt-20" data-testid="watch-tv-shell">
-      <Suspense fallback={<WatchTVInfoLoading heading={translate(locale, "TV")} />}>
-        <WatchTVInfo params={params} />
-      </Suspense>
+    // Player first: it is what the page is for. Show details follow it.
+    <div className="flex flex-col pt-24" data-testid="watch-tv-shell">
       <Suspense fallback={<WatchTVPlayerLoading />}>
         <WatchTVPlayer params={params} searchParams={searchParams} />
+      </Suspense>
+      <Suspense fallback={<WatchTVInfoLoading heading={translate(locale, "TV")} />}>
+        <WatchTVInfo params={params} />
       </Suspense>
     </div>
   );
@@ -113,10 +114,10 @@ async function WatchTVInfo({
 
   return (
     <div
-      className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4"
+      className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-4"
       data-testid="watch-tv-data"
     >
-        <div className="space-y-4 mt-6">
+        <div className="space-y-4">
           <Link
             href={localizedHref(locale, `/tv/${show.id}`)}
             className="inline-block"
@@ -132,7 +133,7 @@ async function WatchTVInfo({
                   aria-hidden="true"
                   width={logo.width}
                   height={logo.height}
-                  className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
+                  className="h-auto max-h-14 w-auto max-w-60 object-contain sm:max-h-16 sm:max-w-xs"
                   priority
                 />
               </>
@@ -159,20 +160,21 @@ async function WatchTVInfo({
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
-            <div className="flex items-center gap-1.5 text-accent-red font-semibold">
+            <div className="flex items-center gap-1.5 font-semibold text-foreground">
               <Image
                 src="/tmdb.svg"
-                alt=""
+                alt="TMDB"
                 width={37}
                 height={16}
-                aria-hidden="true"
                 className="h-4 w-auto shrink-0"
               />
               {formatRating(locale, show.vote_average) ?? translate(locale, "N/A")}
             </div>
             <RottenTomatoesRating imdbId={show.external_ids.imdb_id} />
             {contentRating && (
-              <div className="font-semibold text-accent-red">{contentRating}</div>
+              <span className="rounded-md border border-white/15 px-1.5 text-xs font-semibold text-foreground/80">
+                {contentRating}
+              </span>
             )}
             <div className="flex items-center gap-1">
               <Layers aria-hidden="true" className="size-4" />
@@ -242,7 +244,7 @@ async function WatchTVPlayer({
         }}
       />
       <div
-        className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8"
+        className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-6"
         data-testid="watch-tv-player"
       >
         <TVPlayer
@@ -258,6 +260,7 @@ async function WatchTVPlayer({
             episode_count: item.episode_count,
           }))}
           initialEpisodes={initialEpisodes}
+          poster={backdropUrl(show.backdrop_path, "w1280")}
         />
       </div>
     </>
