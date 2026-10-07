@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
+import BrowseFilterSelect from "@/components/BrowseFilterSelect";
 import MediaCard from "@/components/MediaCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
@@ -20,7 +21,6 @@ import {
 import { discoverMovies, discoverTV, getGenres } from "@/lib/cached-tmdb";
 import { localizedHref, translate, type Locale, type TranslationKey } from "@/lib/i18n";
 import { movieToMedia, tvToMedia } from "@/lib/tmdb";
-import { cn } from "@/lib/utils";
 import type { Genre } from "@/types/tmdb";
 
 type RawParams = Record<string, string | string[] | undefined>;
@@ -38,8 +38,8 @@ function decadeLabel(locale: Locale, decade: Decade) {
 /**
  * Filters and results for /movies and /tv-shows. Without filters the page
  * keeps its curated rails (`rails`); any filter swaps them for a TMDB
- * discover grid. All state lives in the query string and every control is a
- * plain link, so results are shareable and work before hydration.
+ * discover grid. All state lives in the query string, so results are
+ * shareable; the dropdowns navigate once hydrated.
  */
 export default async function BrowseView({
   type,
@@ -81,46 +81,6 @@ export default async function BrowseView({
   );
 }
 
-function FilterChip({
-  href,
-  active,
-  children,
-}: {
-  href: string;
-  active: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      scroll={false}
-      aria-current={active ? "true" : undefined}
-      className={cn(
-        "inline-flex h-8 shrink-0 items-center rounded-full border px-3 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60",
-        active
-          ? "border-foreground bg-foreground text-background"
-          : "border-white/15 text-foreground/80 hover:bg-white/10",
-      )}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function FilterRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-4">
-      <span className="w-20 shrink-0 pt-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </span>
-      {/* One scrollable line on phones; wraps once there is room. */}
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-        {children}
-      </div>
-    </div>
-  );
-}
-
 function FilterBar({
   locale,
   basePath,
@@ -134,51 +94,45 @@ function FilterBar({
 }) {
   const t = (key: TranslationKey) => translate(locale, key);
   const href = (patch: Partial<BrowseFilters>) => `${basePath}${browseQuery(filters, patch)}`;
+  // The current filters map to the same href in every dropdown.
+  const current = href({});
 
   return (
-    <nav aria-label={t("Filters")} className="space-y-3 px-4 sm:px-6">
+    <nav aria-label={t("Filters")} className="flex flex-wrap items-center gap-2 px-4 sm:px-6">
       {genres.length > 0 && (
-        <FilterRow label={t("Genre")}>
-          <FilterChip href={href({ genre: null })} active={filters.genre === null}>
-            {t("All")}
-          </FilterChip>
-          {genres.map((genre) => (
-            <FilterChip
-              key={genre.id}
-              href={href({ genre: genre.id })}
-              active={filters.genre === genre.id}
-            >
-              {genre.name}
-            </FilterChip>
-          ))}
-        </FilterRow>
+        <BrowseFilterSelect
+          label={t("Genre")}
+          value={current}
+          active={filters.genre !== null}
+          items={[
+            { value: href({ genre: null }), label: t("All") },
+            ...genres.map((genre) => ({ value: href({ genre: genre.id }), label: genre.name })),
+          ]}
+        />
       )}
-      <FilterRow label={t("Sort by")}>
-        {SORT_KEYS.map((key) => (
-          <FilterChip key={key} href={href({ sort: key })} active={filters.sort === key}>
-            {t(SORT_LABELS[key])}
-          </FilterChip>
-        ))}
-      </FilterRow>
-      <FilterRow label={t("Decade")}>
-        <FilterChip href={href({ decade: null })} active={filters.decade === null}>
-          {t("Any")}
-        </FilterChip>
-        {DECADES.map((decade) => (
-          <FilterChip
-            key={decade}
-            href={href({ decade })}
-            active={filters.decade === decade}
-          >
-            {decadeLabel(locale, decade)}
-          </FilterChip>
-        ))}
-      </FilterRow>
+      <BrowseFilterSelect
+        label={t("Sort by")}
+        value={current}
+        active={filters.sort !== "popular"}
+        items={SORT_KEYS.map((key) => ({ value: href({ sort: key }), label: t(SORT_LABELS[key]) }))}
+      />
+      <BrowseFilterSelect
+        label={t("Decade")}
+        value={current}
+        active={filters.decade !== null}
+        items={[
+          { value: href({ decade: null }), label: t("Any") },
+          ...DECADES.map((decade) => ({
+            value: href({ decade }),
+            label: decadeLabel(locale, decade),
+          })),
+        ]}
+      />
       {isFiltered(filters) && (
         <Link
           href={basePath}
           scroll={false}
-          className="inline-block text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          className="ml-1 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
         >
           {t("Clear filters")}
         </Link>
@@ -277,13 +231,9 @@ async function DiscoverResults({
 export function BrowseViewSkeleton() {
   return (
     <div className="flex flex-col gap-10" aria-hidden="true">
-      <div className="space-y-3 px-4 sm:px-6">
-        {Array.from({ length: 3 }).map((_, row) => (
-          <div key={row} className="flex gap-2 overflow-hidden">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-20 shrink-0 rounded-full" />
-            ))}
-          </div>
+      <div className="flex gap-2 px-4 sm:px-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-9 w-36 shrink-0 rounded-full" />
         ))}
       </div>
       <CarouselSkeleton />

@@ -13,12 +13,18 @@ function Select<T extends string | number>({
   onValueChange,
   items,
   ariaLabel,
+  label,
+  alignItemWithTrigger = true,
   className,
 }: {
   value: T;
   onValueChange: (value: T) => void;
   items: SelectItem<T>[];
   ariaLabel: string;
+  /** Visible prefix before the value; screen readers get `ariaLabel` instead. */
+  label?: string;
+  /** False drops the list below the trigger instead of over it. */
+  alignItemWithTrigger?: boolean;
   className?: string;
 }) {
   const [chevronIcon, chevronFeedback] = useAnimatedIcon();
@@ -39,13 +45,23 @@ function Select<T extends string | number>({
           className,
         )}
       >
-        <BaseSelect.Value />
-        <BaseSelect.Icon>
+        {label && (
+          <span aria-hidden="true" className="shrink-0 text-muted-foreground">
+            {label}
+          </span>
+        )}
+        <BaseSelect.Value className="truncate" />
+        <BaseSelect.Icon className="shrink-0">
           <ChevronDownIcon ref={chevronIcon} size={14} className="text-white/70" />
         </BaseSelect.Icon>
       </BaseSelect.Trigger>
       <BaseSelect.Portal>
-        <BaseSelect.Positioner sideOffset={6} className="z-50 outline-none">
+        <BaseSelect.Positioner
+          sideOffset={6}
+          align={alignItemWithTrigger ? "center" : "start"}
+          alignItemWithTrigger={alignItemWithTrigger}
+          className="z-50 outline-none"
+        >
           <BaseSelect.Popup className="max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-background/95 p-1 text-sm text-foreground shadow-lg shadow-black/40 backdrop-blur">
             {items.map((item) => (
               <BaseSelect.Item
