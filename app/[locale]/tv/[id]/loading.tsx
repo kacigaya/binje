@@ -5,15 +5,15 @@ export default function TVShowLoading({ heading }: { heading?: string } = {}) {
   return (
     <DetailHeroSkeleton heading={heading} metaCount={4}>
       <div className="mt-12 space-y-4">
-        <Skeleton className="h-7 w-24" />
-        <div className="flex gap-4 overflow-hidden">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton
-              key={i}
-              className="shrink-0 w-35 sm:w-40 aspect-2/3 rounded-xl"
-            />
+        <Skeleton className="h-7 w-28" />
+        <div className="flex gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-24 rounded-full" />
           ))}
         </div>
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-20 rounded-xl sm:h-24" />
+        ))}
       </div>
 
       <div className="mt-12 space-y-4">

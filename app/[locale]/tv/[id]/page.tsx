@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import WatchNowLink from "@/components/WatchNowLink";
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
 import { Calendar, Tv, Layers } from "lucide-react";
@@ -13,12 +12,15 @@ import Carousel from "@/components/Carousel";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
 import WatchlistButton from "@/components/WatchlistButton";
 import DetailHero from "@/components/DetailHero";
+import SeasonEpisodes from "@/components/SeasonEpisodes";
+import { Skeleton } from "@/components/ui/skeleton";
 import StreamTechBadges from "@/components/StreamTechBadges";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import {
   getTVDetails,
   getTVCredits,
   getTVImages,
+  getSeasonEpisodes,
   getSimilarTV,
 } from "@/lib/cached-tmdb";
 import {
@@ -96,6 +98,9 @@ async function TVShowDetails({
   ]);
 
   const contentRating = getTVContentRating(show);
+  const seasons = show.seasons
+    .filter((season) => season.season_number > 0)
+    .map(({ season_number, name, episode_count }) => ({ season_number, name, episode_count }));
 
   return (
     <DetailHero
@@ -222,56 +227,10 @@ async function TVShowDetails({
         </>
       }
     >
-      {show.seasons.length > 0 && (
-        <div className="mt-12">
-          <h2
-            className="text-xl font-bold mb-6"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            {translate(locale, "Seasons")}
-          </h2>
-          <div
-            tabIndex={0}
-            role="group"
-            aria-label={translate(locale, "Seasons")}
-            className="flex gap-4 overflow-x-auto p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
-          >
-            {show.seasons
-              .filter((s) => s.season_number > 0)
-              .map((season) => {
-                const sPoster = posterUrl(season.poster_path, "w300");
-                return (
-                  <Link
-                    key={season.id}
-                    href={localizedHref(locale, `/watch/tv/${show.id}?s=${season.season_number}&e=1`)}
-                    className="group shrink-0"
-                  >
-                    <div className="relative w-35 sm:w-40 overflow-hidden rounded-xl bg-card transition-transform duration-200 group-hover:scale-[1.04] group-hover:ring-1 group-hover:ring-white/25">
-                      <div className="relative aspect-2/3 overflow-hidden rounded-xl">
-                        <Image
-                          src={sPoster}
-                          alt={season.name}
-                          fill
-                          loading="lazy"
-                          className="object-cover"
-                          sizes="160px"
-                        />
-                        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-3">
-                          <p className="text-sm font-semibold text-white leading-tight">
-                            {season.name}
-                          </p>
-                          <p className="text-xs text-white/60 mt-0.5">
-                            {season.episode_count} {translate(locale, "Episodes").toLowerCase()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-          </div>
-        </div>
+      {seasons.length > 0 && (
+        <Suspense fallback={<EpisodesSkeleton />}>
+          <ShowEpisodes showId={show.id} seasons={seasons} locale={locale} />
+        </Suspense>
       )}
 
       <Suspense fallback={null}>
@@ -282,6 +241,43 @@ async function TVShowDetails({
         <SimilarShows showId={showId} locale={locale} />
       </Suspense>
     </DetailHero>
+  );
+}
+
+async function ShowEpisodes({
+  showId,
+  seasons,
+  locale,
+}: {
+  showId: number;
+  seasons: { season_number: number; name: string; episode_count: number }[];
+  locale: Locale;
+}) {
+  const initialSeason = seasons[0].season_number;
+  const episodes = await getSeasonEpisodes(showId, initialSeason, locale).catch(() => []);
+  return (
+    <SeasonEpisodes
+      showId={showId}
+      seasons={seasons}
+      initialSeason={initialSeason}
+      initialEpisodes={episodes}
+    />
+  );
+}
+
+function EpisodesSkeleton() {
+  return (
+    <div className="mt-12 space-y-4" aria-hidden="true">
+      <Skeleton className="h-7 w-28" />
+      <div className="flex gap-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-24 rounded-full" />
+        ))}
+      </div>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Skeleton key={i} className="h-20 rounded-xl sm:h-24" />
+      ))}
+    </div>
   );
 }
 
