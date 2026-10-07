@@ -61,6 +61,7 @@ const FRENCH = {
   "Movies and TV shows you saved to watch later.":
     "Les films et séries que vous avez enregistrés pour plus tard.",
   "Your watchlist is empty": "Votre liste est vide",
+  "Browse movies": "Parcourir les films",
   "Browse movies and TV shows, then tap":
     "Parcourez les films et séries, puis appuyez sur",
   "to save them here for later.": "pour les enregistrer ici.",

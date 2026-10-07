@@ -17,7 +17,7 @@ export default function LazyToaster() {
         unstyled: true,
         classNames: {
           toast:
-            "flex w-full items-center gap-3 rounded-[2rem] border border-white/10 bg-background/70 px-5 py-4 shadow-lg shadow-black/30 backdrop-blur-md",
+            "flex w-full items-center gap-3 rounded-xl border border-white/10 bg-card px-4 py-3 shadow-lg shadow-black/40",
           title: "text-sm font-semibold text-foreground",
           description: "text-xs text-muted-foreground",
           icon: "flex shrink-0 items-center text-accent-red [&_svg]:size-5",

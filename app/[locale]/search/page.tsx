@@ -2,13 +2,14 @@
 
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Search, Star } from "lucide-react";
+import { Search } from "lucide-react";
 import { XIcon } from "@/components/ui/x";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
-import Image from "next/image";
 import Link from "next/link";
+import MediaCard from "@/components/MediaCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatRating, localizedHref } from "@/lib/i18n";
+import { localizedHref } from "@/lib/i18n";
+import type { MediaItem } from "@/types/tmdb";
 import { useTranslations } from "@/lib/use-locale";
 
 interface SearchResult {
@@ -32,6 +33,19 @@ interface SearchApiResponse {
 type FilterType = "all" | "movie" | "tv";
 
 const FILTER_TYPES: readonly FilterType[] = ["all", "movie", "tv"] as const;
+
+function toMediaItem(item: SearchResult, untitled: string): MediaItem {
+  return {
+    id: item.id,
+    media_type: item.media_type,
+    title: item.title || item.name || untitled,
+    overview: "",
+    poster_path: item.poster_path,
+    backdrop_path: null,
+    date: item.release_date || item.first_air_date || "",
+    vote_average: item.vote_average ?? Number.NaN,
+  };
+}
 
 function parseFilterType(value: string | null): FilterType {
   return FILTER_TYPES.includes(value as FilterType) ? (value as FilterType) : "all";
@@ -64,8 +78,10 @@ function SearchContent() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [clearIcon, clearFeedback] = useAnimatedIcon();
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
+  // A query in the URL means a search is about to run, so the first paint
+  // shows its loading state rather than the "start typing" prompt.
+  const [loading, setLoading] = useState(initialQuery.trim() !== "");
+  const [searched, setSearched] = useState(initialQuery.trim() !== "");
   const [filter, setFilter] = useState<FilterType>(initialType);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -144,7 +160,7 @@ function SearchContent() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("Search movies & TV shows…")}
           aria-label={t("Search movies & TV shows…")}
-          className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-13 pr-12 text-lg text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition"
+          className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pl-13 pr-12 text-lg [&::-webkit-search-cancel-button]:appearance-none text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition"
         />
         {query && (
           <button
@@ -178,75 +194,27 @@ function SearchContent() {
       </div>
 
       {loading && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="aspect-2/3 rounded-xl" />
+            <div key={i}>
+              <Skeleton className="aspect-2/3 rounded-xl" />
+              <Skeleton className="mt-2 h-4 w-3/4" />
+              <Skeleton className="mt-1.5 h-3 w-1/2" />
+            </div>
           ))}
         </div>
       )}
 
       {!loading && filtered.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
-          {filtered.map((item, index) => {
-            const title = item.title || item.name || t("Untitled");
-            const date = item.release_date || item.first_air_date;
-            const rating = formatRating(
-              locale,
-              item.vote_average ?? Number.NaN,
-            );
-            const href =
-              item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
-            return (
-              <Link
-                key={`${item.media_type}-${item.id}`}
-                href={localizedHref(locale, href)}
-                className="group block"
-              >
-                <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-card transition-transform duration-200 group-hover:scale-[1.03] group-hover:ring-1 group-hover:ring-white/25">
-                  {item.poster_path ? (
-                    <Image
-                      src={`https://image.tmdb.org/t/p/w342${item.poster_path}`}
-                      alt={title}
-                      fill
-                      priority={index < 6}
-                      loading={index < 6 ? "eager" : "lazy"}
-                      className="object-cover transition-transform duration-200 group-hover:scale-110"
-                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                      {t("No Poster")}
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent transition-opacity duration-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-visible:opacity-100" />
-
-                  {rating && (
-                    <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
-                      <Star aria-hidden="true" className="size-3 fill-accent-red" />
-                      {rating}
-                    </div>
-                  )}
-
-                  {item.media_type === "tv" && (
-                    <div className="absolute top-2 left-2 rounded-full bg-accent-red/90 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
-                      TV
-                    </div>
-                  )}
-
-                  <div className="absolute bottom-0 left-0 right-0 p-3 transition-opacity duration-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-visible:opacity-100">
-                    <p className="text-sm font-semibold text-white leading-tight line-clamp-2">
-                      {title}
-                    </p>
-                    {date && (
-                      <p className="text-xs text-white/60 mt-1">
-                        {new Date(date).getFullYear()}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {filtered.map((item, index) => (
+            <MediaCard
+              key={`${item.media_type}-${item.id}`}
+              item={toMediaItem(item, t("Untitled"))}
+              eager={index < 6}
+              className="w-full min-w-0"
+            />
+          ))}
         </div>
       )}
 
@@ -264,9 +232,9 @@ function SearchContent() {
           </p>
           <Link
             href={localizedHref(locale, "/movies")}
-            className="mt-6 inline-flex h-11 items-center rounded-full bg-accent-red px-6 text-base font-semibold text-white transition-colors hover:bg-accent-red/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="mt-6 inline-flex h-11 items-center rounded-full border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
-            {t("Movies")}
+            {t("Browse movies")}
           </Link>
         </div>
       )}
@@ -285,9 +253,9 @@ function SearchContent() {
           </p>
           <Link
             href={localizedHref(locale, "/movies")}
-            className="mt-6 inline-flex h-11 items-center rounded-full bg-accent-red px-6 text-base font-semibold text-white transition-colors hover:bg-accent-red/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="mt-6 inline-flex h-11 items-center rounded-full border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
-            {t("Movies")}
+            {t("Browse movies")}
           </Link>
         </div>
       )}
