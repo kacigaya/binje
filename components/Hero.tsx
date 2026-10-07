@@ -114,24 +114,6 @@ export default function Hero({ items }: HeroProps) {
       <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
       <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
 
-      {rotates && safeItems.length > 1 && (
-        <button
-          type="button"
-          onClick={() => setPaused((previous) => !previous)}
-          aria-pressed={paused}
-          aria-label={
-            paused ? t("Resume featured titles") : t("Pause featured titles")
-          }
-          className="absolute bottom-6 right-4 z-20 flex size-9 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/50 text-white/80 backdrop-blur transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 sm:bottom-8 sm:right-6"
-        >
-          {paused ? (
-            <Play aria-hidden="true" className="size-4" />
-          ) : (
-            <Pause aria-hidden="true" className="size-4" />
-          )}
-        </button>
-      )}
-
       <div className="absolute inset-0 flex items-end">
         <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16 sm:pb-24">
           <div className="max-w-2xl space-y-4">
@@ -172,11 +154,11 @@ export default function Hero({ items }: HeroProps) {
 
             <div className="flex items-center gap-3">
               {activeItem.media_type === "tv" && (
-                <Badge className="bg-accent-red/90 text-white text-xs uppercase tracking-wider hover:bg-accent-red/80">
+                <Badge className="border-white/20 bg-white/10 text-xs text-foreground hover:bg-white/10">
                   {t("TV Series")}
                 </Badge>
               )}
-              <div className="flex items-center gap-1.5 text-accent-red font-semibold">
+              <div className="flex items-center gap-1.5 font-semibold">
                 <Image
                   src="/tmdb.svg"
                   alt=""
@@ -189,7 +171,7 @@ export default function Hero({ items }: HeroProps) {
               </div>
               <RottenTomatoesRating imdbId={activeItem.imdbId} />
               {activeItem.contentRating && (
-                <span className="text-sm font-semibold text-accent-red">
+                <span className="rounded border border-white/25 px-1.5 text-xs font-semibold text-foreground/80">
                   {activeItem.contentRating}
                 </span>
               )}
@@ -213,7 +195,7 @@ export default function Hero({ items }: HeroProps) {
                 className={buttonClassName({
                   size: "lg",
                   className:
-                    "rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-8 h-12 text-base cursor-pointer",
+                    "rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-6 sm:px-8 h-12 text-base cursor-pointer",
                 })}
               />
               <Link
@@ -222,12 +204,33 @@ export default function Hero({ items }: HeroProps) {
                   size: "lg",
                   variant: "outline",
                   className:
-                    "rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-8 h-12 text-base cursor-pointer",
+                    "rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-6 sm:px-8 h-12 text-base cursor-pointer",
                 })}
               >
                 <Info className="size-5" />
                 {t("Details")}
               </Link>
+              {/* Sits in the action row rather than over the hero's bottom
+                  edge, where the first rail overlaps it and hides "See all". */}
+              {rotates && safeItems.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setPaused((previous) => !previous)}
+                  aria-pressed={paused}
+                  aria-label={
+                    paused
+                      ? t("Resume featured titles")
+                      : t("Pause featured titles")
+                  }
+                  className="ml-auto flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 sm:ml-2"
+                >
+                  {paused ? (
+                    <Play aria-hidden="true" className="size-4" />
+                  ) : (
+                    <Pause aria-hidden="true" className="size-4" />
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
