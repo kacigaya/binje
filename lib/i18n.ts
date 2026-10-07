@@ -150,6 +150,8 @@ const FRENCH = {
   "Audio track": "Piste audio",
   "Video player": "Lecteur vidéo",
   Resume: "Reprendre",
+  "See all": "Tout voir",
+  "min left": "min restantes",
   Filters: "Filtres",
   Genre: "Genre",
   "Sort by": "Trier par",

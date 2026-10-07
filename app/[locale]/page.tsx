@@ -17,7 +17,7 @@ import {
   pickLogo,
   tvToMedia,
 } from "@/lib/tmdb";
-import { isLocale, translate, type Locale } from "@/lib/i18n";
+import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
 
 const FEATURED_ITEM_COUNT = 5;
 
@@ -57,6 +57,7 @@ async function TrendingMovies({ locale }: { locale: Locale }) {
     <Carousel
       title={translate(locale, "Trending Movies")}
       items={trending.map(movieToMedia)}
+      seeAllHref={localizedHref(locale, "/movies")}
     />
   );
 }
@@ -67,6 +68,7 @@ async function TrendingTV({ locale }: { locale: Locale }) {
     <Carousel
       title={translate(locale, "Trending TV Shows")}
       items={trendingTV.map(tvToMedia)}
+      seeAllHref={localizedHref(locale, "/tv-shows")}
     />
   );
 }

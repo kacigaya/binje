@@ -61,40 +61,25 @@ export default function CookiesBanner() {
     // visible effect.
     // A landmark rather than a dialog: focus is never moved into it and it
     // does not trap, so announcing it as a dialog would misdescribe it.
+    // A slim bar rather than a card: the card covered the first row of
+    // posters and, on phones, the detail page's play button.
     <div
       role="region"
       aria-label={t("Cookie consent")}
-      className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 right-4 z-40 mx-auto max-w-md sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] sm:left-auto sm:right-6 animate-banner-enter"
+      className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 mx-auto max-w-3xl animate-banner-enter sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))]"
     >
-      <div className="relative rounded-2xl border border-white/10 bg-background/95 p-4 shadow-2xl shadow-black/40">
-        <button
-          type="button"
-          onClick={dismiss}
-          {...dismissFeedback}
-          aria-label={t("Dismiss")}
-          className="absolute right-2 top-2 inline-flex size-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/8 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
-        >
-          <XIcon ref={dismissIcon} size={16} />
-        </button>
-
-        <div className="flex items-start gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent-red/15 text-accent-red">
-            <Cookie className="size-5" />
-          </span>
-          <div className="min-w-0 pr-6">
-            <p
-              className="text-sm font-semibold text-foreground"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {t("We use local storage")}
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              {t("We store your watch history in your browser so you can pick up where you left off. No tracking, no third-party cookies.")}
-            </p>
-          </div>
+      <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-background/95 p-3 shadow-2xl shadow-black/40 sm:flex-row sm:items-center sm:gap-4 sm:py-2.5">
+        <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:items-center">
+          <Cookie aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-accent-red sm:mt-0" />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            <span className="font-semibold text-foreground">
+              {t("We use local storage")}.
+            </span>{" "}
+            {t("We store your watch history in your browser so you can pick up where you left off. No tracking, no third-party cookies.")}
+          </p>
         </div>
 
-        <div className="mt-3 flex items-center justify-end gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-2">
           <Button
             onClick={dismiss}
             size="sm"
@@ -110,6 +95,15 @@ export default function CookiesBanner() {
           >
             {t("Accept")}
           </Button>
+          <button
+            type="button"
+            onClick={dismiss}
+            {...dismissFeedback}
+            aria-label={t("Dismiss")}
+            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/8 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          >
+            <XIcon ref={dismissIcon} size={16} />
+          </button>
         </div>
       </div>
     </div>
