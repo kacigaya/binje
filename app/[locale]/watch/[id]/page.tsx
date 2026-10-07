@@ -73,12 +73,13 @@ export default async function WatchPage({
   const locale = isLocale(rootLocale) ? rootLocale : "en";
 
   return (
-    <div className="flex flex-col pt-20" data-testid="watch-movie-shell">
-      <Suspense fallback={<WatchInfoLoading heading={translate(locale, "Movie")} />}>
-        <WatchMovieInfo params={params} />
-      </Suspense>
+    // Player first: it is what the page is for. Title details follow it.
+    <div className="flex flex-col pt-24" data-testid="watch-movie-shell">
       <Suspense fallback={<WatchPlayerLoading />}>
         <WatchMoviePlayer params={params} />
+      </Suspense>
+      <Suspense fallback={<WatchInfoLoading heading={translate(locale, "Movie")} />}>
+        <WatchMovieInfo params={params} />
       </Suspense>
     </div>
   );
@@ -115,8 +116,8 @@ async function WatchMovieInfo({
         }}
       />
 
-      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6 pb-4 space-y-4">
-        <div className="space-y-4 mt-6">
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-4">
+        <div className="space-y-4">
           <Link
             href={localizedHref(locale, `/movie/${movie.id}`)}
             className="inline-block"
@@ -132,7 +133,7 @@ async function WatchMovieInfo({
                   aria-hidden="true"
                   width={logo.width}
                   height={logo.height}
-                  className="h-auto max-h-24 w-auto max-w-xs object-contain sm:max-w-md"
+                  className="h-auto max-h-14 w-auto max-w-60 object-contain sm:max-h-16 sm:max-w-xs"
                   priority
                 />
               </>
@@ -159,20 +160,21 @@ async function WatchMovieInfo({
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
-            <div className="flex items-center gap-1.5 text-accent-red font-semibold">
+            <div className="flex items-center gap-1.5 font-semibold text-foreground">
               <Image
                 src="/tmdb.svg"
-                alt=""
+                alt="TMDB"
                 width={37}
                 height={16}
-                aria-hidden="true"
                 className="h-4 w-auto shrink-0"
               />
               {formatRating(locale, movie.vote_average) ?? translate(locale, "N/A")}
             </div>
             <RottenTomatoesRating imdbId={movie.imdb_id} />
             {contentRating && (
-              <div className="font-semibold text-accent-red">{contentRating}</div>
+              <span className="rounded-md border border-white/15 px-1.5 text-xs font-semibold text-foreground/80">
+                {contentRating}
+              </span>
             )}
             {movie.runtime > 0 && (
               <div className="flex items-center gap-1">
@@ -218,7 +220,7 @@ async function WatchMoviePlayer({
 
   return (
     <div
-      className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-8"
+      className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-6"
       data-testid="watch-movie-player"
     >
       <Player
@@ -227,6 +229,7 @@ async function WatchMoviePlayer({
         year={movie.release_date.slice(0, 4)}
         imdbId={movie.imdb_id}
         type="movie"
+        poster={backdropUrl(movie.backdrop_path, "w1280")}
       />
     </div>
   );

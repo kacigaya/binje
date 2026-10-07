@@ -107,6 +107,7 @@ export default function Player({
   type = "movie",
   season,
   episode,
+  poster,
 }: {
   tmdbId: number;
   title: string;
@@ -115,6 +116,8 @@ export default function Player({
   type?: PlayerMediaType;
   season?: number;
   episode?: number;
+  /** Backdrop shown behind the loading state until playback starts. */
+  poster?: string | null;
 }) {
   const { t } = useTranslations();
   const mediaKey = `${type}:${tmdbId}:${season ?? 1}:${episode ?? 1}`;
@@ -153,6 +156,12 @@ export default function Player({
   const options = [...(availableList ?? [])];
   if (playingSource && !options.includes(playingSource)) options.push(playingSource);
   const sourceOptions = options.filter((id) => !failedList.includes(id));
+  // Sources that failed here stay listed, disabled, so a viewer can see what
+  // was already tried rather than watching entries vanish.
+  const sourceRows = [
+    ...sourceOptions,
+    ...failedList.filter((id) => options.includes(id) || id === DEFAULT_SOURCE),
+  ];
   const exhausted = source === null && availableList !== undefined;
   // Waiting for the availability list after the default source failed.
   const awaitingSources = source === null && !exhausted;
@@ -358,88 +367,139 @@ export default function Player({
       resolvedMedia?.url ??
       null
     : resolvedMedia?.url ?? null;
+  let statusText = t("Loading…");
+  if (exhausted) statusText = t("Stream unavailable. Try again later.");
+  else if (awaitingSources) statusText = t("Checking sources…");
+  else if (source) statusText = `${t("Connecting to")} ${SOURCE_LABELS[source]}`;
+
   return (
-    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
-      <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/50 p-1 backdrop-blur">
-        {source && sourceOptions.includes(source) && (
-          <Select
-            ariaLabel={t("Source")}
-            value={source}
-            onValueChange={(value) => setPicked({ key: mediaKey, value })}
-            items={sourceOptions.map((id) => ({ value: id, label: SOURCE_LABELS[id] }))}
-            className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white"
-          />
-        )}
-        {qualities.length > 0 && (
-          <Select
-            ariaLabel={t("Quality")}
-            value={quality}
-            onValueChange={changeQuality}
-            items={[
-              { value: -1, label: t("Auto") },
-              ...qualities.map((item) => ({
-                value: item.index,
-                label: `${item.height}p`,
-              })),
-            ]}
-            className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums"
-          />
-        )}
-        <CastControls
-          videoRef={videoRef}
-          mediaKey={mediaKey}
-          source={castSource}
-          tracks={resolvedMedia?.tracks ?? []}
-          title={title}
-          onRemoteProgress={saveProgress}
-          onGoogleCastingChange={setGoogleCasting}
-        />
-      </div>
-      <video
-        ref={videoRef}
-        aria-label={`${t("Video player")}: ${title}`}
-        controls={!googleCasting}
-        playsInline
-        onLoadedMetadata={onLoadedMetadata}
-        onTimeUpdate={onTimeUpdate}
-        className="absolute inset-0 h-full w-full rounded-xl bg-black"
-        crossOrigin="anonymous"
-      >
-        {tracks.map((track, i) => (
-          <track
-            key={track.file}
-            kind="subtitles"
-            label={track.label ?? `Track ${i + 1}`}
-            src={proxied(track.file)}
-            default={i === 0}
-          />
-        ))}
-      </video>
-      {(loading || awaitingSources || exhausted) && (
-        <div
-          className={cn(
-            "absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-sm text-white/70",
-            // While loading the overlay must not swallow the native controls;
-            // the error state has a control of its own to click.
-            !exhausted && "pointer-events-none",
+    <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
+      <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+        <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/50 p-1 backdrop-blur">
+          {qualities.length > 0 && (
+            <Select
+              ariaLabel={t("Quality")}
+              value={quality}
+              onValueChange={changeQuality}
+              items={[
+                { value: -1, label: t("Auto") },
+                ...qualities.map((item) => ({
+                  value: item.index,
+                  label: `${item.height}p`,
+                })),
+              ]}
+              className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums"
+            />
           )}
-        >
-          <p role="status" aria-live="polite">
-            {exhausted ? t("Stream unavailable. Try again later.") : t("Loading…")}
-          </p>
-          {exhausted && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={retry}
-              className="h-9 cursor-pointer gap-2 rounded-full px-4"
-            >
-              <RotateCcw aria-hidden="true" className="size-4" />
-              {t("Try Again")}
-            </Button>
-          )}
+          <CastControls
+            videoRef={videoRef}
+            mediaKey={mediaKey}
+            source={castSource}
+            tracks={resolvedMedia?.tracks ?? []}
+            title={title}
+            onRemoteProgress={saveProgress}
+            onGoogleCastingChange={setGoogleCasting}
+          />
         </div>
-      )}
+        <video
+          ref={videoRef}
+          aria-label={`${t("Video player")}: ${title}`}
+          controls={!googleCasting}
+          playsInline
+          onLoadedMetadata={onLoadedMetadata}
+          onTimeUpdate={onTimeUpdate}
+          className="absolute inset-0 h-full w-full rounded-xl bg-black"
+          crossOrigin="anonymous"
+          poster={poster ?? undefined}
+        >
+          {tracks.map((track, i) => (
+            <track
+              key={track.file}
+              kind="subtitles"
+              label={track.label ?? `Track ${i + 1}`}
+              src={proxied(track.file)}
+              default={i === 0}
+            />
+          ))}
+        </video>
+        {(loading || awaitingSources || exhausted) && (
+          <div
+            className={cn(
+              "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 px-6 text-center text-sm text-white/80",
+              // While loading the overlay must not swallow the native controls;
+              // the error state has a control of its own to click.
+              !exhausted && "pointer-events-none",
+            )}
+          >
+            {!exhausted && (
+              <span
+                aria-hidden="true"
+                className="size-7 animate-spin rounded-full border-2 border-white/15 border-t-accent-red motion-reduce:animate-none"
+              />
+            )}
+            <p role="status" aria-live="polite" className="font-medium">
+              {statusText}
+            </p>
+            {exhausted && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={retry}
+                className="h-9 cursor-pointer gap-2 rounded-full px-4"
+              >
+                <RotateCcw aria-hidden="true" className="size-4" />
+                {t("Try Again")}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <section
+        aria-labelledby={`${mediaKey}-sources`}
+        className="mx-4 rounded-xl border border-white/10 bg-card p-2 sm:mx-0 lg:p-3"
+      >
+        <h2
+          id={`${mediaKey}-sources`}
+          className="px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+        >
+          {t("Sources")}
+        </h2>
+        {availableList === undefined && sourceRows.length === 0 ? (
+          <p className="px-1 pb-1 text-sm text-muted-foreground">
+            {t("Checking sources…")}
+          </p>
+        ) : (
+          <ul className="flex flex-wrap gap-2 lg:flex-col lg:flex-nowrap lg:gap-1">
+            {sourceRows.map((id) => {
+              const isFailed = failedList.includes(id);
+              const isCurrent = id === source;
+              let state = t("Available");
+              if (isFailed) state = t("Unavailable");
+              else if (isCurrent) state = loading ? t("Connecting…") : t("Playing");
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    disabled={isFailed}
+                    aria-pressed={isCurrent}
+                    onClick={() => setPicked({ key: mediaKey, value: id })}
+                    className={cn(
+                      "flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:cursor-not-allowed disabled:opacity-50",
+                      isCurrent
+                        ? "border-accent-red/60 bg-accent-red/10 text-foreground"
+                        : "border-transparent bg-white/5 text-foreground/90 hover:bg-white/10",
+                    )}
+                  >
+                    <span className="font-medium">{SOURCE_LABELS[id]}</span>
+                    <span className="text-xs text-muted-foreground">{state}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
