@@ -1,6 +1,8 @@
 "use client";
 
-import { getConsent } from "@/lib/consent";
+import { toast } from "sonner";
+import { hasStorageConsent } from "@/lib/consent";
+import type { TranslationKey } from "@/lib/i18n";
 import { createLocalArrayStore } from "@/lib/local-array-store";
 
 const WATCHLIST_STORAGE_KEY = "binje:watchlist:v1";
@@ -50,7 +52,7 @@ const watchlistStore = createLocalArrayStore<WatchlistItem>({
   limit: WATCHLIST_LIMIT,
   isValid: isValidWatchlistItem,
   sort: (a, b) => b.addedAt - a.addedAt,
-  canSave: () => getConsent() === "accepted",
+  canSave: hasStorageConsent,
 });
 
 export const getWatchlist = watchlistStore.get;
@@ -93,6 +95,25 @@ export function toggleWatchlist(input: WatchlistInput) {
 
   addToWatchlist(input);
   return true;
+}
+
+/**
+ * Toggle from a control and confirm it. Without storage consent nothing is
+ * written, so say so instead of confirming a save that did not happen.
+ */
+export function toggleWatchlistWithFeedback(
+  input: WatchlistInput,
+  added: boolean,
+  t: (text: TranslationKey) => string,
+) {
+  if (!hasStorageConsent()) {
+    toast.error(t("Allow local storage to save titles."));
+    return;
+  }
+  toggleWatchlist(input);
+  toast.success(t(added ? "Removed from watchlist" : "Added to watchlist"), {
+    description: input.title,
+  });
 }
 
 export function getWatchlistHref(item: Pick<WatchlistItem, "type" | "id">) {

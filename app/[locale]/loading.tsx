@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import PosterCardSkeleton from "@/components/PosterCardSkeleton";
 import HeroSkeleton from "@/components/HeroSkeleton";
 
 const SECTION_COUNT = 3;
@@ -14,10 +15,7 @@ export default function HomeLoading() {
             <Skeleton className="h-8 w-48" />
             <div className="flex gap-3 overflow-hidden sm:gap-4">
               {Array.from({ length: 7 }).map((_, j) => (
-                <Skeleton
-                  key={j}
-                  className="shrink-0 w-40 sm:w-46.25 aspect-2/3 rounded-xl"
-                />
+<PosterCardSkeleton key={j} />
               ))}
             </div>
           </div>

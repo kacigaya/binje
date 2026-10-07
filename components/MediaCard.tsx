@@ -1,10 +1,22 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { Star } from "lucide-react";
+import CardWatchlistToggle from "@/components/CardWatchlistToggle";
 import type { MediaItem } from "@/types/tmdb";
 import { posterUrl } from "@/lib/tmdb";
 import { formatRating, localizedHref } from "@/lib/i18n";
+import {
+  getPlayHistory,
+  getPlaybackProgress,
+  subscribeToPlayHistory,
+  type PlayHistoryItem,
+} from "@/lib/play-history";
 import { useTranslations } from "@/lib/use-locale";
+
+const EMPTY_HISTORY: PlayHistoryItem[] = [];
 
 export default function MediaCard({
   item,
@@ -14,49 +26,88 @@ export default function MediaCard({
   eager?: boolean;
 }) {
   const { locale, t } = useTranslations();
+  const history = useSyncExternalStore(
+    subscribeToPlayHistory,
+    getPlayHistory,
+    () => EMPTY_HISTORY,
+  );
   const poster = posterUrl(item.poster_path, "w342");
   const href =
     item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
   const rating = formatRating(locale, item.vote_average) ?? t("N/A");
+  const year = item.date ? new Date(item.date).getFullYear() : null;
+  const progress = getPlaybackProgress(
+    history.find(
+      (entry) => entry.type === item.media_type && entry.id === item.id,
+    ),
+  );
 
   return (
-    <Link href={localizedHref(locale, href)} className="group block shrink-0">
-      <div className="relative w-40 sm:w-46.25 overflow-hidden rounded-xl bg-card transition-transform duration-200 group-hover:scale-[1.04] group-hover:ring-1 group-hover:ring-white/25">
-        <div className="relative aspect-2/3 overflow-hidden rounded-xl">
+    <div className="group relative w-40 shrink-0 sm:w-46.25">
+      <Link
+        href={localizedHref(locale, href)}
+        className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-card ring-1 ring-white/5 transition-shadow duration-200 group-hover:ring-white/25">
           <Image
             src={poster}
-            alt={item.title}
+            alt=""
             fill
             priority={eager}
             loading={eager ? "eager" : "lazy"}
-            className="object-cover transition-transform duration-200 group-hover:scale-110"
+            className="object-cover transition-transform duration-200 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
             sizes="(max-width: 640px) 160px, 185px"
           />
-          <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent transition-opacity duration-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-visible:opacity-100" />
 
-          <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-xs font-semibold text-accent-red">
-            <Star aria-hidden="true" className="size-3 fill-accent-red" />
-            {rating}
-          </div>
-
-          {item.media_type === "tv" && (
-            <div className="absolute top-2 left-2 rounded-full bg-accent-red/90 px-2 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
-              TV
+          {/* Decorative: the Continue Watching row carries the same progress
+              with readable timings. */}
+          {progress !== null && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-x-2 bottom-2 h-1 overflow-hidden rounded-full bg-white/25"
+            >
+              <div
+                className="h-full rounded-full bg-accent-red"
+                style={{ width: `${Math.round(progress * 100)}%` }}
+              />
             </div>
           )}
-
-          <div className="absolute bottom-0 left-0 right-0 p-3 transition-opacity duration-200 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-visible:opacity-100">
-            <p className="text-sm font-semibold text-white leading-tight line-clamp-2">
-              {item.title}
-            </p>
-            {item.date && (
-              <p className="text-xs text-white/60 mt-1">
-                {new Date(item.date).getFullYear()}
-              </p>
-            )}
-          </div>
         </div>
-      </div>
-    </Link>
+
+        <p className="mt-2 truncate text-sm font-semibold leading-tight text-foreground">
+          {item.title}
+        </p>
+        <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+          {item.media_type === "tv" && (
+            <>
+              <span>{t("TV Series")}</span>
+              {year && <span aria-hidden="true">·</span>}
+            </>
+          )}
+          {year && <span>{year}</span>}
+          <span aria-hidden="true">·</span>
+          <span className="flex items-center gap-1">
+            <Star
+              aria-hidden="true"
+              className="size-3 fill-rating text-rating"
+            />
+            {rating}
+          </span>
+        </p>
+      </Link>
+
+      <CardWatchlistToggle
+        item={{
+          type: item.media_type,
+          id: item.id,
+          title: item.title,
+          poster_path: item.poster_path,
+          backdrop_path: item.backdrop_path,
+          date: item.date,
+          vote_average: item.vote_average,
+        }}
+        className="absolute right-2 top-2"
+      />
+    </div>
   );
 }

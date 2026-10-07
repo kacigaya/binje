@@ -1,6 +1,6 @@
 "use client";
 
-import { getConsent } from "@/lib/consent";
+import { hasStorageConsent } from "@/lib/consent";
 import { createLocalArrayStore } from "@/lib/local-array-store";
 
 const PLAY_HISTORY_STORAGE_KEY = "binje:play-history:v1";
@@ -73,7 +73,7 @@ const playHistoryStore = createLocalArrayStore<PlayHistoryItem>({
   limit: PLAY_HISTORY_LIMIT,
   isValid: isValidHistoryItem,
   sort: (a, b) => b.watchedAt - a.watchedAt,
-  canSave: () => getConsent() === "accepted",
+  canSave: hasStorageConsent,
 });
 
 export const getPlayHistory = playHistoryStore.get;
@@ -139,6 +139,23 @@ export function removePlayHistoryItem(
   );
 
   savePlayHistory(nextItems);
+}
+
+/**
+ * Fraction watched, or null when there is nothing worth showing: entries saved
+ * before playback started carry no progress, and a finished title has none
+ * left to resume.
+ */
+export function getPlaybackProgress(
+  item: Pick<PlayHistoryItem, "progress"> | undefined,
+): number | null {
+  const progress = item?.progress;
+  return typeof progress === "number" &&
+    Number.isFinite(progress) &&
+    progress > 0 &&
+    progress < 1
+    ? progress
+    : null;
 }
 
 export function getPlayHistoryHref(item: PlayHistoryItem) {

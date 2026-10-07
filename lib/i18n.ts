@@ -149,6 +149,8 @@ const FRENCH = {
   "Resume featured titles": "Reprendre les titres à la une",
   "Audio track": "Piste audio",
   "Video player": "Lecteur vidéo",
+  "Allow local storage to save titles.":
+    "Autorisez le stockage local pour enregistrer des titres.",
 } as const;
 
 export type TranslationKey = keyof typeof FRENCH;

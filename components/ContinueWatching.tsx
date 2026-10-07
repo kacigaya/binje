@@ -6,6 +6,7 @@ import type { MouseEvent } from "react";
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import {
+  getPlaybackProgress,
   getPlayHistory,
   getPlayHistoryHref,
   removePlayHistoryItem,
@@ -73,13 +74,7 @@ export default function ContinueWatching() {
             const image = item.backdrop_path
               ? backdropUrl(item.backdrop_path, "w780")
               : posterUrl(item.poster_path, "w342");
-            const progress =
-              typeof item.progress === "number" &&
-              Number.isFinite(item.progress) &&
-              item.progress > 0 &&
-              item.progress < 1
-                ? item.progress
-                : null;
+            const progress = getPlaybackProgress(item);
             // Entries saved before playback started, or before these fields
             // existed, carry no timings and get no badge.
             const timings =

@@ -26,6 +26,7 @@
     --color-card-foreground: var(--card-foreground);
     --color-card: var(--card);
     --color-accent-red: var(--accent-red);
+    --color-rating: var(--rating);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -38,6 +39,9 @@
 :root {
     --radius: 0.625rem;
     --accent-red: #e11d48;
+    /* Star ratings: neutral amber so scores read on any poster and do not
+     * compete with the red action color. */
+    --rating: #fbbf24;
 }
 
 .dark,

@@ -13,6 +13,11 @@ export function getConsent(): ConsentValue | null {
   }
 }
 
+/** Watch history and the watchlist are only written once storage is accepted. */
+export function hasStorageConsent(): boolean {
+  return getConsent() === "accepted";
+}
+
 export function setConsent(value: ConsentValue): void {
   if (typeof window === "undefined") return;
   try {
