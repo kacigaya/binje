@@ -15,15 +15,19 @@ import {
   type PlayHistoryItem,
 } from "@/lib/play-history";
 import { useTranslations } from "@/lib/use-locale";
+import { cn } from "@/lib/utils";
 
 const EMPTY_HISTORY: PlayHistoryItem[] = [];
 
 export default function MediaCard({
   item,
   eager = false,
+  className = "w-40 shrink-0 sm:w-46.25",
 }: {
   item: MediaItem;
   eager?: boolean;
+  /** Width classes; carousels use fixed widths, grids pass `w-full`. */
+  className?: string;
 }) {
   const { locale, t } = useTranslations();
   const history = useSyncExternalStore(
@@ -43,7 +47,7 @@ export default function MediaCard({
   );
 
   return (
-    <div className="group relative w-40 shrink-0 sm:w-46.25">
+    <div className={cn("group relative", className)}>
       <Link
         href={localizedHref(locale, href)}
         className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-background"

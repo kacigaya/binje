@@ -93,7 +93,7 @@ export interface SeasonDetails {
   episodes: Episode[];
 }
 
-interface Genre {
+export interface Genre {
   id: number;
   name: string;
 }

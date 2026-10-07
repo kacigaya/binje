@@ -5,6 +5,7 @@ import type { Locale } from "@/lib/i18n";
 import type {
   Credits,
   Episode,
+  Genre,
   Movie,
   MovieDetails,
   MovieImagesResponse,
@@ -13,6 +14,8 @@ import type {
   TVShowDetails,
 } from "@/types/tmdb";
 import {
+  discover as fetchDiscover,
+  getGenres as fetchGenres,
   getAiringTodayTV as fetchAiringTodayTV,
   getMovieCredits as fetchMovieCredits,
   getMovieDetails as fetchMovieDetails,
@@ -194,4 +197,31 @@ export async function getSeasonEpisodes(
   "use cache";
   cacheLife("days");
   return fetchSeasonEpisodes(showId, seasonNumber, locale);
+}
+
+export async function getGenres(
+  type: "movie" | "tv",
+  locale: Locale,
+): Promise<Genre[]> {
+  "use cache";
+  cacheLife("days");
+  return fetchGenres(type, locale);
+}
+
+export async function discoverMovies(
+  endpoint: string,
+  locale: Locale,
+): Promise<{ results: Movie[]; totalPages: number }> {
+  "use cache";
+  cacheLife("hours");
+  return fetchDiscover<Movie>(endpoint, locale);
+}
+
+export async function discoverTV(
+  endpoint: string,
+  locale: Locale,
+): Promise<{ results: TVShow[]; totalPages: number }> {
+  "use cache";
+  cacheLife("hours");
+  return fetchDiscover<TVShow>(endpoint, locale);
 }

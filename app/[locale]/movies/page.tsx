@@ -5,6 +5,7 @@ import { Clapperboard } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
+import BrowseView, { BrowseViewSkeleton } from "@/components/BrowseView";
 import {
   getMoviesByGenre,
   getNowPlaying,
@@ -55,7 +56,11 @@ async function MovieRail({
   );
 }
 
-export default async function MoviesPage() {
+export default async function MoviesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const rootLocale = await getRootLocale();
   const locale = isLocale(rootLocale) ? rootLocale : "en";
 
@@ -74,16 +79,25 @@ export default async function MoviesPage() {
         <Separator className="mt-5 bg-white/10" />
       </header>
 
-      {SECTIONS.map(([title, load, priority]) => (
-        <Suspense key={title} fallback={<CarouselSkeleton />}>
-          <MovieRail
-            locale={locale}
-            title={title}
-            load={load}
-            priority={priority}
-          />
-        </Suspense>
-      ))}
+      {/* Reading the query string makes the rest request-time, so it sits
+          in its own boundary and the header stays in the static shell. */}
+      <Suspense fallback={<BrowseViewSkeleton />}>
+        <BrowseView
+          type="movie"
+          locale={locale}
+          searchParams={searchParams}
+          rails={SECTIONS.map(([title, load, priority]) => (
+            <Suspense key={title} fallback={<CarouselSkeleton />}>
+              <MovieRail
+                locale={locale}
+                title={title}
+                load={load}
+                priority={priority}
+              />
+            </Suspense>
+          ))}
+        />
+      </Suspense>
     </div>
   );
 }
