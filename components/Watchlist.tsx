@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { Bookmark, Star } from "lucide-react";
 import RemoveButton from "@/components/RemoveButton";
+import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import type { MouseEvent } from "react";
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -63,7 +63,7 @@ export default function Watchlist() {
 
         return (
           <div key={`${item.type}-${item.id}`} className="group relative min-w-0">
-            <Link
+            <IntentPrefetchLink
               href={localizedHref(locale, getWatchlistHref(item))}
               className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
@@ -94,7 +94,7 @@ export default function Watchlist() {
                   {rating}
                 </span>
               </p>
-            </Link>
+            </IntentPrefetchLink>
             {/* Always visible: removing is this page's main action, unlike
                 the hover-revealed add toggle on browse cards. */}
             <RemoveButton

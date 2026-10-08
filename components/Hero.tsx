@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
-import Link from "next/link";
 import { Info, Pause, Play } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import WatchNowLink from "@/components/WatchNowLink";
+import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import type { MediaItem } from "@/types/tmdb";
@@ -198,7 +198,7 @@ export default function Hero({ items }: HeroProps) {
                     "rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-6 sm:px-8 h-12 text-base cursor-pointer",
                 })}
               />
-              <Link
+              <IntentPrefetchLink
                 href={localizedHref(locale, detailHref)}
                 className={buttonClassName({
                   size: "lg",
@@ -209,7 +209,7 @@ export default function Hero({ items }: HeroProps) {
               >
                 <Info className="size-5" />
                 {t("Details")}
-              </Link>
+              </IntentPrefetchLink>
               {/* Sits in the action row rather than over the hero's bottom
                   edge, where the first rail overlaps it and hides "See all". */}
               {rotates && safeItems.length > 1 && (

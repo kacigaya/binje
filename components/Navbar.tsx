@@ -10,6 +10,7 @@ import { ArrowRightIcon } from "@/components/ui/arrow-right";
 import { BookmarkIcon } from "@/components/ui/bookmark";
 import { ClapIcon } from "@/components/ui/clap";
 import { TvIcon } from "@/components/ui/tv";
+import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import {
   useState,
   useRef,
@@ -354,7 +355,7 @@ export default function Navbar() {
                                 reaches them, and arrows/Enter are an enhancement.
                                 `role="option"` would strip the link semantics,
                                 so the list stays a plain list instead. */}
-                            <Link
+                            <IntentPrefetchLink
                               href={localizedHref(locale, suggestionHref(suggestion))}
                               onMouseEnter={() => setActiveSuggestionIndex(index)}
                               onFocus={() => setActiveSuggestionIndex(index)}
@@ -391,7 +392,7 @@ export default function Navbar() {
                               <span className="ml-auto shrink-0 rounded-full bg-accent-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-red">
                                 {t(suggestion.media_type === "tv" ? "TV" : "Movie")}
                               </span>
-                            </Link>
+                            </IntentPrefetchLink>
                             </li>
                           );
                         })}

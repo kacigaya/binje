@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { Star } from "lucide-react";
 import CardWatchlistToggle from "@/components/CardWatchlistToggle";
+import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import type { MediaItem } from "@/types/tmdb";
 import { posterUrl } from "@/lib/tmdb";
 import { formatRating, localizedHref } from "@/lib/i18n";
@@ -48,7 +48,7 @@ export default function MediaCard({
 
   return (
     <div className={cn("group relative", className)}>
-      <Link
+      <IntentPrefetchLink
         href={localizedHref(locale, href)}
         className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
@@ -98,7 +98,7 @@ export default function MediaCard({
             {rating}
           </span>
         </p>
-      </Link>
+      </IntentPrefetchLink>
 
       <CardWatchlistToggle
         item={{

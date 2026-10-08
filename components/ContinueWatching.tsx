@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import type { MouseEvent } from "react";
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -15,6 +14,7 @@ import {
   type PlayHistoryItem,
 } from "@/lib/play-history";
 import RemoveButton from "@/components/RemoveButton";
+import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import ScrollArrows from "@/components/ScrollArrows";
 import { formatPlaybackTime } from "@/lib/format-time";
 import { backdropUrl, posterUrl } from "@/lib/tmdb";
@@ -103,7 +103,7 @@ export default function ContinueWatching() {
                   iconSize={14}
                   className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-accent-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/70"
                 />
-                <Link
+                <IntentPrefetchLink
                   href={localizedHref(locale, getPlayHistoryHref(item))}
                   className="block"
                 >
@@ -147,7 +147,7 @@ export default function ContinueWatching() {
                     {minutesLeft} {t("min left")}
                   </p>
                 )}
-                </Link>
+                </IntentPrefetchLink>
               </div>
             );
           })}
