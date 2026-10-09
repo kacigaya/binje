@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/icon.svg" alt="b!nje logo" width="140">
+  <img src="public/logo-dark.svg" alt="b!nje logo" width="140">
 </p>
 
 <h1 align="center">b!nje</h1>
