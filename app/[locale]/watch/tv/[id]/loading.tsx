@@ -45,22 +45,25 @@ export function WatchTVPlayerLoading() {
       data-testid="watch-tv-player-frame"
     >
         <div className="space-y-4">
-          <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
-            <Skeleton className="w-full aspect-video rounded-xl" />
-            <Skeleton className="mx-4 h-28 rounded-xl sm:mx-0 lg:h-64" />
-          </div>
+          {/* Sources are picked inside the player, so the frame is the whole slot. */}
+          <Skeleton className="w-full aspect-video rounded-xl" />
 
-          {}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-4 sm:px-0">
-            <Skeleton className="h-9 w-40 rounded-lg" />
-            <Skeleton className="h-5 w-56" />
-            <div className="flex items-center gap-2 sm:ml-auto">
-              <Skeleton className="h-9 w-28 rounded-lg" />
-              <Skeleton className="h-9 w-24 rounded-lg" />
+          {/* Mirrors TVPlayer's controls: season picker, now playing, prev/next. */}
+          <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">
+            <div className="flex items-center justify-between gap-3 sm:justify-start">
+              <Skeleton className="h-5 w-14" />
+              <Skeleton className="h-10 w-36 rounded-full" />
+            </div>
+            <div className="min-w-0 space-y-1.5 sm:border-l sm:border-white/10 sm:pl-4">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex">
+              <Skeleton className="h-10 rounded-full sm:w-28" />
+              <Skeleton className="h-10 rounded-full sm:w-24" />
             </div>
           </div>
 
-          {}
           <div className="px-4 sm:px-0">
             <Skeleton className="h-6 w-24 mb-3" />
             <div className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2">

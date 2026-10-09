@@ -40,10 +40,8 @@ export function WatchInfoLoading({ heading }: { heading?: string } = {}) {
 export function WatchPlayerLoading() {
   return (
     <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-6">
-      <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_14rem] lg:items-start">
-        <Skeleton className="w-full aspect-video rounded-xl" />
-        <Skeleton className="mx-4 h-28 rounded-xl sm:mx-0 lg:h-64" />
-      </div>
+      {/* Sources are picked inside the player, so the frame is the whole slot. */}
+      <Skeleton className="w-full aspect-video rounded-xl" />
     </div>
   );
 }
