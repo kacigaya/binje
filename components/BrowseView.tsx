@@ -215,12 +215,14 @@ async function DiscoverResults({
 
   return (
     <section aria-label={t("Results")} className="space-y-8 px-4 sm:px-6">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+      {/* TMDB pages hold 20 titles: 2, 4 and 5 columns divide that evenly, so a
+          full page never ends on a short row (6 columns left 2 orphans). */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 lg:grid-cols-5">
         {results.map((item, i) => (
           <MediaCard
             key={`${item.media_type}-${item.id}`}
             item={item}
-            eager={i < 6}
+            eager={i < 5}
             className="w-full min-w-0"
           />
         ))}
