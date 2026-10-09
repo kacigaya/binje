@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonClassName } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
+import CastRow from "@/components/CastRow";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
 import WatchlistButton from "@/components/WatchlistButton";
 import DetailHero from "@/components/DetailHero";
@@ -242,31 +243,15 @@ async function MovieCast({ movieId, locale }: { movieId: number; locale: Locale 
       >
         {translate(locale, "Cast")}
       </h2>
-      <div
-        tabIndex={0}
-        role="group"
-        aria-label={translate(locale, "Cast")}
-        className="flex gap-4 overflow-x-auto pb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
-      >
-        {topCast.map((person, index) => {
-          const photo = profileUrl(person.profile_path);
-          return (
-            <div key={`${person.id}-${index}`} className="w-27.5 shrink-0 text-center">
-              <div className="relative mx-auto mb-2 size-27.5 overflow-hidden rounded-full bg-muted">
-                {photo ? (
-                  <Image src={photo} alt={person.name} fill loading="lazy" className="object-cover" sizes="110px" />
-                ) : (
-                  <div className="flex size-full items-center justify-center text-2xl font-bold text-muted-foreground">
-                    {person.name.charAt(0)}
-                  </div>
-                )}
-              </div>
-              <p className="line-clamp-1 text-sm font-medium leading-tight">{person.name}</p>
-              <p className="line-clamp-1 text-xs text-muted-foreground">{person.character}</p>
-            </div>
-          );
-        })}
-      </div>
+      <CastRow
+        label={translate(locale, "Cast")}
+        cast={topCast.map((person, index) => ({
+          key: `${person.id}-${index}`,
+          name: person.name,
+          character: person.character,
+          photo: profileUrl(person.profile_path),
+        }))}
+      />
     </div>
   );
 }
