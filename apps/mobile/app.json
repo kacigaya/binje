@@ -26,7 +26,7 @@
     "android": {
       "package": "com.gayakaci.binje",
       "adaptiveIcon": {
-        "backgroundColor": "#050506",
+        "backgroundColor": "#e11d48",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },

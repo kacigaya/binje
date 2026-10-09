@@ -271,7 +271,7 @@ function EpisodesSkeleton() {
       <Skeleton className="h-7 w-28" />
       <div className="flex gap-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-8 w-24 rounded-lg" />
+          <Skeleton key={i} className="h-8 w-24 rounded-full" />
         ))}
       </div>
       {Array.from({ length: 4 }).map((_, i) => (

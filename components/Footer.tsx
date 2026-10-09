@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import Wordmark from "@/components/Wordmark";
 import { CONSENT_STORAGE_KEY } from "@/lib/consent";
 import { LOCALES, localizedHref, type Locale } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 
 const LOCALE_LINK_BASE =
-  "rounded-md px-2 py-1 uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60";
+  "rounded-full px-2 py-1 uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60";
 
 function localeLinkClassName(active: boolean) {
   return `${LOCALE_LINK_BASE} ${
@@ -73,13 +74,11 @@ export default function Footer() {
           className="flex items-center gap-2 text-sm text-muted-foreground"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          <span className="font-bold tracking-tight text-foreground" translate="no">
-            b<span className="text-accent-red">!</span>nje
-          </span>
+          <Wordmark className="font-bold tracking-tight text-foreground" />
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-          <div className="flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5 text-xs font-semibold">
+          <div className="flex items-center rounded-full border border-white/10 bg-white/5 p-0.5 text-xs font-semibold">
             <Suspense
               fallback={
                 <LocaleLinkList locale={locale} path={pathname} search="" />

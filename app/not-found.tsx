@@ -30,7 +30,7 @@ export default function NotFound() {
         {...homeFeedback}
         className={buttonClassName({
           variant: "outline",
-          className: "gap-2 rounded-lg h-11 px-6 cursor-pointer",
+          className: "gap-2 rounded-full h-11 px-6 cursor-pointer",
         })}
       >
         <HomeIcon ref={homeIcon} size={16} />

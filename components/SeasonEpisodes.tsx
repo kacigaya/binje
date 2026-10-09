@@ -100,7 +100,7 @@ export default function SeasonEpisodes({
               aria-pressed={active}
               onClick={() => setPicked(s.season_number)}
               className={cn(
-                "h-8 cursor-pointer rounded-lg border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60",
+                "h-8 cursor-pointer rounded-full border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60",
                 active
                   ? "border-foreground bg-foreground text-background"
                   : "border-white/15 text-foreground/80 hover:bg-white/10",
@@ -131,7 +131,7 @@ export default function SeasonEpisodes({
                 return next;
               })
             }
-            className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-white/15 px-3 font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="inline-flex h-9 cursor-pointer items-center rounded-full border border-white/15 px-3 font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
             {t("Try again")}
           </button>

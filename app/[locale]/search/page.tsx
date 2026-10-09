@@ -195,7 +195,7 @@ function SearchContent() {
             type="button"
             onClick={() => setFilter(type)}
             aria-pressed={filter === type}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 ${
+            className={`px-5 py-2 rounded-full text-sm font-medium transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 ${
               filter === type
                 ? "bg-accent-red text-white"
                 : "bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
@@ -245,7 +245,7 @@ function SearchContent() {
           <button
             type="button"
             onClick={() => doSearch(query)}
-            className="mt-6 inline-flex h-11 cursor-pointer items-center rounded-lg border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="mt-6 inline-flex h-11 cursor-pointer items-center rounded-full border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
             {t("Try again")}
           </button>
@@ -266,7 +266,7 @@ function SearchContent() {
           </p>
           <Link
             href={localizedHref(locale, "/movies")}
-            className="mt-6 inline-flex h-11 items-center rounded-lg border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="mt-6 inline-flex h-11 items-center rounded-full border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
             {t("Browse movies")}
           </Link>
@@ -287,7 +287,7 @@ function SearchContent() {
           </p>
           <Link
             href={localizedHref(locale, "/movies")}
-            className="mt-6 inline-flex h-11 items-center rounded-lg border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="mt-6 inline-flex h-11 items-center rounded-full border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
             {t("Browse movies")}
           </Link>

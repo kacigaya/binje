@@ -11,6 +11,7 @@ import { BookmarkIcon } from "@/components/ui/bookmark";
 import { ClapIcon } from "@/components/ui/clap";
 import { TvIcon } from "@/components/ui/tv";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
+import Wordmark from "@/components/Wordmark";
 import {
   useState,
   useRef,
@@ -196,17 +197,15 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 z-50">
-      <div className="mx-auto max-w-7xl rounded-2xl bg-background/70 backdrop-blur-md border border-white/10 shadow-lg shadow-black/30">
+      <div className="mx-auto max-w-7xl rounded-[2rem] bg-background/70 backdrop-blur-md border border-white/10 shadow-lg shadow-black/30">
         <div className="flex items-center justify-between px-4 sm:px-6 h-16">
         <Link
           href={localizedHref(locale, "/")}
           onClick={() => setMenuOpen(false)}
-          className="flex items-center gap-2 text-xl font-bold tracking-tight"
+          className="flex items-center text-xl font-bold tracking-tight text-foreground"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          <span className="text-foreground" translate="no">
-            b<span className="text-accent-red">!</span>nje
-          </span>
+          <Wordmark />
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-4">
@@ -215,7 +214,7 @@ export default function Navbar() {
               {NAV_LINKS.map((link) => {
                 const href = localizedHref(locale, link.href);
                 const baseClassName =
-                  "flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm";
+                  "flex items-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm";
                 const inactiveClassName = `${baseClassName} text-muted-foreground hover:bg-white/8 hover:text-foreground`;
 
                 return (
@@ -313,7 +312,7 @@ export default function Navbar() {
                         setActiveSuggestionIndex(-1);
                       }}
                       onKeyDown={onSearchKeyDown}
-                      className="h-9 w-56 sm:w-72 rounded-lg bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition disabled:opacity-60"
+                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition disabled:opacity-60"
                     />
                     <button
                       type="submit"

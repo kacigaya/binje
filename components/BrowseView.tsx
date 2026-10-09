@@ -178,7 +178,7 @@ async function DiscoverResults({
         {/* A full reload: a client navigation to the same URL can reuse the failed render. */}
         <a
           href={`${basePath}${query}`}
-          className="inline-block rounded-lg border border-white/15 px-4 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          className="inline-block rounded-full border border-white/15 px-4 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
         >
           {t("Try again")}
         </a>
@@ -197,14 +197,14 @@ async function DiscoverResults({
         {filters.page > 1 ? (
           <Link
             href={`${basePath}${browseQuery(filters, { page: 1 })}`}
-            className="inline-block rounded-lg border border-white/15 px-4 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="inline-block rounded-full border border-white/15 px-4 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
             {t("Page")} 1
           </Link>
         ) : (
           <Link
             href={basePath}
-            className="inline-block rounded-lg border border-white/15 px-4 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="inline-block rounded-full border border-white/15 px-4 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
             {t("Clear filters")}
           </Link>
@@ -234,7 +234,7 @@ async function DiscoverResults({
           {filters.page > 1 ? (
             <Link
               href={`${basePath}${browseQuery(filters, { page: filters.page - 1 })}`}
-              className="rounded-lg border border-white/15 px-4 py-2 font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+              className="rounded-full border border-white/15 px-4 py-2 font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
             >
               {t("Previous")}
             </Link>
@@ -245,7 +245,7 @@ async function DiscoverResults({
           {filters.page < lastPage ? (
             <Link
               href={`${basePath}${browseQuery(filters, { page: filters.page + 1 })}`}
-              className="rounded-lg border border-white/15 px-4 py-2 font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+              className="rounded-full border border-white/15 px-4 py-2 font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
             >
               {t("Next")}
             </Link>
@@ -262,7 +262,7 @@ export function BrowseViewSkeleton() {
     <div className="flex flex-col gap-10" aria-hidden="true">
       <div className="flex gap-2 px-4 sm:px-6">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-9 w-36 shrink-0 rounded-lg" />
+          <Skeleton key={i} className="h-9 w-36 shrink-0 rounded-full" />
         ))}
       </div>
       <CarouselSkeleton />

@@ -204,7 +204,7 @@ export default function Hero({ items }: HeroProps) {
                   size: "lg",
                   variant: "outline",
                   className:
-                    "rounded-lg border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-6 sm:px-8 h-12 text-base cursor-pointer",
+                    "rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-6 sm:px-8 h-12 text-base cursor-pointer",
                 })}
               >
                 <Info className="size-5" />

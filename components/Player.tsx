@@ -368,14 +368,14 @@ export default function Player({
 
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
-      <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-lg border border-white/15 bg-black/75 p-1">
+      <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/75 p-1">
         {source && sourceOptions.includes(source) && (
           <Select
             ariaLabel={t("Source")}
             value={source}
             onValueChange={(value) => setPicked({ key: mediaKey, value })}
             items={sourceOptions.map((id) => ({ value: id, label: SOURCE_LABELS[id] }))}
-            className="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold text-white"
+            className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white"
           />
         )}
         {qualities.length > 0 && (
@@ -390,7 +390,7 @@ export default function Player({
                 label: `${item.height}p`,
               })),
             ]}
-            className="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums"
+            className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums"
           />
         )}
         <CastControls
@@ -447,7 +447,7 @@ export default function Player({
               type="button"
               variant="outline"
               onClick={retry}
-              className="h-9 cursor-pointer gap-2 rounded-lg px-4"
+              className="h-9 cursor-pointer gap-2 rounded-full px-4"
             >
               <RotateCcw aria-hidden="true" className="size-4" />
               {t("Try Again")}

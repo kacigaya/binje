@@ -41,7 +41,8 @@ export async function generateMetadata({
     locale,
     "Browse movies and TV shows with TMDB and Rotten Tomatoes ratings, then play them from third-party sources.",
   );
-  const ogImage = `${SITE_URL}/icon.svg`;
+  // Wordmark only, no copy, so one card serves both locales.
+  const ogImage = { url: `${SITE_URL}/og.png`, width: 1200, height: 630, alt: "b!nje" };
   return {
     metadataBase: new URL(SITE_URL),
     title: { default: "b!nje", template: "%s | b!nje" },
@@ -54,7 +55,7 @@ export async function generateMetadata({
       description,
       url: `/${locale}`,
       locale: locale === "fr" ? "fr_FR" : "en_US",
-      images: [{ url: ogImage }],
+      images: [ogImage],
     },
     twitter: {
       card: "summary_large_image",

@@ -26,7 +26,7 @@ export default function HeroSkeleton() {
             </div>
             <div className="flex items-center gap-3 pt-2">
               <Skeleton className="h-12 w-40 rounded-full" />
-              <Skeleton className="h-12 w-36 rounded-lg" />
+              <Skeleton className="h-12 w-36 rounded-full" />
             </div>
           </div>
         </div>

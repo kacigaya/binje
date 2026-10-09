@@ -167,7 +167,7 @@ export default function TVPlayer({
               value: s.season_number,
               label: s.name,
             }))}
-            className="h-10 rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:border-accent-red/50 focus-visible:ring-accent-red/30"
+            className="h-10 rounded-full border border-white/15 bg-white/5 px-4 text-sm font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:border-accent-red/50 focus-visible:ring-accent-red/30"
           />
         </div>
 
@@ -193,7 +193,7 @@ export default function TVPlayer({
             onClick={prevEpisode}
             {...prevFeedback}
             disabled={!hasPrev}
-            className="h-10 rounded-lg px-4 cursor-pointer"
+            className="h-10 rounded-full px-4 cursor-pointer"
           >
             <ChevronLeftIcon ref={prevIcon} size={16} />
             {t("Previous")}
@@ -205,7 +205,7 @@ export default function TVPlayer({
             onClick={nextEpisode}
             {...nextFeedback}
             disabled={!hasNext}
-            className="h-10 rounded-lg px-4 cursor-pointer"
+            className="h-10 rounded-full px-4 cursor-pointer"
           >
             {t("Next")}
             <ChevronRightIcon ref={nextIcon} size={16} />
@@ -236,7 +236,7 @@ export default function TVPlayer({
             <button
               type="button"
               onClick={() => setEpisodesSeason(null)}
-              className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-white/15 px-3 font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+              className="inline-flex h-9 cursor-pointer items-center rounded-full border border-white/15 px-3 font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
             >
               {t("Try again")}
             </button>
