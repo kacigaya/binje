@@ -8,10 +8,8 @@ import { allowStreamHost, streamCookie, streamUserAgent } from "@/lib/hls-hosts"
 // playability checks) must not reach private networks, including through a
 // redirect or a DNS answer that changes between the check and the connection.
 const MAX_REDIRECTS = 4;
-// A single viewer pulls hundreds of segments a minute, and every one of them
-// used to resolve the host twice: once in the pre-flight check and once in the
-// dispatcher below. The window is short enough that a rebinding answer still
-// expires quickly, and both call sites share it so they cannot disagree.
+// Viewers pull hundreds of segments a minute; one short-lived lookup shared by
+// the check and the dispatcher keeps them from disagreeing.
 const DNS_TTL_MS = 60_000;
 const MAX_DNS_ENTRIES = 200;
 
@@ -107,10 +105,8 @@ export async function isSafeHost(url: URL) {
   }
 }
 
-// The pre-flight check above and fetch would otherwise resolve the hostname
-// twice, so a DNS-rebinding answer could return a public IP to the check and a
-// private one to the connection. This dispatcher validates the addresses the
-// socket actually connects to.
+// Validates the addresses the socket actually connects to, so a DNS-rebinding
+// answer cannot pass the pre-flight check and then hit a private IP.
 const dispatcher = new Agent({
   connect: {
     lookup(hostname, options, callback) {

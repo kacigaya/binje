@@ -13,9 +13,7 @@ import { isLocale, translate } from "@/lib/i18n";
 import { LocaleProvider } from "@/lib/use-locale";
 import { SITE_URL } from "@/lib/site";
 
-// Both families are variable fonts. Listing weights makes next/font fetch a
-// static instance per weight; omitting them fetches one file that covers the
-// whole axis, so every weight the UI uses still renders.
+// Variable fonts: omitting weights fetches one file covering the whole axis.
 const heading = Space_Grotesk({
   variable: "--font-heading",
   subsets: ["latin"],

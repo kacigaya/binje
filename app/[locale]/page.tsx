@@ -51,9 +51,7 @@ async function FeaturedHero({ locale }: { locale: Locale }) {
 async function TrendingMovies({ locale }: { locale: Locale }) {
   const trending = await getTrending(locale);
   return (
-    // No `priority`: the hero above this rail is 70vh on phones and 80vh on
-    // desktop, so the first posters are always below the fold. Marking them
-    // eager preloaded six of them ahead of the hero backdrop.
+    // No `priority`: the hero pushes these posters below the fold on every viewport.
     <Carousel
       title={translate(locale, "Trending Movies")}
       items={trending.map(movieToMedia)}

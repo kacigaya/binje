@@ -26,11 +26,8 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
   );
 
   const [icon, feedback] = useAnimatedIcon();
-  // Play the check once on the save itself, not only on hover: the tick is the
-  // confirmation that the title landed in the watchlist.
-  // Tied to the click, not to `added`: the server snapshot is always false, so
-  // an already-saved title flips false -> true on hydration too, and keying off
-  // the state alone would tick the check on every page load.
+  // Tied to the click, not `added`: hydration flips saved titles false -> true,
+  // which would tick the check on every page load.
   const savedByClick = useRef(false);
   useEffect(() => {
     if (!added || !savedByClick.current) return;

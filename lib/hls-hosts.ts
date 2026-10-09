@@ -1,8 +1,5 @@
-// /api/hls used to proxy any public URL, which made it an open relay. Stream
-// hosts are dynamic CDN names, so instead of a static allowlist the resolvers
-// register every host they hand out and the proxy serves only those.
-// ponytail: in-memory, per-instance, lost on restart (playback then needs a
-// re-resolve). Move to a shared store only when running more than one instance.
+// Resolvers register every host they hand out and the proxy serves only those.
+// ponytail: in-memory per instance; move to a shared store past one instance.
 const TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_HOSTS = 1000;
 

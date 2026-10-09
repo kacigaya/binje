@@ -19,10 +19,8 @@ import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n";
 const BASE_URL = "https://api.themoviedb.org/3";
 const API_KEY = process.env.TMDB_API_KEY;
 
-// Caching is owned by `"use cache"` in `@/lib/cached-tmdb` (and by
-// response `Cache-Control` in API routes), so no legacy `next.revalidate`
-// is set here. The numeric second argument is kept so existing callers
-// do not need to change.
+// Caching is owned by `"use cache"` in `@/lib/cached-tmdb`; the numeric
+// second argument only stays for existing callers.
 async function tmdbFetch<T>(
   endpoint: string,
   _revalidate: number = 3600,

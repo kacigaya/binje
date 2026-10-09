@@ -73,10 +73,8 @@ export async function isPlayableManifest(url: string, upstream: Upstream & { coo
   }
 }
 
-// Providers expose several servers of uneven quality. Probing them together
-// keeps a dead one from costing its full timeout, while the answer still
-// honours the listed preference: the earliest task that succeeds wins as soon
-// as every task before it has failed.
+// Probed together so a dead server cannot cost its full timeout; the earliest
+// task wins once every task before it has failed.
 export function firstInOrder<T>(tasks: Promise<T>[]): Promise<T> {
   return new Promise((resolve, reject) => {
     const settled: ({ ok: true; value: T } | { ok: false } | undefined)[] = tasks.map(() => undefined);

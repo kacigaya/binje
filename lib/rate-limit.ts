@@ -39,11 +39,8 @@ export function isRateLimited(ip: string, pathname: string): boolean {
   const entry = hits.get(key);
 
   if (!entry || now > entry.resetAt) {
-    // Expired windows are swept on every new window (not only when full),
-    // and the map is hard-capped by evicting the oldest buckets first so a
-    // flood of distinct IPs cannot grow memory without bound. Note this is
-    // still per-instance: behind multiple servers each instance enforces
-    // its own window.
+    // Sweep expired windows and cap the map so a flood of IPs cannot grow memory.
+    // Per-instance: multiple servers each enforce their own window.
     for (const [k, v] of hits) if (now > v.resetAt) hits.delete(k);
     while (hits.size >= MAX_BUCKETS) {
       const oldest = hits.keys().next();

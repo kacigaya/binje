@@ -2,11 +2,8 @@ import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import { createTtlCache } from "@/lib/ttl-cache";
 import type { ResolverResult } from "@/lib/videasy";
 
-// MovieBox is the Android app's private BFF. The request signing, client
-// identity and playback flow below mirror the open-source MovieBox-Tui client
-// (src/providers/moviebox/{crypto,client,adapt}.rs). Live checks on
-// 2026-09-11 showed the signature and x-client-info are required; the
-// spoofed x-forwarded-for the TUI sends is not, so it is left out.
+// MovieBox is the Android app's private BFF. Signing, client identity and
+// playback flow mirror the open-source MovieBox-Tui client.
 const HOSTS = [
   "https://api6.aoneroom.com",
   "https://api5.aoneroom.com",

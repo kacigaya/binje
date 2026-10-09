@@ -55,14 +55,8 @@ export default function CookiesBanner() {
   }
 
   return (
-    // The enter keyframe lives in globals.css and stays on the compositor
-    // (transform/opacity only). The panel is near-opaque, so it carries no
-    // backdrop-filter: blurring behind bg-background/95 costs GPU for no
-    // visible effect.
-    // A landmark rather than a dialog: focus is never moved into it and it
-    // does not trap, so announcing it as a dialog would misdescribe it.
-    // A slim bar rather than a card: the card covered the first row of
-    // posters and, on phones, the detail page's play button.
+    // No backdrop-filter: the panel is near-opaque, so blur costs GPU for nothing.
+    // A landmark, not a dialog: focus never moves into it.
     <div
       role="region"
       aria-label={t("Cookie consent")}

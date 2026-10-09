@@ -180,11 +180,8 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
               const active = index === activeIndex;
 
               return (
-                // A link, so a result can be opened in a new tab. It stays a
-                // plain link: `role="option"` would strip the link semantics,
-                // and the input no longer points at it via
-                // aria-activedescendant. Arrows/Enter are an enhancement;
-                // Tab reaches every result directly.
+                // A plain link so results open in new tabs; `role="option"` would strip that.
+                // Tab reaches every result; arrows/Enter are an enhancement.
                 <Link
                   key={item.key}
                   href={localizedHref(locale, item.href)}

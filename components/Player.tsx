@@ -57,10 +57,8 @@ function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
 }
 
-// Upstream only reports height, never bitrate, so map each rendition to a
-// conservative H.264 bitrate-ladder value instead of inventing bandwidth
-// from a quadratic. Values are bits/sec ceilings typical for the height;
-// unknown heights fall back to the nearest lower rung.
+// Upstream reports height only, so bitrates come from a conservative H.264
+// ladder; unknown heights use the nearest lower rung.
 const BITRATE_LADDER: [height: number, bandwidth: number][] = [
   [2160, 16_000_000],
   [1440, 10_000_000],
@@ -216,10 +214,8 @@ export default function Player({
       video.canPlayType("application/vnd.apple.mpegurl") &&
         "webkitShowPlaybackTargetPicker" in video,
     );
-    // hls.js is ~600 KB and Safari never needs it, so it lives in its own chunk
-    // rather than the watch route's. Start that download alongside the resolve
-    // instead of after it, so splitting it out costs no playback latency. A
-    // failed load degrades to the native `canPlayType` path below.
+    // hls.js (~600 KB) is its own chunk, loaded alongside the resolve.
+    // A failed load degrades to the native `canPlayType` path below.
     const hlsModulePromise = nativeHlsSupported
       ? null
       : import("hls.js")
@@ -332,9 +328,8 @@ export default function Player({
     });
   }, [episode, season, tmdbId, type]);
 
-  // Pick up where history left off. Runs for every source that loads, so a
-  // failover to the next source resumes too; a stream already past its
-  // first second has been positioned by the viewer and is left alone.
+  // Resumes on every source that loads, including failovers. A stream already
+  // past its first second was positioned by the viewer and is left alone.
   function onLoadedMetadata() {
     const video = videoRef.current;
     if (!video || video.currentTime > 1) return;

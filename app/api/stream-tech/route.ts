@@ -5,9 +5,7 @@ export const maxDuration = 30;
 
 const EMPTY = { height: null, video: null, audio: null };
 
-// The browser used to run this probe itself: a resolve, a master playlist, a
-// variant playlist and a 128 KB segment read, on every detail page view. It is
-// one cached JSON response now.
+// Server-side so a detail page view costs one cached JSON response, not a probe.
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
   const type = query.get("type");

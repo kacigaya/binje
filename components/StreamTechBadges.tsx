@@ -99,8 +99,7 @@ export default function StreamTechBadges({
           params.set("season", "1");
           params.set("episode", "1");
         }
-        // The resolve chain, both playlists and the 128 KB transport-stream
-        // read all happen server-side now, behind a shared six-hour cache.
+        // The probe runs server-side behind a shared six-hour cache.
         const response = await fetch(`/api/stream-tech?${params.toString()}`);
         if (!response.ok) return;
         const nextInfo = (await response.json()) as Info;

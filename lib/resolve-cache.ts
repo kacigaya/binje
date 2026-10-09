@@ -1,11 +1,8 @@
 import { createTtlCache } from "@/lib/ttl-cache";
 import { resolveVideasyStream, type ResolverResult } from "@/lib/videasy";
 
-// A resolve costs three to six upstream calls (seed, sources, decrypt, plus
-// retries and the vsrc fallback). The detail page probes the stream for its
-// tech badges and the watch page resolves the same title again seconds later,
-// so without this the same chain runs several times per visitor.
-// The window stays short because provider URLs are signed and expire.
+// Detail and watch pages resolve the same title seconds apart, and a resolve
+// costs three to six upstream calls. Short window: provider URLs expire.
 const RESOLVE_TTL_MS = 10 * 60 * 1000;
 
 export type ResolveParams = {
