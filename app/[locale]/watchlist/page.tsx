@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Bookmark } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Watchlist from "@/components/Watchlist";
 import { translate, type Locale } from "@/lib/i18n";
@@ -18,7 +17,6 @@ export default async function WatchlistPage({ params }: { params: Promise<{ loca
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-16 pt-24 sm:px-6 sm:pt-28">
       <div>
         <div className="flex items-center gap-3">
-          <Bookmark className="size-7 text-accent-red sm:h-8 sm:w-8" />
           <h1
             className="text-2xl font-bold tracking-tight sm:text-3xl text-balance"
             style={{ fontFamily: "var(--font-heading)" }}

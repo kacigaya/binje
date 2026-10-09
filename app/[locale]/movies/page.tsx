@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
-import { Clapperboard } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
@@ -68,7 +67,6 @@ export default async function MoviesPage({
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 pb-16 pt-24 sm:pt-28">
       <header className="px-4 sm:px-6">
         <div className="flex items-center gap-3">
-          <Clapperboard aria-hidden="true" className="size-7 text-accent-red sm:h-8 sm:w-8" />
           <h1
             className="text-2xl font-bold tracking-tight sm:text-3xl text-balance"
             style={{ fontFamily: "var(--font-heading)" }}

@@ -50,7 +50,7 @@ export default function ExpandableOverview({
           onClick={() => setExpanded(!expanded)}
           aria-expanded={expanded}
           aria-controls={textId}
-          className="text-accent-red text-sm font-medium mt-1 rounded hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          className="text-accent-red-text text-sm font-medium mt-1 rounded hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
         >
           {t(expanded ? "Show less" : "Read more")}
         </button>

@@ -121,7 +121,7 @@ export default function StreamTechBadges({
 
   const badges: string[] = [];
   if (info.height) badges.push(info.height >= 2160 ? "4K" : `${info.height}p`);
-  if (info.video) badges.push(info.video === "HEVC" ? "HDR" : "SDR");
+  if (info.video) badges.push(info.video === "HEVC" ? "HEVC" : "H.264");
   if (info.audio) badges.push(info.audio);
   if (badges.length === 0) return <span ref={sentinelRef} aria-hidden="true" />;
 
@@ -130,7 +130,7 @@ export default function StreamTechBadges({
       {badges.map((badge) => (
         <span
           key={badge}
-          className="rounded border border-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-foreground/70"
+          className="rounded border border-white/20 px-1.5 py-0.5 text-xs font-semibold text-foreground/70"
         >
           {badge}
         </span>

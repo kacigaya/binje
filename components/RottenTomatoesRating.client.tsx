@@ -55,7 +55,7 @@ export default function RottenTomatoesRating({
   if (score === null) return null;
 
   return (
-    <div className="flex items-center gap-1.5 font-semibold text-accent-red">
+    <div className="flex items-center gap-1.5 font-semibold text-foreground">
       <Image
         src="/rotten-tomatoes.svg"
         alt=""

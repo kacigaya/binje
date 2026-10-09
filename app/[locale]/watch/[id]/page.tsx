@@ -38,7 +38,7 @@ export async function generateMetadata({
     const image = backdropUrl(movie.backdrop_path, "w1280");
     const fallback = translate(
       locale,
-      "Discover and stream thousands of movies. Your cinematic journey starts here.",
+      "Browse movies and TV shows with TMDB and Rotten Tomatoes ratings, then play them from third-party sources.",
     );
     const description = movie.overview || fallback;
     const canonical = `/${locale}/movie/${movieId}`;

@@ -3,18 +3,17 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import { Cookie, Film, ShieldCheck } from "lucide-react";
 import { CONSENT_STORAGE_KEY } from "@/lib/consent";
 import { LOCALES, localizedHref, type Locale } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 
 const LOCALE_LINK_BASE =
-  "rounded-full px-2 py-1 uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60";
+  "rounded-md px-2 py-1 uppercase transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60";
 
 function localeLinkClassName(active: boolean) {
   return `${LOCALE_LINK_BASE} ${
     active
-      ? "bg-accent-red text-white"
+      ? "bg-white/15 text-foreground"
       : "text-muted-foreground hover:text-foreground"
   }`;
 }
@@ -74,14 +73,13 @@ export default function Footer() {
           className="flex items-center gap-2 text-sm text-muted-foreground"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          <Film className="size-4 text-accent-red" />
           <span className="font-bold tracking-tight text-foreground" translate="no">
             b<span className="text-accent-red">!</span>nje
           </span>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-          <div className="flex items-center rounded-full border border-white/10 bg-white/5 p-0.5 text-xs font-semibold">
+          <div className="flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5 text-xs font-semibold">
             <Suspense
               fallback={
                 <LocaleLinkList locale={locale} path={pathname} search="" />
@@ -103,14 +101,12 @@ export default function Footer() {
             }}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
-            <Cookie className="size-4" />
             {t("Cookies")}
           </button>
           <Link
             href={localizedHref(locale, "/privacy")}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ShieldCheck className="size-4" />
             {t("Privacy")}
           </Link>
           <Link

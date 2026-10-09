@@ -31,7 +31,7 @@ export default function BrowseFilterSelect({
       items={items}
       onValueChange={(href) => router.push(href, { scroll: false })}
       className={cn(
-        "h-9 max-w-full min-w-0 gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors",
+        "h-9 max-w-full min-w-0 gap-2 rounded-lg border px-3.5 text-sm font-medium transition-colors",
         active ? "border-foreground" : "border-white/15 hover:bg-white/10",
       )}
     />

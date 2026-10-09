@@ -101,7 +101,7 @@ export default function ContinueWatching() {
                   onClick={(event) => removeItem(event, item)}
                   label={`${t("Remove from continue watching")}: ${item.title}`}
                   iconSize={14}
-                  className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-accent-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/70"
+                  className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-black/75 text-white transition-colors hover:bg-accent-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/70"
                 />
                 <IntentPrefetchLink
                   href={localizedHref(locale, getPlayHistoryHref(item))}
@@ -119,13 +119,13 @@ export default function ContinueWatching() {
                   )}
 
                   {item.type === "tv" && item.season && item.episode && (
-                    <div className="absolute top-1.5 left-1.5 rounded-full bg-black/60 backdrop-blur-sm px-2 py-0.5 text-[11px] font-semibold text-white">
+                    <div className="absolute top-1.5 left-1.5 rounded-full bg-black/75 px-2 py-0.5 text-[11px] font-semibold text-white">
                       S{item.season}E{item.episode}
                     </div>
                   )}
 
                   {timings && (
-                    <div className="absolute bottom-2 right-1.5 rounded-md bg-black/70 backdrop-blur-sm px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-white">
+                    <div className="absolute bottom-2 right-1.5 rounded-md bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-white">
                       {timings}
                     </div>
                   )}

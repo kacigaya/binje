@@ -49,8 +49,9 @@ export default function TVPlayer({
   const router = useRouter();
   const [season, setSeason] = useState(initialSeason);
   const [episode, setEpisode] = useState(initialEpisode);
-  const [episodes, setEpisodes] = useState<Episode[]>(initialEpisodes);
-  const [episodesSeason, setEpisodesSeason] = useState(initialSeason);
+  // `null` episodes means the fetch failed; a `null` season forces a refetch.
+  const [episodes, setEpisodes] = useState<Episode[] | null>(initialEpisodes);
+  const [episodesSeason, setEpisodesSeason] = useState<number | null>(initialSeason);
 
   const currentSeason = seasons.find((s) => s.season_number === season);
   const maxEpisodes = currentSeason?.episode_count ?? 1;
@@ -61,7 +62,7 @@ export default function TVPlayer({
 
     let cancelled = false;
     fetch(`/api/episodes?showId=${showId}&season=${season}&lang=${locale}`)
-      .then((res) => (res.ok ? res.json() : { episodes: [] }))
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("episodes"))))
       .then((data) => {
         if (cancelled) return;
         setEpisodes(data.episodes ?? []);
@@ -69,7 +70,7 @@ export default function TVPlayer({
       })
       .catch(() => {
         if (cancelled) return;
-        setEpisodes([]);
+        setEpisodes(null);
         setEpisodesSeason(season);
       });
 
@@ -83,7 +84,7 @@ export default function TVPlayer({
     canScrollLeft,
     canScrollRight,
     scroll: scrollEpisodes,
-  } = useHorizontalScroll(`${episodesSeason}:${episodes.length}:${loading}`);
+  } = useHorizontalScroll(`${episodesSeason}:${episodes?.length}:${loading}`);
 
   function episodeHref(s: number, e: number) {
     return localizedHref(locale, `/watch/tv/${showId}?s=${s}&e=${e}`);
@@ -155,7 +156,7 @@ export default function TVPlayer({
 
       <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">
         <div className="flex items-center justify-between gap-3 sm:justify-start">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-sm font-medium text-muted-foreground">
             {t("Season")}
           </span>
           <Select
@@ -166,13 +167,13 @@ export default function TVPlayer({
               value: s.season_number,
               label: s.name,
             }))}
-            className="h-10 rounded-full border border-white/15 bg-white/5 px-4 text-sm font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:border-accent-red/50 focus-visible:ring-accent-red/30"
+            className="h-10 rounded-lg border border-white/15 bg-white/5 px-4 text-sm font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:border-accent-red/50 focus-visible:ring-accent-red/30"
           />
         </div>
 
         <div className="flex min-w-0 items-center sm:border-l sm:border-white/10 sm:pl-4">
           <p className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="block text-xs text-muted-foreground">
               {t("Now playing")}
             </span>
             <span
@@ -192,7 +193,7 @@ export default function TVPlayer({
             onClick={prevEpisode}
             {...prevFeedback}
             disabled={!hasPrev}
-            className="h-10 rounded-full px-4 cursor-pointer"
+            className="h-10 rounded-lg px-4 cursor-pointer"
           >
             <ChevronLeftIcon ref={prevIcon} size={16} />
             {t("Previous")}
@@ -204,7 +205,7 @@ export default function TVPlayer({
             onClick={nextEpisode}
             {...nextFeedback}
             disabled={!hasNext}
-            className="h-10 rounded-full px-4 cursor-pointer"
+            className="h-10 rounded-lg px-4 cursor-pointer"
           >
             {t("Next")}
             <ChevronRightIcon ref={nextIcon} size={16} />
@@ -228,6 +229,17 @@ export default function TVPlayer({
                 className="w-72 sm:w-80 shrink-0 aspect-video rounded-2xl bg-white/5 animate-pulse motion-reduce:animate-none"
               />
             ))}
+          </div>
+        ) : episodes === null ? (
+          <div role="alert" className="flex items-center gap-3 text-sm text-muted-foreground">
+            <p>{t("Couldn’t load episodes.")}</p>
+            <button
+              type="button"
+              onClick={() => setEpisodesSeason(null)}
+              className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-white/15 px-3 font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            >
+              {t("Try again")}
+            </button>
           </div>
         ) : episodes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -287,7 +299,7 @@ export default function TVPlayer({
                   <div className="absolute inset-x-0 bottom-0 p-3.5 space-y-1 transition-opacity group-hover:opacity-0">
                     <p className="text-sm font-semibold leading-snug text-white line-clamp-2">
                       {isActive && (
-                        <span className="mr-1.5 inline-block translate-y-[-1px] rounded bg-accent-red px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider align-middle">
+                        <span className="mr-1.5 inline-block translate-y-[-1px] rounded bg-accent-red px-1.5 py-0.5 text-xs font-semibold align-middle">
                           {t("Watching")}
                         </span>
                       )}

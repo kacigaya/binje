@@ -16,7 +16,7 @@ export default function NotFound() {
   return (
     <div className="dark flex min-h-dvh flex-col items-center justify-center gap-6 bg-background px-4 text-foreground antialiased">
       <div className="flex size-16 items-center justify-center rounded-full bg-white/8">
-        <Compass className="size-8 text-accent-red" />
+        <Compass className="size-8 text-muted-foreground" />
       </div>
       <div className="space-y-2 text-center">
         <h1 className="text-2xl font-bold">Page not found</h1>
@@ -30,7 +30,7 @@ export default function NotFound() {
         {...homeFeedback}
         className={buttonClassName({
           variant: "outline",
-          className: "gap-2 rounded-full h-11 px-6 cursor-pointer",
+          className: "gap-2 rounded-lg h-11 px-6 cursor-pointer",
         })}
       >
         <HomeIcon ref={homeIcon} size={16} />

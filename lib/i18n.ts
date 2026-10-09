@@ -4,8 +4,8 @@ export type Locale = (typeof LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = "en";
 
 const FRENCH = {
-  "Discover and stream thousands of movies. Your cinematic journey starts here.":
-    "Découvrez et regardez des milliers de films. Votre voyage cinématographique commence ici.",
+  "Browse movies and TV shows with TMDB and Rotten Tomatoes ratings, then play them from third-party sources.":
+    "Parcourez films et séries avec les notes TMDB et Rotten Tomatoes, puis lancez-les depuis des sources tierces.",
   Movies: "Films",
   "TV Shows": "Séries",
   Watchlist: "Ma liste",
@@ -97,10 +97,19 @@ const FRENCH = {
   "Try Again": "Réessayer",
   All: "Tout",
   "No results found": "Aucun résultat",
+  "Search is unavailable right now": "La recherche est indisponible pour le moment",
+  "The search service did not respond. Your query is fine.":
+    "Le service de recherche n’a pas répondu. Votre requête n’est pas en cause.",
+  "Try again": "Réessayer",
+  "Couldn’t load titles": "Impossible de charger les titres",
+  "The catalogue service did not respond. This is usually temporary.":
+    "Le catalogue n’a pas répondu. C’est généralement temporaire.",
+  "No titles match these filters.": "Aucun titre ne correspond à ces filtres.",
+  "Couldn’t load episodes.": "Impossible de charger les épisodes.",
   "No Poster": "Aucune affiche",
   "Try a different search term or check the spelling.":
     "Essayez une autre recherche ou vérifiez l’orthographe.",
-  "Discover movies & TV shows": "Découvrez des films et séries",
+  "Search movies & TV shows": "Rechercher des films et séries",
   "Start typing to search thousands of titles.":
     "Commencez à écrire pour rechercher parmi des milliers de titres.",
   "Stream unavailable. Try again later.":

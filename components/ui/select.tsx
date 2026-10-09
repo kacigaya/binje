@@ -62,7 +62,7 @@ function Select<T extends string | number>({
           alignItemWithTrigger={alignItemWithTrigger}
           className="z-50 outline-none"
         >
-          <BaseSelect.Popup className="max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-background/95 p-1 text-sm text-foreground shadow-lg shadow-black/40 backdrop-blur">
+          <BaseSelect.Popup className="max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-popover p-1 text-sm text-foreground shadow-lg shadow-black/40">
             {items.map((item) => (
               <BaseSelect.Item
                 key={String(item.value)}
@@ -71,7 +71,7 @@ function Select<T extends string | number>({
               >
                 <BaseSelect.ItemText>{item.label}</BaseSelect.ItemText>
                 <BaseSelect.ItemIndicator>
-                  <Check className="size-3.5 text-accent-red" />
+                  <Check className="size-3.5 text-foreground" />
                 </BaseSelect.ItemIndicator>
               </BaseSelect.Item>
             ))}

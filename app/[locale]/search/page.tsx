@@ -83,6 +83,7 @@ function SearchContent() {
   const [loading, setLoading] = useState(initialQuery.trim() !== "");
   const [searched, setSearched] = useState(initialQuery.trim() !== "");
   const [filter, setFilter] = useState<FilterType>(initialType);
+  const [failed, setFailed] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const doSearch = useCallback(async (q: string) => {
@@ -90,6 +91,7 @@ function SearchContent() {
     if (!q.trim()) {
       setResults([]);
       setSearched(false);
+      setFailed(false);
       setLoading(false);
       return;
     }
@@ -97,14 +99,25 @@ function SearchContent() {
     abortRef.current = controller;
     setLoading(true);
     setSearched(true);
+    setFailed(false);
     try {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&lang=${locale}`, {
         signal: controller.signal,
       });
+      // A 400 is a query the API refuses (too long), which really has no
+      // matches. Anything else failing must not read as "no matches".
+      if (res.status === 400) {
+        if (!controller.signal.aborted) setResults([]);
+        return;
+      }
+      if (!res.ok) throw new Error("search");
       const data: SearchApiResponse = await res.json();
       if (!controller.signal.aborted) setResults(data.results ?? []);
     } catch {
-      if (!controller.signal.aborted) setResults([]);
+      if (!controller.signal.aborted) {
+        setResults([]);
+        setFailed(true);
+      }
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
@@ -182,7 +195,7 @@ function SearchContent() {
             type="button"
             onClick={() => setFilter(type)}
             aria-pressed={filter === type}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 ${
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 ${
               filter === type
                 ? "bg-accent-red text-white"
                 : "bg-white/5 text-muted-foreground hover:text-foreground hover:bg-white/10"
@@ -218,7 +231,28 @@ function SearchContent() {
         </div>
       )}
 
-      {!loading && searched && filtered.length === 0 && (
+      {!loading && failed && (
+        <div role="alert" className="flex flex-col items-center justify-center py-24 text-center">
+          <h2
+            className="text-xl font-semibold mb-2"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {t("Search is unavailable right now")}
+          </h2>
+          <p className="text-muted-foreground">
+            {t("The search service did not respond. Your query is fine.")}
+          </p>
+          <button
+            type="button"
+            onClick={() => doSearch(query)}
+            className="mt-6 inline-flex h-11 cursor-pointer items-center rounded-lg border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          >
+            {t("Try again")}
+          </button>
+        </div>
+      )}
+
+      {!loading && !failed && searched && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Search aria-hidden="true" className="size-12 text-muted-foreground/40 mb-4" />
           <h2
@@ -232,7 +266,7 @@ function SearchContent() {
           </p>
           <Link
             href={localizedHref(locale, "/movies")}
-            className="mt-6 inline-flex h-11 items-center rounded-full border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="mt-6 inline-flex h-11 items-center rounded-lg border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
             {t("Browse movies")}
           </Link>
@@ -246,14 +280,14 @@ function SearchContent() {
             className="text-xl font-semibold mb-2"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            {t("Discover movies & TV shows")}
+            {t("Search movies & TV shows")}
           </h2>
           <p className="text-muted-foreground">
             {t("Start typing to search thousands of titles.")}
           </p>
           <Link
             href={localizedHref(locale, "/movies")}
-            className="mt-6 inline-flex h-11 items-center rounded-full border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="mt-6 inline-flex h-11 items-center rounded-lg border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
             {t("Browse movies")}
           </Link>

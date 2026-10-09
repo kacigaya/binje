@@ -157,27 +157,56 @@ async function DiscoverResults({
   await connection();
   const today = new Date().toISOString().slice(0, 10);
   const endpoint = discoverEndpoint(type, filters, today);
-  const { results, totalPages } =
+  // `null` marks a failed request, so an outage never renders as an empty filter.
+  const data =
     type === "movie"
       ? await discoverMovies(endpoint, locale)
-          .then((data) => ({ ...data, results: data.results.map(movieToMedia) }))
-          .catch(() => ({ results: [], totalPages: 0 }))
+          .then((page) => ({ ...page, results: page.results.map(movieToMedia) }))
+          .catch(() => null)
       : await discoverTV(endpoint, locale)
-          .then((data) => ({ ...data, results: data.results.map(tvToMedia) }))
-          .catch(() => ({ results: [], totalPages: 0 }));
+          .then((page) => ({ ...page, results: page.results.map(tvToMedia) }))
+          .catch(() => null);
+
+  const query = browseQuery(filters, { page: filters.page });
+  if (!data) {
+    return (
+      <div role="alert" className="space-y-3 px-4 sm:px-6">
+        <p className="font-semibold">{t("Couldn’t load titles")}</p>
+        <p className="text-muted-foreground">
+          {t("The catalogue service did not respond. This is usually temporary.")}
+        </p>
+        {/* A full reload: a client navigation to the same URL can reuse the failed render. */}
+        <a
+          href={`${basePath}${query}`}
+          className="inline-block rounded-lg border border-white/15 px-4 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+        >
+          {t("Try again")}
+        </a>
+      </div>
+    );
+  }
+
+  const { results, totalPages } = data;
   const lastPage = Math.min(totalPages, MAX_PAGE);
 
   if (results.length === 0) {
     return (
       <div className="space-y-3 px-4 sm:px-6">
-        <p className="text-muted-foreground">{t("No results found")}</p>
+        <p className="text-muted-foreground">{t("No titles match these filters.")}</p>
         {/* A hand-edited or stale page number can overshoot the last page. */}
-        {filters.page > 1 && (
+        {filters.page > 1 ? (
           <Link
             href={`${basePath}${browseQuery(filters, { page: 1 })}`}
-            className="inline-block rounded-full border border-white/15 px-4 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="inline-block rounded-lg border border-white/15 px-4 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
             {t("Page")} 1
+          </Link>
+        ) : (
+          <Link
+            href={basePath}
+            className="inline-block rounded-lg border border-white/15 px-4 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          >
+            {t("Clear filters")}
           </Link>
         )}
       </div>
@@ -205,7 +234,7 @@ async function DiscoverResults({
           {filters.page > 1 ? (
             <Link
               href={`${basePath}${browseQuery(filters, { page: filters.page - 1 })}`}
-              className="rounded-full border border-white/15 px-4 py-2 font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+              className="rounded-lg border border-white/15 px-4 py-2 font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
             >
               {t("Previous")}
             </Link>
@@ -216,7 +245,7 @@ async function DiscoverResults({
           {filters.page < lastPage ? (
             <Link
               href={`${basePath}${browseQuery(filters, { page: filters.page + 1 })}`}
-              className="rounded-full border border-white/15 px-4 py-2 font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+              className="rounded-lg border border-white/15 px-4 py-2 font-medium hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
             >
               {t("Next")}
             </Link>
@@ -233,7 +262,7 @@ export function BrowseViewSkeleton() {
     <div className="flex flex-col gap-10" aria-hidden="true">
       <div className="flex gap-2 px-4 sm:px-6">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-9 w-36 shrink-0 rounded-full" />
+          <Skeleton key={i} className="h-9 w-36 shrink-0 rounded-lg" />
         ))}
       </div>
       <CarouselSkeleton />

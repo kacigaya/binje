@@ -39,7 +39,7 @@ export async function generateMetadata({
   if (!isLocale(locale)) return {};
   const description = translate(
     locale,
-    "Discover and stream thousands of movies. Your cinematic journey starts here.",
+    "Browse movies and TV shows with TMDB and Rotten Tomatoes ratings, then play them from third-party sources.",
   );
   const ogImage = `${SITE_URL}/icon.svg`;
   return {

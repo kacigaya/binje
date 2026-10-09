@@ -48,7 +48,7 @@ export async function generateMetadata({
     const image = backdropUrl(show.backdrop_path, "w1280");
     const fallback = translate(
       locale,
-      "Discover and stream thousands of movies. Your cinematic journey starts here.",
+      "Browse movies and TV shows with TMDB and Rotten Tomatoes ratings, then play them from third-party sources.",
     );
     const description = show.overview || fallback;
     return {
@@ -271,7 +271,7 @@ function EpisodesSkeleton() {
       <Skeleton className="h-7 w-28" />
       <div className="flex gap-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-8 w-24 rounded-full" />
+          <Skeleton key={i} className="h-8 w-24 rounded-lg" />
         ))}
       </div>
       {Array.from({ length: 4 }).map((_, i) => (

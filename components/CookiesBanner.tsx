@@ -70,7 +70,7 @@ export default function CookiesBanner() {
     >
       <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-background/95 p-3 shadow-2xl shadow-black/40 sm:flex-row sm:items-center sm:gap-4 sm:py-2.5">
         <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:items-center">
-          <Cookie aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-accent-red sm:mt-0" />
+          <Cookie aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground sm:mt-0" />
           <p className="text-xs leading-relaxed text-muted-foreground">
             <span className="font-semibold text-foreground">
               {t("We use local storage")}.

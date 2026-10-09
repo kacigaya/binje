@@ -46,7 +46,7 @@ export default function RouteError({
         onClick={reset}
         {...retryFeedback}
         variant="outline"
-        className="gap-2 rounded-full cursor-pointer"
+        className="gap-2 rounded-lg cursor-pointer"
       >
         <RotateCCWIcon ref={retryIcon} size={16} />
         {t("Try Again")}

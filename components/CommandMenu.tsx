@@ -131,7 +131,7 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
         <Dialog.Backdrop className="fixed inset-0 z-100 bg-black/70 backdrop-blur-sm" />
         <Dialog.Popup
           aria-label={t("Command menu")}
-          className="fixed left-1/2 top-24 z-100 w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/10 bg-background/95 shadow-2xl shadow-black/50 backdrop-blur outline-none"
+          className="fixed left-1/2 top-24 z-100 w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/10 bg-popover shadow-2xl shadow-black/50 outline-none"
         >
           <Dialog.Title className="sr-only">{t("Command menu")}</Dialog.Title>
           <div className="relative border-b border-white/10">
@@ -199,7 +199,7 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
                 >
                   <Icon aria-hidden="true" className="size-4 shrink-0" />
                   <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                  <span className="shrink-0 text-xs uppercase tracking-wider text-muted-foreground">
+                  <span className="shrink-0 text-xs text-muted-foreground">
                     {item.hint}
                   </span>
                 </Link>

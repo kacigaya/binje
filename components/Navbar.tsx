@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
-import { Film, Loader2, Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Menu as MenuNode, Search as SearchNode, X as XNode } from "lucide";
 import { MorphIcon } from "morphicons/react";
 import { ArrowRightIcon } from "@/components/ui/arrow-right";
@@ -196,7 +196,7 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 z-50">
-      <div className="mx-auto max-w-7xl rounded-[2rem] bg-background/70 backdrop-blur-md border border-white/10 shadow-lg shadow-black/30">
+      <div className="mx-auto max-w-7xl rounded-2xl bg-background/70 backdrop-blur-md border border-white/10 shadow-lg shadow-black/30">
         <div className="flex items-center justify-between px-4 sm:px-6 h-16">
         <Link
           href={localizedHref(locale, "/")}
@@ -204,7 +204,6 @@ export default function Navbar() {
           className="flex items-center gap-2 text-xl font-bold tracking-tight"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          <Film className="size-6 text-accent-red" />
           <span className="text-foreground" translate="no">
             b<span className="text-accent-red">!</span>nje
           </span>
@@ -216,7 +215,7 @@ export default function Navbar() {
               {NAV_LINKS.map((link) => {
                 const href = localizedHref(locale, link.href);
                 const baseClassName =
-                  "flex items-center gap-1.5 rounded-full px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm";
+                  "flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm";
                 const inactiveClassName = `${baseClassName} text-muted-foreground hover:bg-white/8 hover:text-foreground`;
 
                 return (
@@ -314,7 +313,7 @@ export default function Navbar() {
                         setActiveSuggestionIndex(-1);
                       }}
                       onKeyDown={onSearchKeyDown}
-                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition disabled:opacity-60"
+                      className="h-9 w-56 sm:w-72 rounded-lg bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition disabled:opacity-60"
                     />
                     <button
                       type="submit"
@@ -389,7 +388,7 @@ export default function Navbar() {
                                   </span>
                                 )}
                               </span>
-                              <span className="ml-auto shrink-0 rounded-full bg-accent-red/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent-red">
+                              <span className="ml-auto shrink-0 rounded-full bg-accent-red/15 px-2 py-0.5 text-xs font-semibold text-accent-red-text">
                                 {t(suggestion.media_type === "tv" ? "TV" : "Movie")}
                               </span>
                             </IntentPrefetchLink>
