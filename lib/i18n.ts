@@ -163,13 +163,8 @@ const FRENCH = {
   Any: "Toutes",
   Page: "Page",
   "Clear filters": "Effacer les filtres",
-  Sources: "Sources",
   "Checking sources…": "Vérification des sources…",
   "Connecting to": "Connexion à",
-  "Connecting…": "Connexion…",
-  Available: "Disponible",
-  Unavailable: "Indisponible",
-  Playing: "En lecture",
   Continue: "Continuer",
   "Allow local storage to save titles.":
     "Autorisez le stockage local pour enregistrer des titres.",

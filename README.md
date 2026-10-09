@@ -24,7 +24,7 @@
 - Dedicated `/movies` and `/tv-shows` browse pages with shareable genre, sort, and decade filters
 - Detailed movie and TV show pages (ratings, cast, per-season episode list, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
-- Watch pages with ten native sources (VidZee, MovieBox, Vidnest, Vsrc, Videm, 2Embed, MoviesAPI, Vidrock, Videasy, French VF), listing only those that play the title in a source panel beside the player, plus subtitles and manual HLS quality selection
+- Watch pages with ten native sources (VidZee, MovieBox, Vidnest, Vsrc, Videm, 2Embed, MoviesAPI, Vidrock, Videasy, French VF), listing only those that play the title in a source picker on the player, plus subtitles and manual HLS quality selection
 - Google Cast on web, Android, and iOS, plus AirPlay on supported Apple devices
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
 - "Continue Watching" row backed by local play history; Resume/Continue buttons and the player pick up at the saved position
