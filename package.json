@@ -14,6 +14,7 @@
     "lint": "eslint",
     "test": "bash -lc 'shopt -s globstar; bun test lib/**/*.test.ts app/**/*.test.ts'",
     "test:instant": "bun run build:instant && playwright test e2e/instant.spec.ts",
+    "test:e2e": "bun run build:instant && playwright test",
     "mobile:start": "bun --cwd apps/mobile start",
     "mobile:android": "bun --cwd apps/mobile android",
     "mobile:ios": "bun --cwd apps/mobile ios",
