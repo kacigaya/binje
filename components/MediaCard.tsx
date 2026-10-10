@@ -49,6 +49,7 @@ export default function MediaCard({
   return (
     <div className={cn("group relative", className)}>
       <IntentPrefetchLink
+        dwell
         href={localizedHref(locale, href)}
         className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >

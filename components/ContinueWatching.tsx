@@ -104,6 +104,7 @@ export default function ContinueWatching() {
                   className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-black/75 text-white transition-colors hover:bg-accent-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/70"
                 />
                 <IntentPrefetchLink
+                  dwell
                   href={localizedHref(locale, getPlayHistoryHref(item))}
                   className="block"
                 >
