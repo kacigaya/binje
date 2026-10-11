@@ -20,6 +20,7 @@ import {
   proxiedHlsUrl,
   resolveStream,
   SOURCE_LABELS,
+  sourceMenu,
   type PlaybackSource,
   type StreamMedia,
 } from "./resolveStream";
@@ -96,9 +97,9 @@ export function PlayerScreen({
     playingSource ??
     (availableList ?? [DEFAULT_SOURCE]).find((item) => !failedList.includes(item)) ??
     null;
-  const sourceOptions = [...(availableList ?? [])];
-  if (playingSource && !sourceOptions.includes(playingSource)) sourceOptions.push(playingSource);
-  const visibleSources = sourceOptions.filter((item) => !failedList.includes(item));
+  const menu = sourceMenu(availableList, failedList, source);
+  // Once every source failed, the pill keeps showing the last one tried.
+  const shownSource = source ?? failedList.at(-1) ?? DEFAULT_SOURCE;
   const exhausted = source === null && availableList !== undefined;
   const streamError = exhausted ? t("streamUnavailable") : null;
 
@@ -341,21 +342,19 @@ export function PlayerScreen({
               onDisconnect={handleCastDisconnect}
               onRemoteProgress={handleRemoteProgress}
             />
-            {source && visibleSources.includes(source) ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${t("source")}: ${SOURCE_LABELS[source].label}`}
-                accessibilityState={{ expanded: sourceMenuOpen }}
-                onPress={() => {
-                  setQualityMenuOpen(false);
-                  setSourceMenuOpen((open) => !open);
-                }}
-                style={styles.playerPill}
-              >
-                <Text style={styles.playerPillText}>{SOURCE_LABELS[source].pill}</Text>
-                <Ionicons name={sourceMenuOpen ? "chevron-up" : "chevron-down"} size={13} color={colors.text} />
-              </Pressable>
-            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t("source")}: ${SOURCE_LABELS[shownSource].label}`}
+              accessibilityState={{ expanded: sourceMenuOpen }}
+              onPress={() => {
+                setQualityMenuOpen(false);
+                setSourceMenuOpen((open) => !open);
+              }}
+              style={styles.playerPill}
+            >
+              <Text style={styles.playerPillText}>{SOURCE_LABELS[shownSource].pill}</Text>
+              <Ionicons name={sourceMenuOpen ? "chevron-up" : "chevron-down"} size={13} color={colors.text} />
+            </Pressable>
             {qualityHeights.length > 0 ? (
               <Pressable
                 accessibilityRole="button"
@@ -371,22 +370,36 @@ export function PlayerScreen({
               </Pressable>
             ) : null}
           </View>
-          {sourceMenuOpen && source ? (
+          {sourceMenuOpen ? (
             <View style={styles.qualityMenu}>
-              {visibleSources.map((item) => (
+              {menu.map(({ id: item, unavailable }) => (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={SOURCE_LABELS[item].label}
+                  accessibilityLabel={
+                    unavailable ? `${SOURCE_LABELS[item].label}, ${t("unavailable")}` : SOURCE_LABELS[item].label
+                  }
                   accessibilityState={{ selected: source === item }}
                   key={item}
                   onPress={() => {
                     setSourceMenuOpen(false);
+                    // A manual pick retries a source even after it failed here.
+                    setFailed((previous) => ({
+                      key: mediaKey,
+                      value: (forMedia(previous, mediaKey) ?? []).filter((id) => id !== item),
+                    }));
                     setPicked({ key: mediaKey, value: item });
                   }}
                   style={styles.qualityItem}
                 >
-                  <Text style={[styles.playerPillText, source === item && styles.qualityItemActive]}>
+                  <Text
+                    style={[
+                      styles.playerPillText,
+                      unavailable && styles.qualityItemUnavailable,
+                      source === item && styles.qualityItemActive,
+                    ]}
+                  >
                     {SOURCE_LABELS[item].label}
+                    {unavailable ? ` · ${t("unavailable")}` : ""}
                   </Text>
                 </Pressable>
               ))}
@@ -556,6 +569,7 @@ const styles = StyleSheet.create({
   qualityMenu: { marginTop: 4, backgroundColor: "rgba(12,12,15,0.92)", borderRadius: 14, paddingVertical: 4, minWidth: 88 },
   qualityItem: { paddingHorizontal: 14, paddingVertical: 8, alignItems: "center" },
   qualityItemActive: { color: colors.accent },
+  qualityItemUnavailable: { color: colors.muted },
   error: { color: colors.destructive, textAlign: "center", padding: spacing.md },
   row: { flexDirection: "row", gap: 10 },
   controlsRow: { flexDirection: "row", alignItems: "center", gap: 12 },

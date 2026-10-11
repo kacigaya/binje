@@ -173,6 +173,7 @@ const FRENCH = {
   Page: "Page",
   "Clear filters": "Effacer les filtres",
   "Checking sources…": "Vérification des sources…",
+  Unavailable: "Indisponible",
   "Connecting to": "Connexion à",
   Continue: "Continuer",
   "Allow local storage to save titles.":

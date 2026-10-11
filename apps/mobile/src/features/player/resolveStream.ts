@@ -26,6 +26,26 @@ const SOURCES_TIMEOUT_MS = 25_000;
 export function isKnownSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && Object.hasOwn(SOURCE_LABELS, value);
 }
+export const ALL_SOURCES = Object.keys(SOURCE_LABELS).filter(isKnownSource);
+
+// Every known source, the ones the probe listed first. Sources that failed
+// here or that the probe left out are flagged and sorted last, not hidden:
+// probes can be wrong, and a manual pick tries them anyway. Nothing is
+// flagged while the probe runs or when it failed outright.
+export function sourceMenu(
+  available: readonly PlaybackSource[] | null | undefined,
+  failed: readonly PlaybackSource[],
+  current: PlaybackSource | null,
+): { id: PlaybackSource; unavailable: boolean }[] {
+  const listed = (available ?? []).filter((id) => ALL_SOURCES.includes(id));
+  const ordered = [...listed, ...ALL_SOURCES.filter((id) => !listed.includes(id))];
+  const unavailable = (id: PlaybackSource) =>
+    id !== current && (failed.includes(id) || (Array.isArray(available) && !available.includes(id)));
+  return [...ordered.filter((id) => !unavailable(id)), ...ordered.filter(unavailable)].map((id) => ({
+    id,
+    unavailable: unavailable(id),
+  }));
+}
 export type StreamMedia = {
   type: "movie" | "tv";
   id: number;

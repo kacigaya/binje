@@ -13,5 +13,5 @@ export const fr: Record<keyof typeof en, string> = {
   castToDevice: 'Diffuser sur un appareil', stopCasting: 'Arrêter la diffusion', castUnavailable: 'Impossible de diffuser. Réessayez.',
   nowWatching: 'Lecture en cours', watching: 'En lecture', noPreview: 'Aucun aperçu', noEpisodes: 'Aucun aperçu d’épisode disponible.',
   noResults: 'Aucun résultat', browseEmptyBody: 'Rien pour le moment. Essayez une autre catégorie ou revenez plus tard.', noPoster: 'Aucune affiche', searchPlaceholder: 'Rechercher des films et séries…', season: 'Saison', episode: 'Épisode', previous: 'Précédent', next: 'Suivant',
-  streamUnavailable: 'Flux indisponible. Réessayez plus tard.', language: 'Langue', english: 'Anglais', french: 'Français', clearHistory: 'Effacer l’historique', removeHistory: 'Retirer de la liste Continuer à regarder',
+  streamUnavailable: 'Flux indisponible. Réessayez plus tard.', unavailable: 'Indisponible', language: 'Langue', english: 'Anglais', french: 'Français', clearHistory: 'Effacer l’historique', removeHistory: 'Retirer de la liste Continuer à regarder',
 };

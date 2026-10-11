@@ -13,6 +13,7 @@ import {
   getResumePosition,
   updatePlayHistoryProgress,
 } from "@/lib/play-history";
+import { sourceMenu } from "@/lib/source-menu";
 import type { PlaybackSource } from "@/lib/sources";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
@@ -44,6 +45,7 @@ const DEFAULT_SOURCE: PlaybackSource = "videasyws";
 function isKnownSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && Object.hasOwn(SOURCE_LABELS, value);
 }
+const ALL_SOURCES = Object.keys(SOURCE_LABELS).filter(isKnownSource);
 
 // The TV page keeps this component mounted across episodes, so per-title
 // state carries the media key it belongs to and is ignored once that changes.
@@ -152,9 +154,9 @@ export default function Player({
     playingSource ??
     (availableList ?? [DEFAULT_SOURCE]).find((id) => !failedList.includes(id)) ??
     null;
-  const options = [...(availableList ?? [])];
-  if (playingSource && !options.includes(playingSource)) options.push(playingSource);
-  const sourceOptions = options.filter((id) => !failedList.includes(id));
+  const menu = sourceMenu(ALL_SOURCES, availableList, failedList, source);
+  // Once every source failed, the picker keeps showing the last one tried.
+  const shownSource = source ?? failedList.at(-1) ?? DEFAULT_SOURCE;
   const exhausted = source === null && availableList !== undefined;
   // Waiting for the availability list after the default source failed.
   const awaitingSources = source === null && !exhausted;
@@ -308,6 +310,15 @@ export default function Player({
     setReloadKey((previous) => previous + 1);
   }
 
+  // A manual pick retries a source even after it failed here.
+  function pickSource(value: PlaybackSource) {
+    setFailed((previous) => ({
+      key: mediaKey,
+      value: (forMedia(previous, mediaKey) ?? []).filter((id) => id !== value),
+    }));
+    setPicked({ key: mediaKey, value });
+  }
+
   function changeQuality(index: number) {
     setQuality(index);
     if (hlsRef.current) hlsRef.current.nextLevel = index;
@@ -365,15 +376,17 @@ export default function Player({
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/75 p-1">
-        {source && sourceOptions.includes(source) && (
-          <Select
-            ariaLabel={t("Source")}
-            value={source}
-            onValueChange={(value) => setPicked({ key: mediaKey, value })}
-            items={sourceOptions.map((id) => ({ value: id, label: SOURCE_LABELS[id] }))}
-            className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white"
-          />
-        )}
+        <Select
+          ariaLabel={t("Source")}
+          value={shownSource}
+          onValueChange={pickSource}
+          items={menu.map(({ id, unavailable }) => ({
+            value: id,
+            label: SOURCE_LABELS[id],
+            hint: unavailable ? t("Unavailable") : undefined,
+          }))}
+          className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white"
+        />
         {qualities.length > 0 && (
           <Select
             ariaLabel={t("Quality")}

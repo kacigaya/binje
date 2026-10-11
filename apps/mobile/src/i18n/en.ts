@@ -11,5 +11,5 @@ export const en = {
   castToDevice: 'Cast to a device', stopCasting: 'Stop casting', castUnavailable: 'Unable to cast. Try again.',
   nowWatching: 'Now playing', watching: 'Watching', noPreview: 'No preview', noEpisodes: 'No episode previews available.',
   noResults: 'No results found', browseEmptyBody: 'Nothing here yet. Try another category or check back later.', noPoster: 'No Poster', searchPlaceholder: 'Search movies & TV shows…', season: 'Season', episode: 'Episode', previous: 'Previous', next: 'Next',
-  streamUnavailable: 'Stream unavailable. Try again later.', language: 'Language', english: 'English', french: 'French', clearHistory: 'Clear play history', removeHistory: 'Remove from continue watching',
+  streamUnavailable: 'Stream unavailable. Try again later.', unavailable: 'Unavailable', language: 'Language', english: 'English', french: 'French', clearHistory: 'Clear play history', removeHistory: 'Remove from continue watching',
 } as const;

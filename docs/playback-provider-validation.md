@@ -35,6 +35,15 @@ Verified locally:
 
 Not verified: subtitles (the API returned none), Safari, devices and Cast.
 
+## Every source in the picker (2026-10-11)
+
+Web and mobile pickers list every source again. The probe still orders them
+and picks the first one to play; sources it left out, or that failed on the
+device, are dimmed with "Unavailable" and sorted last instead of hidden. Picking
+one clears its failure and tries it; another failure falls back to the source
+that was playing. Shared order: `lib/source-menu.ts` (web) and `sourceMenu` in
+`apps/mobile/src/features/player/resolveStream.ts`.
+
 ## Additional native sources and availability filter (2026-10-05)
 
 Added six resolvers found by inspecting cine.su and 2embed.cc, plus

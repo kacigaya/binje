@@ -1,5 +1,5 @@
 import * as client from "../../../api/client";
-import { buildResolveQuery, fetchAvailableSources, resolveStream } from "../resolveStream";
+import { buildResolveQuery, fetchAvailableSources, resolveStream, SOURCE_LABELS, sourceMenu } from "../resolveStream";
 
 jest.mock("../../../api/client", () => ({ apiRequest: jest.fn() }));
 const request = client.apiRequest as jest.Mock;
@@ -57,5 +57,21 @@ describe("native stream resolver", () => {
   test("rejects a malformed stream response", async () => {
     request.mockResolvedValueOnce({ url: "javascript:alert(1)" });
     await expect(resolveStream({ type: "movie", id: 1, title: "X", year: "2020" }, "videasy")).rejects.toThrow("playable stream");
+  });
+});
+
+describe("source menu", () => {
+  test("lists probed sources first and flags failed or unlisted ones last", () => {
+    const menu = sourceMenu(["vidrock", "vsrc"], ["vsrc"], "vidrock");
+    expect(menu.slice(0, 1)).toEqual([{ id: "vidrock", unavailable: false }]);
+    expect(menu.filter((item) => !item.unavailable).map((item) => item.id)).toEqual(["vidrock"]);
+    expect(menu.map((item) => item.id)).toEqual(expect.arrayContaining(["vsrc", "videasyws", "vf"]));
+    expect(menu).toHaveLength(Object.keys(SOURCE_LABELS).length);
+  });
+
+  test("flags only failures while probing", () => {
+    expect(sourceMenu(undefined, ["vidzee"], "videasyws").filter((item) => item.unavailable)).toEqual([
+      { id: "vidzee", unavailable: true },
+    ]);
   });
 });
