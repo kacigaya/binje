@@ -2,7 +2,7 @@
 
 import type Hls from "hls.js";
 import { RotateCcw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import CastControls from "@/components/CastControls";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
 import type { PlaybackSource } from "@/lib/sources";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
+import { parseVideasyEmbedProgress, VIDEASY_EMBED_ORIGIN, videasyEmbedUrl } from "@/lib/videasy-embed";
 
 type PlayerMediaType = "movie" | "tv";
 type Track = { file: string; label?: string };
@@ -39,6 +40,13 @@ const SOURCE_LABELS: Record<PlaybackSource, string> = {
 };
 // Tried before the availability list arrives, so playback does not wait on it.
 const DEFAULT_SOURCE: PlaybackSource = "vidzee";
+// The iframe player plays first and is always offered: it cannot be probed or
+// proxied, so the server never lists it. The HLS sources stay pickable.
+const EMBED_SOURCE = "embed";
+const EMBED_LABEL = "Videasy Embed";
+type PickableSource = PlaybackSource | typeof EMBED_SOURCE;
+
+const subscribeNever = () => () => {};
 
 function isKnownSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && Object.hasOwn(SOURCE_LABELS, value);
@@ -137,26 +145,39 @@ export default function Player({
   // undefined while probing, null when the probe itself failed.
   const [available, setAvailable] = useState<Keyed<PlaybackSource[] | null> | null>(null);
   const [failed, setFailed] = useState<Keyed<PlaybackSource[]> | null>(null);
-  const [picked, setPicked] = useState<Keyed<PlaybackSource> | null>(null);
+  const [picked, setPicked] = useState<Keyed<PickableSource> | null>(null);
   const [playing, setPlaying] = useState<Keyed<PlaybackSource> | null>(null);
   const [probeKey, setProbeKey] = useState(0);
   const availableList = forMedia(available, mediaKey);
   const failedList = forMedia(failed, mediaKey) ?? [];
   const usable = (id: PlaybackSource | undefined) => (id && !failedList.includes(id) ? id : undefined);
   const playingSource = usable(forMedia(playing, mediaKey));
-  // A manual pick wins, then whatever already plays, then the first listed
-  // source that has not failed here. A failure moves on to the next one.
+  const pickedSource = forMedia(picked, mediaKey) ?? EMBED_SOURCE;
+  const embedded = pickedSource === EMBED_SOURCE;
+  // Once off the embed, a manual pick wins, then whatever already plays, then
+  // the first listed source that has not failed here. A failure moves on to
+  // the next one.
   const source =
-    usable(forMedia(picked, mediaKey)) ??
-    playingSource ??
-    (availableList ?? [DEFAULT_SOURCE]).find((id) => !failedList.includes(id)) ??
-    null;
+    pickedSource === EMBED_SOURCE
+      ? null
+      : usable(pickedSource) ??
+        playingSource ??
+        (availableList ?? [DEFAULT_SOURCE]).find((id) => !failedList.includes(id)) ??
+        null;
   const options = [...(availableList ?? [])];
   if (playingSource && !options.includes(playingSource)) options.push(playingSource);
   const sourceOptions = options.filter((id) => !failedList.includes(id));
-  const exhausted = source === null && availableList !== undefined;
+  const exhausted = !embedded && source === null && availableList !== undefined;
   // Waiting for the availability list after the default source failed.
-  const awaitingSources = source === null && !exhausted;
+  const awaitingSources = !embedded && source === null && !exhausted;
+  // The resume position lives in localStorage, so the frame URL is built on
+  // the client only. Memoized so saved progress does not reload the frame.
+  const hydrated = useSyncExternalStore(subscribeNever, () => true, () => false);
+  const embedUrl = useMemo(() => {
+    if (!hydrated || !embedded) return null;
+    const media = { type, id: tmdbId, season, episode };
+    return videasyEmbedUrl(media, getResumePosition(getPlayHistory(), media));
+  }, [embedded, episode, hydrated, season, tmdbId, type]);
 
   useEffect(() => {
     let cancelled = false;
@@ -328,6 +349,18 @@ export default function Player({
     });
   }, [episode, season, tmdbId, type]);
 
+  useEffect(() => {
+    if (!embedded) return;
+    const media = { type, id: tmdbId, season, episode };
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== VIDEASY_EMBED_ORIGIN) return;
+      const progress = parseVideasyEmbedProgress(event.data, media);
+      if (progress) saveProgress(progress.positionSeconds, progress.durationSeconds);
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [embedded, episode, saveProgress, season, tmdbId, type]);
+
   // Resumes on every source that loads, including failovers. A stream already
   // past its first second was positioned by the viewer and is left alone.
   function onLoadedMetadata() {
@@ -364,16 +397,19 @@ export default function Player({
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/75 p-1">
-        {source && sourceOptions.includes(source) && (
-          <Select
+        {(embedded || (source && sourceOptions.includes(source))) && (
+          <Select<PickableSource>
             ariaLabel={t("Source")}
-            value={source}
+            value={source ?? EMBED_SOURCE}
             onValueChange={(value) => setPicked({ key: mediaKey, value })}
-            items={sourceOptions.map((id) => ({ value: id, label: SOURCE_LABELS[id] }))}
+            items={[
+              { value: EMBED_SOURCE, label: EMBED_LABEL },
+              ...sourceOptions.map((id) => ({ value: id, label: SOURCE_LABELS[id] })),
+            ]}
             className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white"
           />
         )}
-        {qualities.length > 0 && (
+        {!embedded && qualities.length > 0 && (
           <Select
             ariaLabel={t("Quality")}
             value={quality}
@@ -388,38 +424,53 @@ export default function Player({
             className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums"
           />
         )}
-        <CastControls
-          videoRef={videoRef}
-          mediaKey={mediaKey}
-          source={castSource}
-          tracks={resolvedMedia?.tracks ?? []}
-          title={title}
-          onRemoteProgress={saveProgress}
-          onGoogleCastingChange={setGoogleCasting}
-        />
-      </div>
-      <video
-        ref={videoRef}
-        aria-label={`${t("Video player")}: ${title}`}
-        controls={!googleCasting}
-        playsInline
-        onLoadedMetadata={onLoadedMetadata}
-        onTimeUpdate={onTimeUpdate}
-        className="absolute inset-0 h-full w-full rounded-xl bg-black"
-        crossOrigin="anonymous"
-        poster={poster ?? undefined}
-      >
-        {tracks.map((track, i) => (
-          <track
-            key={track.file}
-            kind="subtitles"
-            label={track.label ?? `Track ${i + 1}`}
-            src={proxied(track.file)}
-            default={i === 0}
+        {!embedded && (
+          <CastControls
+            videoRef={videoRef}
+            mediaKey={mediaKey}
+            source={castSource}
+            tracks={resolvedMedia?.tracks ?? []}
+            title={title}
+            onRemoteProgress={saveProgress}
+            onGoogleCastingChange={setGoogleCasting}
           />
-        ))}
-      </video>
-      {(loading || awaitingSources || exhausted) && (
+        )}
+      </div>
+      {embedded ? (
+        // Not sandboxed: the player refuses to load inside a sandboxed frame.
+        embedUrl && (
+          <iframe
+            src={embedUrl}
+            title={`${t("Video player")}: ${title}`}
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 h-full w-full rounded-xl border-0 bg-black"
+          />
+        )
+      ) : (
+        <video
+          ref={videoRef}
+          aria-label={`${t("Video player")}: ${title}`}
+          controls={!googleCasting}
+          playsInline
+          onLoadedMetadata={onLoadedMetadata}
+          onTimeUpdate={onTimeUpdate}
+          className="absolute inset-0 h-full w-full rounded-xl bg-black"
+          crossOrigin="anonymous"
+          poster={poster ?? undefined}
+        >
+          {tracks.map((track, i) => (
+            <track
+              key={track.file}
+              kind="subtitles"
+              label={track.label ?? `Track ${i + 1}`}
+              src={proxied(track.file)}
+              default={i === 0}
+            />
+          ))}
+        </video>
+      )}
+      {!embedded && (loading || awaitingSources || exhausted) && (
         <div
           className={cn(
             "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 px-6 text-center text-sm text-white/80",

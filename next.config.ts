@@ -15,6 +15,9 @@ const CSP = [
   "media-src 'self' blob: data: https:",
   "worker-src 'self' blob:",
   "font-src 'self' data:",
+  // The Videasy embed source (lib/videasy-embed.ts); its nested frames fall
+  // under that player's own policy, not this one.
+  "frame-src https://player.videasy.ws",
   "frame-ancestors 'self'",
   "base-uri 'self'",
   "object-src 'none'",
