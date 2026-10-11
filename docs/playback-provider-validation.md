@@ -1,5 +1,40 @@
 # Playback provider validation
 
+## Videasy.ws (2026-10-11)
+
+Added `source=videasyws` (`lib/videasyws.ts`) as the first and initial source on
+web and mobile. player.videasy.ws wraps a vidsrc.sh player in two iframe pages:
+
+1. `vs_src.php` returns the player host URL with a short-lived `vs` token.
+2. That landing page names the player page, which carries a single-use
+   `api_token` for `data.vidsrc.sh/api.php?…&stream_urls`.
+3. `stream_urls` is base64 nonce||ChaCha20 ciphertext. The API names a
+   WebAssembly decryptor that rotates every five minutes.
+4. Each stream host's `/generate.php` issues a JWT bound to the server's /24,
+   valid about four hours, appended as `?token=`.
+
+This reverses the earlier rejection of vidsrc.sh below: the decryptor now runs
+server-side. Safeguards: the module must declare no imports, so it cannot reach
+the network, filesystem or host; its download is capped at 1 MB; one compiled
+module is cached per rotation window; decrypted entries must be http(s) URLs.
+Remaining risk: a hostile or broken module can still spin the CPU during a
+resolve. The player page's Turnstile gate is client-side only; the stream API
+does not check it, and enforcing it would break this source. Host tokens are
+cached for an hour because `generate.php` answers 429 when called often. The
+CDNs accept only the player host as Origin, so that host is the stream's
+Referer.
+
+Verified locally:
+
+- Live resolves for The Prodigy (532671, no other source except Vidrock), Fight
+  Club (550) and Game of Thrones S1E2 (1399) took 0.6 to 1 second.
+- `/api/sources` for The Prodigy listed `videasyws` and `vidrock`.
+- Headless Chromium on `/fr/watch/532671`: "Videasy.ws · VO" selected, every
+  `/api/hls` request answered 200, the 640px rendition played and Auto quality
+  was offered.
+
+Not verified: subtitles (the API returned none), Safari, devices and Cast.
+
 ## Additional native sources and availability filter (2026-10-05)
 
 Added six resolvers found by inspecting cine.su and 2embed.cc, plus
@@ -41,7 +76,7 @@ Not added:
 | Candidate | Reason |
 | --- | --- |
 | Vidcore / Vcr, Vidfast | No stream request observable from a headless browser, even after clicks |
-| vidsrc.sh, vsembed, VidApi (vaplayer.ru) | Stream URLs encrypted by a WASM ChaCha20 module that rotates every five minutes; executing it server-side was rejected. Vidnest's `nextgencloudfabric` backend covers the same upstream |
+| vidsrc.sh, vsembed, VidApi (vaplayer.ru) | Stream URLs encrypted by a WASM ChaCha20 module that rotates every five minutes; executing it server-side was rejected. Vidnest's `nextgencloudfabric` backend covers the same upstream. Superseded on 2026-10-11: vidsrc.sh is now reached through Videasy.ws |
 | VidLink | WASM-encrypted API serving MovieBox's HEVC files, already a source |
 | Peachify | Cloudflare challenge |
 | Vidsync | Origin unreachable (Cloudflare 523) |

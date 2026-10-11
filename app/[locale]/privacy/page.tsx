@@ -48,8 +48,8 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
               The Movie Database
             </ExtLink>{" "}
             {french
-              ? "via notre API côté serveur. Lorsque vous lancez une vidéo, elle est diffusée depuis des services tiers. Ces services peuvent enregistrer les requêtes ; leurs propres politiques de confidentialité s’appliquent. La source Videasy Embed charge le lecteur du fournisseur directement dans votre navigateur, avec ses propres scripts, statistiques et cookies."
-              : "via our server-side API. When you press play, video is streamed from third-party embed sources. Those services may log requests on their end; their own privacy policies apply. The Videasy Embed source loads the provider’s player directly in your browser, with its own scripts, analytics, and cookies."}
+              ? "via notre API côté serveur. Lorsque vous lancez une vidéo, elle est diffusée depuis des services tiers. Ces services peuvent enregistrer les requêtes ; leurs propres politiques de confidentialité s’appliquent."
+              : "via our server-side API. When you press play, video is streamed from third-party embed sources. Those services may log requests on their end; their own privacy policies apply."}
           </p>
         </Section>
 
