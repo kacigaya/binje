@@ -43,15 +43,15 @@
 
 ![Home page with rotating hero and trending carousels](public/screenshots/home-desktop.jpg)
 
-Home: auto-rotating hero with TMDB rating and content certification, followed by trending carousels.
+Home: auto-rotating hero with title logo, TMDB and Rotten Tomatoes scores, certification, and a pause control, followed by trending carousels.
 
 ![Movie detail page for Fight Club](public/screenshots/movie-desktop.jpg)
 
-Movie detail: poster, TMDB and Rotten Tomatoes scores, runtime, stream tech badges, watchlist button.
+Movie detail: poster, title logo, TMDB and Rotten Tomatoes scores, certification, runtime, release date, watchlist button.
 
 ![TV show detail page for Breaking Bad](public/screenshots/tv-desktop.jpg)
 
-TV detail: season and episode counts alongside the same ratings and playback badges.
+TV detail: season and episode counts alongside the same ratings, certification, and first air date.
 
 ![Search results for the query dune](public/screenshots/search-desktop.jpg)
 
