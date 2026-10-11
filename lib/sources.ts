@@ -11,12 +11,14 @@ import { resolveVidnestStream } from "@/lib/vidnest";
 import { resolveVidrockStream } from "@/lib/vidrock";
 import { resolveVidzeeStream } from "@/lib/vidzee";
 import { resolveVidemStream, resolveVsrcStream } from "@/lib/vsrc";
+import { resolveVideasyWsStream } from "@/lib/videasyws";
 
 export type { PlaybackSource };
 
 // Preference order: players start with the first available source. French
 // stays last because every other source plays the original audio.
 export const PLAYBACK_SOURCES = [
+  "videasyws",
   "vidzee",
   "moviebox",
   "vidnest",
@@ -30,6 +32,7 @@ export const PLAYBACK_SOURCES = [
 ] as const satisfies readonly PlaybackSource[];
 
 const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<ResolvedStream>> = {
+  videasyws: resolveVideasyWsStream,
   vidzee: resolveVidzeeStream,
   moviebox: resolveMovieboxStream,
   vidnest: resolveVidnestStream,

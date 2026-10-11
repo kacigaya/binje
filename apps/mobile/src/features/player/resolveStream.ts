@@ -6,6 +6,7 @@ export type { PlaybackSource };
 // The server lists sources in preference order; ids this build does not know
 // are ignored so a newer server cannot break an older app.
 export const SOURCE_LABELS: Record<PlaybackSource, { label: string; pill: string }> = {
+  videasyws: { label: "Videasy.ws · VO", pill: "Videasy.ws" },
   vidzee: { label: "VidZee · EN", pill: "VidZee" },
   moviebox: { label: "MovieBox · EN", pill: "MovieBox" },
   vidnest: { label: "Vidnest · VO", pill: "Vidnest" },
@@ -18,7 +19,7 @@ export const SOURCE_LABELS: Record<PlaybackSource, { label: string; pill: string
   vf: { label: "French · VF", pill: "VF" },
 };
 // Tried before the availability list arrives, so playback does not wait on it.
-export const DEFAULT_SOURCE: PlaybackSource = "vidzee";
+export const DEFAULT_SOURCE: PlaybackSource = "videasyws";
 // The server resolves every provider before answering.
 const SOURCES_TIMEOUT_MS = 25_000;
 
