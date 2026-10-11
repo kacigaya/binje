@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import CastControls from "@/components/CastControls";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { qualityClass } from "@/lib/quality-class";
 import { fetchResolve } from "@/lib/resolve-client";
 import {
   getPlayHistory,
@@ -20,7 +21,8 @@ import { useTranslations } from "@/lib/use-locale";
 
 type PlayerMediaType = "movie" | "tv";
 type Track = { file: string; label?: string };
-type Quality = { index: number; height: number; bitrate: number };
+// height is the rendition's own; label is its 16:9 class (lib/quality-class).
+type Quality = { index: number; height: number; label: number; bitrate: number };
 type StreamSource = { file: string; height: number };
 type ResolvedMedia = { url: string; tracks: Track[]; sources: StreamSource[] };
 
@@ -252,19 +254,21 @@ export default function Player({
           hls = new HlsModule({ enableWorker: true });
           hlsRef.current = hls;
           hls.on(HlsModule.Events.MANIFEST_PARSED, (_event, data) => {
-            const byHeight = new Map<number, Quality>();
+            const byLabel = new Map<number, Quality>();
             data.levels.forEach((level, index) => {
               if (!level.height) return;
-              const current = byHeight.get(level.height);
+              const label = qualityClass(level.width, level.height);
+              const current = byLabel.get(label);
               if (!current || level.bitrate > current.bitrate) {
-                byHeight.set(level.height, {
+                byLabel.set(label, {
                   index,
                   height: level.height,
+                  label,
                   bitrate: level.bitrate,
                 });
               }
             });
-            setQualities([...byHeight.values()].sort((a, b) => b.height - a.height));
+            setQualities([...byLabel.values()].sort((a, b) => b.label - a.label));
           });
           hls.loadSource(src);
           hls.attachMedia(video);
@@ -396,7 +400,7 @@ export default function Player({
               { value: -1, label: t("Auto") },
               ...qualities.map((item) => ({
                 value: item.index,
-                label: `${item.height}p`,
+                label: `${item.label}p`,
               })),
             ]}
             className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums"
