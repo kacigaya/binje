@@ -1,7 +1,7 @@
 "use client";
 
 import type Hls from "hls.js";
-import { RotateCcw } from "lucide-react";
+import { Crop, Maximize, Minimize, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import CastControls from "@/components/CastControls";
@@ -181,6 +181,8 @@ export default function Player({
 
   const sourceUrl = source ? `${RESOLVE_BASE}/resolve?${mediaQuery}&source=${source}` : null;
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const fullscreenButtonRef = useRef<HTMLButtonElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const lastSavedAtRef = useRef(0);
@@ -195,6 +197,39 @@ export default function Player({
   const [reloadKey, setReloadKey] = useState(0);
   const [videoAspectRatio, setVideoAspectRatio] = useState<Keyed<number> | null>(null);
   const aspectRatioKey = `${sourceUrl}:${reloadKey}`;
+  const [crop, setCrop] = useState<Keyed<boolean> | null>(null);
+  const cropEnabled = forMedia(crop, aspectRatioKey) ?? false;
+  const nativeAspectRatio = forMedia(videoAspectRatio, aspectRatioKey);
+  const displayAspectRatio = cropEnabled
+    ? Math.max(nativeAspectRatio ?? 16 / 9, 2.39)
+    : nativeAspectRatio ?? 16 / 9;
+  const [fullscreenSupported, setFullscreenSupported] = useState(false);
+  const [isFullscreen, setFullscreen] = useState(false);
+
+  useEffect(() => {
+    setFullscreenSupported(Boolean(document.fullscreenEnabled && containerRef.current?.requestFullscreen));
+    let wasFullscreen = false;
+    function onFullscreenChange() {
+      const active = document.fullscreenElement === containerRef.current;
+      setFullscreen(active);
+      if (wasFullscreen && !active) fullscreenButtonRef.current?.focus();
+      wasFullscreen = active;
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement === containerRef.current) {
+        await document.exitFullscreen();
+      } else {
+        await containerRef.current?.requestFullscreen();
+      }
+    } catch {
+      toast.error(t("Fullscreen unavailable"));
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -382,10 +417,49 @@ export default function Player({
 
   return (
     <div
-      className="relative w-full bg-black rounded-xl overflow-hidden"
-      style={{ aspectRatio: forMedia(videoAspectRatio, aspectRatioKey) ?? 16 / 9 }}
+      ref={containerRef}
+      className={cn(
+        "relative w-full bg-black rounded-xl overflow-hidden",
+        isFullscreen && "flex h-dvh items-center justify-center rounded-none",
+      )}
     >
-      <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/75 p-1">
+      <div
+        className="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-full border border-white/15 bg-black/75 p-1"
+        style={isFullscreen ? {
+          top: "max(0.5rem, env(safe-area-inset-top))",
+          right: "max(0.5rem, env(safe-area-inset-right))",
+        } : undefined}
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={t("Crop black bars")}
+          aria-pressed={cropEnabled}
+          title={cropEnabled ? t("Restore full frame") : t("Crop to widescreen (2.39:1)")}
+          disabled={nativeAspectRatio === undefined || googleCasting}
+          onClick={() => setCrop({ key: aspectRatioKey, value: !cropEnabled })}
+          className="size-11 rounded-full text-white hover:bg-white/15 aria-pressed:bg-white/20"
+        >
+          <Crop aria-hidden="true" className="size-4" />
+        </Button>
+        {fullscreenSupported && (
+          <Button
+            ref={fullscreenButtonRef}
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={isFullscreen ? t("Exit fullscreen") : t("Enter fullscreen")}
+            title={isFullscreen ? t("Exit fullscreen") : t("Enter fullscreen")}
+            disabled={googleCasting && !isFullscreen}
+            onClick={toggleFullscreen}
+            className="size-11 rounded-full text-white hover:bg-white/15"
+          >
+            {isFullscreen
+              ? <Minimize aria-hidden="true" className="size-4" />
+              : <Maximize aria-hidden="true" className="size-4" />}
+          </Button>
+        )}
         {qualities.length > 0 && (
           <Select
             ariaLabel={t("Quality")}
@@ -411,60 +485,73 @@ export default function Player({
           onGoogleCastingChange={setGoogleCasting}
         />
       </div>
-      <video
-        ref={videoRef}
-        aria-label={`${t("Video player")}: ${title}`}
-        controls={!googleCasting}
-        playsInline
-        onLoadedMetadata={onLoadedMetadata}
-        onResize={updateAspectRatio}
-        onEmptied={() => setVideoAspectRatio(null)}
-        onTimeUpdate={onTimeUpdate}
-        className="absolute inset-0 h-full w-full rounded-xl bg-black object-contain"
-        crossOrigin="anonymous"
-        poster={poster ?? undefined}
+      <div
+        className="relative w-full overflow-hidden"
+        style={{
+          aspectRatio: displayAspectRatio,
+          width: isFullscreen ? `min(100%, calc(100dvh * ${displayAspectRatio}))` : undefined,
+        }}
       >
-        {tracks.map((track, i) => (
-          <track
-            key={track.file}
-            kind="subtitles"
-            label={track.label ?? `Track ${i + 1}`}
-            src={proxied(track.file)}
-            default={i === 0}
-          />
-        ))}
-      </video>
-      {(loading || awaitingSources || exhausted) && (
-        <div
-          className={cn(
-            "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 px-6 text-center text-sm text-white/80",
-            // While loading the overlay must not swallow the native controls;
-            // the error state has a control of its own to click.
-            !exhausted && "pointer-events-none",
-          )}
+        <video
+          ref={videoRef}
+          aria-label={`${t("Video player")}: ${title}`}
+          controls={!googleCasting}
+          controlsList={fullscreenSupported ? "nofullscreen" : undefined}
+          data-container-fullscreen={fullscreenSupported ? "" : undefined}
+          playsInline
+          onLoadedMetadata={onLoadedMetadata}
+          onResize={updateAspectRatio}
+          onEmptied={() => {
+            setVideoAspectRatio(null);
+            setCrop(null);
+          }}
+          onTimeUpdate={onTimeUpdate}
+          className={cn("absolute inset-0 h-full w-full bg-black", cropEnabled ? "object-cover" : "object-contain")}
+          crossOrigin="anonymous"
+          poster={poster ?? undefined}
         >
-          {!exhausted && (
-            <span
-              aria-hidden="true"
-              className="size-7 animate-spin rounded-full border-2 border-white/15 border-t-accent-red motion-reduce:animate-none"
+          {tracks.map((track, i) => (
+            <track
+              key={track.file}
+              kind="subtitles"
+              label={track.label ?? `Track ${i + 1}`}
+              src={proxied(track.file)}
+              default={i === 0}
             />
-          )}
-          <p role="status" aria-live="polite" className="font-medium">
-            {statusText}
-          </p>
-          {exhausted && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={retry}
-              className="h-9 cursor-pointer gap-2 rounded-full px-4"
-            >
-              <RotateCcw aria-hidden="true" className="size-4" />
-              {t("Try Again")}
-            </Button>
-          )}
-        </div>
-      )}
+          ))}
+        </video>
+        {(loading || awaitingSources || exhausted) && (
+          <div
+            className={cn(
+              "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 px-6 text-center text-sm text-white/80",
+              // While loading the overlay must not swallow the native controls;
+              // the error state has a control of its own to click.
+              !exhausted && "pointer-events-none",
+            )}
+          >
+            {!exhausted && (
+              <span
+                aria-hidden="true"
+                className="size-7 animate-spin rounded-full border-2 border-white/15 border-t-accent-red motion-reduce:animate-none"
+              />
+            )}
+            <p role="status" aria-live="polite" className="font-medium">
+              {statusText}
+            </p>
+            {exhausted && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={retry}
+                className="h-9 cursor-pointer gap-2 rounded-full px-4"
+              >
+                <RotateCcw aria-hidden="true" className="size-4" />
+                {t("Try Again")}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
