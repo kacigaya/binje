@@ -1,3 +1,4 @@
+import { resolveAtlanticStream } from "@/lib/atlantic";
 import { resolveCine4kStream } from "@/lib/cine4k";
 import { resolveFrembedStream } from "@/lib/frembed";
 import { allowStreamCookie, allowStreamHost, allowStreamHosts } from "@/lib/hls-hosts";
@@ -21,6 +22,10 @@ export type { PlaybackSource };
 export const PLAYBACK_SOURCES = [
   "videasyws",
   "cine4k",
+  "athena",
+  "helios",
+  "moscow",
+  "planets",
   "vidzee",
   "moviebox",
   "vidnest",
@@ -36,6 +41,10 @@ export const PLAYBACK_SOURCES = [
 const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<ResolvedStream>> = {
   videasyws: resolveVideasyWsStream,
   cine4k: resolveCine4kStream,
+  athena: resolveAtlanticStream("athena"),
+  helios: resolveAtlanticStream("helios"),
+  moscow: resolveAtlanticStream("moscow"),
+  planets: resolveAtlanticStream("planets"),
   vidzee: resolveVidzeeStream,
   moviebox: resolveMovieboxStream,
   vidnest: resolveVidnestStream,

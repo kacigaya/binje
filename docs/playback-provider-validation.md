@@ -35,6 +35,29 @@ Verified locally:
 
 Not verified: subtitles (the API returned none), Safari, devices and Cast.
 
+## Atlantic servers (2026-10-12)
+
+Added four sources from atlantic.st's player (`lib/atlantic.ts`), after
+Cine4K, for movies and TV:
+
+| Source | Endpoint | Notes |
+| --- | --- | --- |
+| Athena | `zcdn.bluevelvet.space/cdn` | Plain master URL; 4K H.264, the same files as Cine4K, but with TV |
+| Helios | `stream.hls.lol/helios` | `hl_` payload; 1080p |
+| Moscow | `stream.hls.lol/moscow` | `ms_` payload; 1080p; CDN needs Atlantic as Referer |
+| Planets | `stream.hls.lol/planets` | `pl_` payload, Saturn then Neptune; 1080p; Atlantic Referer |
+
+Wrapped URLs are hex nonce||AES-GCM under per-server keys from Atlantic's
+bundle. Atlantic shows a Turnstile check, but none of these endpoints asks
+for it. Not added: Shegu (answers `disabled`), Pandora (DASH matched by
+title, 404 for every title tried) and Aphrodite (`cdn.hls.lol` with signed
+session headers).
+
+Verified locally: all four resolved Dune: Part Two and Game of Thrones S1E1
+in 0.4 to 6 seconds, and each played through `/api/hls` in headless Chromium.
+Planets later answered 404 for the same episode, and Moscow's first load was
+slow; both fail over through the picker.
+
 ## Cine4K (2026-10-12)
 
 Added `source=cine4k` (`lib/cine4k.ts`), second after Videasy.ws, for movies

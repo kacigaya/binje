@@ -8,6 +8,10 @@ export type { PlaybackSource };
 export const SOURCE_LABELS: Record<PlaybackSource, { label: string; pill: string }> = {
   videasyws: { label: "Videasy.ws · VO", pill: "Videasy.ws" },
   cine4k: { label: "Cine4K · 4K VO", pill: "Cine4K" },
+  athena: { label: "Athena · 4K VO", pill: "Athena" },
+  helios: { label: "Helios · VO", pill: "Helios" },
+  moscow: { label: "Moscow · VO", pill: "Moscow" },
+  planets: { label: "Planets · VO", pill: "Planets" },
   vidzee: { label: "VidZee · EN", pill: "VidZee" },
   moviebox: { label: "MovieBox · EN", pill: "MovieBox" },
   vidnest: { label: "Vidnest · VO", pill: "Vidnest" },

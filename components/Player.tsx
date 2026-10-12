@@ -31,6 +31,10 @@ type ResolvedMedia = { url: string; tracks: Track[]; sources: StreamSource[] };
 const SOURCE_LABELS: Record<PlaybackSource, string> = {
   videasyws: "Videasy.ws · VO",
   cine4k: "Cine4K · 4K VO",
+  athena: "Athena · 4K VO",
+  helios: "Helios · VO",
+  moscow: "Moscow · VO",
+  planets: "Planets · VO",
   vidzee: "VidZee · EN",
   moviebox: "MovieBox · EN",
   vidnest: "Vidnest · VO",
