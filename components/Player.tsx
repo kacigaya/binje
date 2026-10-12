@@ -472,7 +472,7 @@ export default function Player({
                 label: `${item.label}p`,
               })),
             ]}
-            className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums"
+            className="h-11 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums"
           />
         )}
         <CastControls
