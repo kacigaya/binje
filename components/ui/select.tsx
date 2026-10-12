@@ -6,8 +6,7 @@ import { ChevronDownIcon } from "@/components/ui/chevron-down";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { cn } from "@/lib/utils";
 
-// A hint dims the item and follows its label in the list, not in the trigger.
-type SelectItem<T> = { value: T; label: string; hint?: string };
+type SelectItem<T> = { value: T; label: string };
 
 function Select<T extends string | number>({
   value,
@@ -75,10 +74,7 @@ function Select<T extends string | number>({
                 value={item.value}
                 className="flex cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-red/60 data-highlighted:bg-white/10"
               >
-                <span className={cn("flex min-w-0 items-baseline gap-2", item.hint && "text-muted-foreground")}>
-                  <BaseSelect.ItemText>{item.label}</BaseSelect.ItemText>
-                  {item.hint && <span className="text-xs">{item.hint}</span>}
-                </span>
+                <BaseSelect.ItemText>{item.label}</BaseSelect.ItemText>
                 <BaseSelect.ItemIndicator>
                   <Check className="size-3.5 text-foreground" />
                 </BaseSelect.ItemIndicator>

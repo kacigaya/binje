@@ -17,25 +17,26 @@ import { resolveVideasyWsStream } from "@/lib/videasyws";
 
 export type { PlaybackSource };
 
-// Preference order: players start with the first available source. French
-// stays last because every other source plays the original audio.
+// Playback order: players start with the first available source and move
+// down the list on failure; viewers never pick. 4K first, then 1080p. VF is
+// out of the chain for now (its resolver stays reachable through RESOLVERS
+// for /api/resolve-vf), and the remaining sources are silent last resorts.
 export const PLAYBACK_SOURCES = [
-  "videasyws",
   "cine4k",
   "athena",
   "helios",
-  "moscow",
   "planets",
+  "moviesapi",
+  "videasyws",
+  "moscow",
   "vidzee",
   "moviebox",
   "vidnest",
   "vsrc",
   "videm",
   "2embed",
-  "moviesapi",
   "vidrock",
   "videasy",
-  "vf",
 ] as const satisfies readonly PlaybackSource[];
 
 const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<ResolvedStream>> = {

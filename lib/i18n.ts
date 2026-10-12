@@ -116,7 +116,6 @@ const FRENCH = {
     "Flux indisponible. Réessayez plus tard.",
   "Loading…": "Chargement…",
   Quality: "Qualité",
-  Source: "Source",
   Auto: "Auto",
   "Cast to a device": "Diffuser sur un appareil",
   "Stop casting": "Arrêter la diffusion",
@@ -173,8 +172,6 @@ const FRENCH = {
   Page: "Page",
   "Clear filters": "Effacer les filtres",
   "Checking sources…": "Vérification des sources…",
-  Unavailable: "Indisponible",
-  "Connecting to": "Connexion à",
   Continue: "Continuer",
   "Allow local storage to save titles.":
     "Autorisez le stockage local pour enregistrer des titres.",

@@ -1,9 +1,14 @@
 import { expect, test } from "bun:test";
-import { isPlaybackSource, parseResolveParams } from "./sources";
+import { isPlaybackSource, parseResolveParams, PLAYBACK_SOURCES } from "./sources";
+
+test("plays 4K first, then the 1080p fallbacks, without VF", () => {
+  expect(PLAYBACK_SOURCES.slice(0, 6)).toEqual(["cine4k", "athena", "helios", "planets", "moviesapi", "videasyws"]);
+  expect(PLAYBACK_SOURCES).not.toContain("vf");
+});
 
 test("accepts every listed source and nothing else", () => {
   expect(isPlaybackSource("2embed")).toBe(true);
-  expect(isPlaybackSource("vf")).toBe(true);
+  expect(isPlaybackSource("vf")).toBe(false);
   expect(isPlaybackSource("en")).toBe(false);
   expect(isPlaybackSource("toString")).toBe(false);
 });

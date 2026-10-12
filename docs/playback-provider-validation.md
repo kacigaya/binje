@@ -1,5 +1,16 @@
 # Playback provider validation
 
+## Automatic playback order (2026-10-12)
+
+Viewers no longer choose a source: the web and mobile source pickers are gone
+(this supersedes the 2026-10-11 picker section below). Players try, in order,
+Cine4K, Athena (both 4K), Helios, Planets, MoviesAPI, then Videasy.ws, followed by the
+remaining sources as silent last resorts. `/api/sources` still drops sources
+whose manifest does not load, and a failure on the device moves to the next
+one. Movies start on Cine4K before the availability list arrives; episodes
+start on Athena, since Cine4K has no TV. VF is out of the chain for now;
+`/api/resolve-vf` still serves it.
+
 ## Videasy.ws (2026-10-11)
 
 Added `source=videasyws` (`lib/videasyws.ts`) as the first and initial source on

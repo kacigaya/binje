@@ -3,57 +3,35 @@ import type { PlaybackSource, SourcesResponse, StreamResponse } from "../../type
 
 export type { PlaybackSource };
 
-// The server lists sources in preference order; ids this build does not know
-// are ignored so a newer server cannot break an older app.
-export const SOURCE_LABELS: Record<PlaybackSource, { label: string; pill: string }> = {
-  videasyws: { label: "Videasy.ws · VO", pill: "Videasy.ws" },
-  cine4k: { label: "Cine4K · 4K VO", pill: "Cine4K" },
-  athena: { label: "Athena · 4K VO", pill: "Athena" },
-  helios: { label: "Helios · VO", pill: "Helios" },
-  moscow: { label: "Moscow · VO", pill: "Moscow" },
-  planets: { label: "Planets · VO", pill: "Planets" },
-  vidzee: { label: "VidZee · EN", pill: "VidZee" },
-  moviebox: { label: "MovieBox · EN", pill: "MovieBox" },
-  vidnest: { label: "Vidnest · VO", pill: "Vidnest" },
-  vsrc: { label: "Vsrc · VO", pill: "Vsrc" },
-  videm: { label: "Videm · VO", pill: "Videm" },
-  "2embed": { label: "2Embed · VO", pill: "2Embed" },
-  moviesapi: { label: "MoviesAPI · VO", pill: "MoviesAPI" },
-  vidrock: { label: "Vidrock · VO", pill: "Vidrock" },
-  videasy: { label: "Videasy · VO", pill: "VO" },
-  vf: { label: "French · VF", pill: "VF" },
+// The server lists sources in playback order; ids this build does not know
+// are ignored so a newer server cannot break an older app. Viewers never
+// pick: a failure moves on to the next listed source.
+const KNOWN_SOURCES: Record<PlaybackSource, true> = {
+  cine4k: true,
+  athena: true,
+  helios: true,
+  planets: true,
+  moviesapi: true,
+  videasyws: true,
+  moscow: true,
+  vidzee: true,
+  moviebox: true,
+  vidnest: true,
+  vsrc: true,
+  videm: true,
+  "2embed": true,
+  vidrock: true,
+  videasy: true,
+  vf: true,
 };
-// Tried before the availability list arrives, so playback does not wait on it.
-export const DEFAULT_SOURCE: PlaybackSource = "videasyws";
+// Tried before the availability list arrives, so playback does not wait on
+// it. Cine4K has no episodes, so TV starts on Athena.
+export const DEFAULT_SOURCE: Record<"movie" | "tv", PlaybackSource> = { movie: "cine4k", tv: "athena" };
 // The server resolves every provider before answering.
 const SOURCES_TIMEOUT_MS = 25_000;
 
 export function isKnownSource(value: unknown): value is PlaybackSource {
-  return typeof value === "string" && Object.hasOwn(SOURCE_LABELS, value);
-}
-export const ALL_SOURCES = Object.keys(SOURCE_LABELS).filter(isKnownSource);
-// Never listed for episodes: these providers have no TV streams at all.
-const MOVIE_ONLY_SOURCES: readonly PlaybackSource[] = ["cine4k"];
-
-// Every known source, the ones the probe listed first. Sources that failed
-// here or that the probe left out are flagged and sorted last, not hidden:
-// probes can be wrong, and a manual pick tries them anyway. Nothing is
-// flagged while the probe runs or when it failed outright.
-export function sourceMenu(
-  available: readonly PlaybackSource[] | null | undefined,
-  failed: readonly PlaybackSource[],
-  current: PlaybackSource | null,
-  type: "movie" | "tv" = "movie",
-): { id: PlaybackSource; unavailable: boolean }[] {
-  const all = type === "tv" ? ALL_SOURCES.filter((id) => !MOVIE_ONLY_SOURCES.includes(id)) : ALL_SOURCES;
-  const listed = (available ?? []).filter((id) => all.includes(id));
-  const ordered = [...listed, ...all.filter((id) => !listed.includes(id))];
-  const unavailable = (id: PlaybackSource) =>
-    id !== current && (failed.includes(id) || (Array.isArray(available) && !available.includes(id)));
-  return [...ordered.filter((id) => !unavailable(id)), ...ordered.filter(unavailable)].map((id) => ({
-    id,
-    unavailable: unavailable(id),
-  }));
+  return typeof value === "string" && Object.hasOwn(KNOWN_SOURCES, value);
 }
 export type StreamMedia = {
   type: "movie" | "tv";

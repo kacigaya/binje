@@ -14,7 +14,6 @@ import {
   getResumePosition,
   updatePlayHistoryProgress,
 } from "@/lib/play-history";
-import { sourceMenu } from "@/lib/source-menu";
 import type { PlaybackSource } from "@/lib/sources";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
@@ -26,35 +25,34 @@ type Quality = { index: number; height: number; label: number; bitrate: number }
 type StreamSource = { file: string; height: number };
 type ResolvedMedia = { url: string; tracks: Track[]; sources: StreamSource[] };
 
-// /api/sources lists, in preference order, only the sources whose stream
-// loads for the title; ids this build does not know are ignored.
-const SOURCE_LABELS: Record<PlaybackSource, string> = {
-  videasyws: "Videasy.ws · VO",
-  cine4k: "Cine4K · 4K VO",
-  athena: "Athena · 4K VO",
-  helios: "Helios · VO",
-  moscow: "Moscow · VO",
-  planets: "Planets · VO",
-  vidzee: "VidZee · EN",
-  moviebox: "MovieBox · EN",
-  vidnest: "Vidnest · VO",
-  vsrc: "Vsrc · VO",
-  videm: "Videm · VO",
-  "2embed": "2Embed · VO",
-  moviesapi: "MoviesAPI · VO",
-  vidrock: "Vidrock · VO",
-  videasy: "Videasy · VO",
-  vf: "French · VF",
+// /api/sources lists, in playback order, only the sources whose stream loads
+// for the title; ids this build does not know are ignored. Viewers never pick:
+// a failure moves on to the next listed source.
+const KNOWN_SOURCES: Record<PlaybackSource, true> = {
+  cine4k: true,
+  athena: true,
+  helios: true,
+  planets: true,
+  moviesapi: true,
+  videasyws: true,
+  moscow: true,
+  vidzee: true,
+  moviebox: true,
+  vidnest: true,
+  vsrc: true,
+  videm: true,
+  "2embed": true,
+  vidrock: true,
+  videasy: true,
+  vf: true,
 };
-// Tried before the availability list arrives, so playback does not wait on it.
-const DEFAULT_SOURCE: PlaybackSource = "videasyws";
+// Tried before the availability list arrives, so playback does not wait on
+// it. Cine4K has no episodes, so TV starts on Athena.
+const DEFAULT_SOURCE: Record<"movie" | "tv", PlaybackSource> = { movie: "cine4k", tv: "athena" };
 
 function isKnownSource(value: unknown): value is PlaybackSource {
-  return typeof value === "string" && Object.hasOwn(SOURCE_LABELS, value);
+  return typeof value === "string" && Object.hasOwn(KNOWN_SOURCES, value);
 }
-const ALL_SOURCES = Object.keys(SOURCE_LABELS).filter(isKnownSource);
-// Never listed for episodes: these providers have no TV streams at all.
-const MOVIE_ONLY_SOURCES: readonly PlaybackSource[] = ["cine4k"];
 
 // The TV page keeps this component mounted across episodes, so per-title
 // state carries the media key it belongs to and is ignored once that changes.
@@ -149,28 +147,18 @@ export default function Player({
   // undefined while probing, null when the probe itself failed.
   const [available, setAvailable] = useState<Keyed<PlaybackSource[] | null> | null>(null);
   const [failed, setFailed] = useState<Keyed<PlaybackSource[]> | null>(null);
-  const [picked, setPicked] = useState<Keyed<PlaybackSource> | null>(null);
   const [playing, setPlaying] = useState<Keyed<PlaybackSource> | null>(null);
   const [probeKey, setProbeKey] = useState(0);
   const availableList = forMedia(available, mediaKey);
   const failedList = forMedia(failed, mediaKey) ?? [];
   const usable = (id: PlaybackSource | undefined) => (id && !failedList.includes(id) ? id : undefined);
   const playingSource = usable(forMedia(playing, mediaKey));
-  // A manual pick wins, then whatever already plays, then the first listed
-  // source that has not failed here. A failure moves on to the next one.
+  // Whatever already plays stays, else the first listed source that has not
+  // failed here. A failure moves on to the next one.
   const source =
-    usable(forMedia(picked, mediaKey)) ??
     playingSource ??
-    (availableList ?? [DEFAULT_SOURCE]).find((id) => !failedList.includes(id)) ??
+    (availableList ?? [DEFAULT_SOURCE[type]]).find((id) => !failedList.includes(id)) ??
     null;
-  const menu = sourceMenu(
-    type === "tv" ? ALL_SOURCES.filter((id) => !MOVIE_ONLY_SOURCES.includes(id)) : ALL_SOURCES,
-    availableList,
-    failedList,
-    source,
-  );
-  // Once every source failed, the picker keeps showing the last one tried.
-  const shownSource = source ?? failedList.at(-1) ?? DEFAULT_SOURCE;
   const exhausted = source === null && availableList !== undefined;
   // Waiting for the availability list after the default source failed.
   const awaitingSources = source === null && !exhausted;
@@ -319,20 +307,10 @@ export default function Player({
 
   function retry() {
     setFailed(null);
-    setPicked(null);
     setPlaying(null);
     setAvailable(null);
     setProbeKey((previous) => previous + 1);
     setReloadKey((previous) => previous + 1);
-  }
-
-  // A manual pick retries a source even after it failed here.
-  function pickSource(value: PlaybackSource) {
-    setFailed((previous) => ({
-      key: mediaKey,
-      value: (forMedia(previous, mediaKey) ?? []).filter((id) => id !== value),
-    }));
-    setPicked({ key: mediaKey, value });
   }
 
   function changeQuality(index: number) {
@@ -387,22 +365,10 @@ export default function Player({
   let statusText = t("Loading…");
   if (exhausted) statusText = t("Stream unavailable. Try again later.");
   else if (awaitingSources) statusText = t("Checking sources…");
-  else if (source) statusText = `${t("Connecting to")} ${SOURCE_LABELS[source]}`;
 
   return (
     <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
       <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/75 p-1">
-        <Select
-          ariaLabel={t("Source")}
-          value={shownSource}
-          onValueChange={pickSource}
-          items={menu.map(({ id, unavailable }) => ({
-            value: id,
-            label: SOURCE_LABELS[id],
-            hint: unavailable ? t("Unavailable") : undefined,
-          }))}
-          className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white"
-        />
         {qualities.length > 0 && (
           <Select
             ariaLabel={t("Quality")}

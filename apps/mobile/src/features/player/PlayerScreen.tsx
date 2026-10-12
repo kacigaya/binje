@@ -19,8 +19,6 @@ import {
   fetchAvailableSources,
   proxiedHlsUrl,
   resolveStream,
-  SOURCE_LABELS,
-  sourceMenu,
   type PlaybackSource,
   type StreamMedia,
 } from "./resolveStream";
@@ -53,9 +51,7 @@ export function PlayerScreen({
   // undefined while probing, null when the probe itself failed.
   const [available, setAvailable] = useState<Keyed<PlaybackSource[] | null> | null>(null);
   const [failed, setFailed] = useState<Keyed<PlaybackSource[]> | null>(null);
-  const [picked, setPicked] = useState<Keyed<PlaybackSource> | null>(null);
   const [playing, setPlaying] = useState<Keyed<PlaybackSource> | null>(null);
-  const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
   const [stream, setStream] = useState<StreamResponse | null>(null);
   const [qualityHeight, setQualityHeight] = useState<number | null>(null);
   const [qualityMenuOpen, setQualityMenuOpen] = useState(false);
@@ -90,16 +86,12 @@ export function PlayerScreen({
   const failedList = forMedia(failed, mediaKey) ?? [];
   const usable = (source: PlaybackSource | undefined) => (source && !failedList.includes(source) ? source : undefined);
   const playingSource = usable(forMedia(playing, mediaKey));
-  // A manual pick wins, then whatever already plays, then the first listed
-  // source that has not failed here. A failure moves on to the next one.
+  // Whatever already plays stays, else the first listed source that has not
+  // failed here. A failure moves on to the next one.
   const source =
-    usable(forMedia(picked, mediaKey)) ??
     playingSource ??
-    (availableList ?? [DEFAULT_SOURCE]).find((item) => !failedList.includes(item)) ??
+    (availableList ?? [DEFAULT_SOURCE[type]]).find((item) => !failedList.includes(item)) ??
     null;
-  const menu = sourceMenu(availableList, failedList, source, type);
-  // Once every source failed, the pill keeps showing the last one tried.
-  const shownSource = source ?? failedList.at(-1) ?? DEFAULT_SOURCE;
   const exhausted = source === null && availableList !== undefined;
   const streamError = exhausted ? t("streamUnavailable") : null;
 
@@ -342,25 +334,11 @@ export function PlayerScreen({
               onDisconnect={handleCastDisconnect}
               onRemoteProgress={handleRemoteProgress}
             />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${t("source")}: ${SOURCE_LABELS[shownSource].label}`}
-              accessibilityState={{ expanded: sourceMenuOpen }}
-              onPress={() => {
-                setQualityMenuOpen(false);
-                setSourceMenuOpen((open) => !open);
-              }}
-              style={styles.playerPill}
-            >
-              <Text style={styles.playerPillText}>{SOURCE_LABELS[shownSource].pill}</Text>
-              <Ionicons name={sourceMenuOpen ? "chevron-up" : "chevron-down"} size={13} color={colors.text} />
-            </Pressable>
             {qualityHeights.length > 0 ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${t("quality")}: ${qualityHeight == null ? t("auto") : `${qualityHeight}p`}`}
                 onPress={() => {
-                  setSourceMenuOpen(false);
                   setQualityMenuOpen((open) => !open);
                 }}
                 style={styles.playerPill}
@@ -370,41 +348,6 @@ export function PlayerScreen({
               </Pressable>
             ) : null}
           </View>
-          {sourceMenuOpen ? (
-            <View style={styles.qualityMenu}>
-              {menu.map(({ id: item, unavailable }) => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    unavailable ? `${SOURCE_LABELS[item].label}, ${t("unavailable")}` : SOURCE_LABELS[item].label
-                  }
-                  accessibilityState={{ selected: source === item }}
-                  key={item}
-                  onPress={() => {
-                    setSourceMenuOpen(false);
-                    // A manual pick retries a source even after it failed here.
-                    setFailed((previous) => ({
-                      key: mediaKey,
-                      value: (forMedia(previous, mediaKey) ?? []).filter((id) => id !== item),
-                    }));
-                    setPicked({ key: mediaKey, value: item });
-                  }}
-                  style={styles.qualityItem}
-                >
-                  <Text
-                    style={[
-                      styles.playerPillText,
-                      unavailable && styles.qualityItemUnavailable,
-                      source === item && styles.qualityItemActive,
-                    ]}
-                  >
-                    {SOURCE_LABELS[item].label}
-                    {unavailable ? ` · ${t("unavailable")}` : ""}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
           {qualityMenuOpen ? (
             <View style={styles.qualityMenu}>
               {[null, ...qualityHeights].map((height) => (
@@ -569,7 +512,6 @@ const styles = StyleSheet.create({
   qualityMenu: { marginTop: 4, backgroundColor: "rgba(12,12,15,0.92)", borderRadius: 14, paddingVertical: 4, minWidth: 88 },
   qualityItem: { paddingHorizontal: 14, paddingVertical: 8, alignItems: "center" },
   qualityItemActive: { color: colors.accent },
-  qualityItemUnavailable: { color: colors.muted },
   error: { color: colors.destructive, textAlign: "center", padding: spacing.md },
   row: { flexDirection: "row", gap: 10 },
   controlsRow: { flexDirection: "row", alignItems: "center", gap: 12 },
