@@ -243,3 +243,58 @@ test("seek bar seeks on commit and formats time", async ({ page }) => {
   await expect.poll(() => page.locator("video").evaluate((video: HTMLVideoElement) => video.currentTime)).toBe(0);
   await expect(seek).toHaveAttribute("aria-valuetext", "0:00 / 1:00");
 });
+
+test("sources without subtitles fall back to ones found by title, off at first", async ({ page }) => {
+  await page.route("**/api/subtitles?*", (route) => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.has("sub")) {
+      return route.fulfill({ contentType: "text/vtt", body: "WEBVTT\n\n00:00.000 --> 00:10.000\nHello\n" });
+    }
+    return route.fulfill({
+      json: {
+        tracks: [
+          { file: "/api/subtitles?type=movie&sub=fr1", language: "fr", hearingImpaired: false },
+          { file: "/api/subtitles?type=movie&sub=en1", language: "en", hearingImpaired: true },
+        ],
+      },
+    });
+  });
+  // A source without tracks: the search waits for it. Its stream is held.
+  await page.unroute("**/api/resolve?*");
+  await page.route("**/api/resolve?*", (route) => route.fulfill({
+    json: { url: "https://cdn.test/master.m3u8", tracks: [] },
+  }));
+  await page.route("**/api/hls?*", () => {});
+  const searching = page.waitForRequest((request) => request.url().includes("/api/subtitles?") && !request.url().includes("sub="));
+  await page.reload();
+  await searching;
+  const modes = () => page.locator("video track").evaluateAll((tracks: HTMLTrackElement[]) =>
+    tracks.map((track) => `${track.label}:${track.track.mode}`));
+  await expect.poll(modes).toEqual(["English (hearing impaired):disabled", "French:disabled"]);
+
+  await page.getByRole("combobox", { name: "Subtitles" }).click();
+  await page.getByRole("option", { name: "French" }).click();
+  await expect.poll(modes).toEqual(["English (hearing impaired):disabled", "French:showing"]);
+  // The menu button keeps letter keys for typeahead, so leave it first.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press("c");
+  await expect.poll(modes).toEqual(["English (hearing impaired):disabled", "French:disabled"]);
+});
+
+test("sources with subtitles skip the title search", async ({ page }) => {
+  let searched = false;
+  await page.route("**/api/subtitles?*", (route) => {
+    searched = true;
+    return route.fulfill({ json: { tracks: [] } });
+  });
+  await page.unroute("**/api/resolve?*");
+  await page.route("**/api/resolve?*", (route) => route.fulfill({
+    json: { url: "https://cdn.test/master.m3u8", tracks: [{ file: "https://subs.test/en.vtt", label: "English" }] },
+  }));
+  await page.route("**/api/hls?*", () => {});
+  await page.reload();
+  await expect(page.locator("video track")).toHaveCount(1);
+  await expect.poll(() => page.locator("video track").evaluate((track: HTMLTrackElement) => track.track.mode)).toBe("showing");
+  await page.waitForTimeout(500);
+  expect(searched).toBe(false);
+});

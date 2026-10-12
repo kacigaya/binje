@@ -32,11 +32,13 @@ import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
 type PlayerMediaType = "movie" | "tv";
-type Track = { file: string; label?: string };
+type Track = { file: string; label?: string; lang?: string };
+// From /api/subtitles: files found by title, for sources that ship none.
+type ExternalTrack = { file: string; language: string; hearingImpaired: boolean };
 // height is the rendition's own; label is its 16:9 class (lib/quality-class).
 type Quality = { index: number; height: number; label: number; bitrate: number };
 type StreamSource = { file: string; height: number };
-type ResolvedMedia = { url: string; tracks: Track[]; sources: StreamSource[] };
+type ResolvedMedia = { url: string; sources: StreamSource[] };
 type PresentationVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
 
 // /api/sources lists, in playback order, only the sources whose stream loads
@@ -79,6 +81,18 @@ const RESOLVE_BASE = "/api";
 
 function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
+}
+
+// Same-origin subtitle files are served as-is; provider files go through the proxy.
+function trackSrc(file: string) {
+  return file.startsWith("/") ? file : proxied(file);
+}
+
+function isExternalTrack(value: unknown): value is ExternalTrack {
+  if (typeof value !== "object" || value === null) return false;
+  const { file, language, hearingImpaired } = value as Record<string, unknown>;
+  return typeof file === "string" && file.startsWith("/api/subtitles?") &&
+    typeof language === "string" && /^[a-z]{2}$/.test(language) && typeof hearingImpaired === "boolean";
 }
 
 // Upstream reports height only, so bitrates come from a conservative H.264
@@ -141,7 +155,7 @@ export default function Player({
   /** Backdrop shown behind the loading state until playback starts. */
   poster?: string | null;
 }) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const mediaKey = `${type}:${tmdbId}:${season ?? 1}:${episode ?? 1}`;
   const mediaQuery = useMemo(() => {
     const params = new URLSearchParams({
@@ -224,11 +238,36 @@ export default function Player({
   const [inPip, setInPip] = useState(false);
   const [paused, setPaused] = useState(true);
   const [buffering, setBuffering] = useState(false);
-  // Subtitles start on the first track, like the native `default` track did.
-  const [subtitle, setSubtitle] = useState({ index: 0, on: true });
-  // The TV page keeps this mounted across episodes; a pick past the next
-  // episode's track list falls back to its first track.
-  const activeSubtitle = !subtitle.on || !tracks.length ? -1 : subtitle.index < tracks.length ? subtitle.index : 0;
+  const [externalTracks, setExternalTracks] = useState<Keyed<ExternalTrack[]> | null>(null);
+  const externalList = forMedia(externalTracks, mediaKey);
+  // Tracks found by title stand in only for a source that ships none, in the
+  // viewer's language first.
+  const allTracks = useMemo<Track[]>(() => {
+    if (tracks.length) return tracks;
+    const names = new Intl.DisplayNames([locale], { type: "language" });
+    const external = [...(externalList ?? [])]
+      .sort((a, b) => Number(b.language === locale) - Number(a.language === locale))
+      .map((track) => {
+        const name = names.of(track.language) ?? track.language;
+        const label = name.charAt(0).toLocaleUpperCase(locale) + name.slice(1);
+        return {
+          file: track.file,
+          lang: track.language,
+          label: track.hearingImpaired ? `${label} (${t("hearing impaired")})` : label,
+        };
+      });
+    return external;
+  }, [externalList, locale, t, tracks]);
+  // The pick is kept by file, so tracks arriving or changing later do not move
+  // it. Until the viewer picks, subtitles start on the source's first track,
+  // like the native `default` track did; tracks found by title start off.
+  const [subtitle, setSubtitle] = useState<{ file: string | null; on: boolean } | null>(null);
+  const subtitleOn = subtitle ? subtitle.on : tracks.length > 0;
+  // A file missing from the list, such as the previous episode's on the TV
+  // page, falls back to the first track.
+  const activeSubtitle = !subtitleOn || !allTracks.length
+    ? -1
+    : Math.max(allTracks.findIndex((track) => track.file === subtitle?.file), 0);
   const [seekHint, setSeekHint] = useState<{ forward: boolean; id: number } | null>(null);
   const lastTapRef = useRef(0);
   const lastPointerTypeRef = useRef("");
@@ -320,10 +359,30 @@ export default function Player({
     videoRef.current?.querySelectorAll("track").forEach((element, index) => {
       element.track.mode = index === activeSubtitle ? "showing" : "disabled";
     });
-  }, [activeSubtitle, tracks]);
+  }, [activeSubtitle, allTracks]);
+
+  // Searched only once a source resolved without tracks: each search spends
+  // the server's limited Wyzie requests.
+  const needsExternalTracks = resolvedMedia !== null && tracks.length === 0 && externalList === undefined;
+  useEffect(() => {
+    if (!needsExternalTracks) return;
+    let cancelled = false;
+    fetch(`/api/subtitles?${mediaQuery}`)
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("subtitles failed"))))
+      .then((data: { tracks?: unknown }) => {
+        const list = Array.isArray(data.tracks) ? data.tracks.filter(isExternalTrack) : [];
+        if (!cancelled) setExternalTracks({ key: mediaKey, value: list });
+      })
+      .catch(() => {
+        // Optional: playback goes on without subtitles.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaKey, mediaQuery, needsExternalTracks]);
 
   function toggleSubtitles() {
-    if (tracks.length) setSubtitle((previous) => ({ ...previous, on: activeSubtitle < 0 }));
+    if (allTracks.length) setSubtitle({ file: subtitle?.file ?? null, on: activeSubtitle < 0 });
   }
 
   function skip(forward: boolean) {
@@ -502,7 +561,7 @@ export default function Player({
         const nextTracks = (data.tracks ?? []).filter((t) => t.file);
         const nextSources = data.sources ?? [];
         setTracks(nextTracks);
-        setResolvedMedia({ url: data.url, tracks: nextTracks, sources: nextSources });
+        setResolvedMedia({ url: data.url, sources: nextSources });
         const HlsModule = hlsModulePromise ? await hlsModulePromise : null;
         if (cancelled) return;
         const hlsSupported = Boolean(HlsModule?.isSupported());
@@ -694,12 +753,13 @@ export default function Player({
           crossOrigin="anonymous"
           poster={poster ?? undefined}
         >
-          {tracks.map((track, i) => (
+          {allTracks.map((track, i) => (
             <track
               key={track.file}
               kind="subtitles"
               label={track.label ?? `Track ${i + 1}`}
-              src={proxied(track.file)}
+              srcLang={track.lang}
+              src={trackSrc(track.file)}
             />
           ))}
         </video>
@@ -805,19 +865,19 @@ export default function Player({
             </ControlGroup>
           )}
           <ControlGroup className={cn("relative", interactive)}>
-            {tracks.length > 0 && !googleCasting && (
+            {allTracks.length > 0 && !googleCasting && (
               <Select
                 ariaLabel={t("Subtitles")}
                 value={activeSubtitle}
-                onValueChange={(index) => setSubtitle((previous) => (
-                  index < 0 ? { ...previous, on: false } : { index, on: true }
-                ))}
+                onValueChange={(index) => setSubtitle(
+                  index < 0 ? { file: subtitle?.file ?? null, on: false } : { file: allTracks[index].file, on: true },
+                )}
                 icon={activeSubtitle >= 0
                   ? <Captions aria-hidden="true" className="size-4" />
                   : <CaptionsOff aria-hidden="true" className="size-4 text-white/60" />}
                 items={[
                   { value: -1, label: t("Off") },
-                  ...tracks.map((track, i) => ({ value: i, label: track.label ?? `Track ${i + 1}` })),
+                  ...allTracks.map((track, i) => ({ value: i, label: track.label ?? `Track ${i + 1}` })),
                 ]}
                 className="size-11 justify-center rounded-full text-white hover:bg-white/15"
               />
@@ -875,7 +935,7 @@ export default function Player({
               videoRef={videoRef}
               mediaKey={mediaKey}
               source={castSource}
-              tracks={resolvedMedia?.tracks ?? []}
+              tracks={allTracks}
               title={title}
               onRemoteProgress={saveProgress}
               onGoogleCastingChange={setGoogleCasting}

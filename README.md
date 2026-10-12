@@ -24,7 +24,7 @@
 - Dedicated `/movies` and `/tv-shows` browse pages with shareable genre, sort, and decade filters
 - Detailed movie and TV show pages (ratings, cast, per-season episode list, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
-- Watch pages with automatic source selection and failover, subtitles, manual HLS quality selection, and a crop toggle for encoded black bars
+- Watch pages with automatic source selection and failover, subtitles (with a title-based fallback), manual HLS quality selection, and a crop toggle for encoded black bars
 - Google Cast on web, Android, and iOS, plus AirPlay on supported Apple devices
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
 - "Continue Watching" row backed by local play history; Resume/Continue buttons and the player pick up at the saved position
@@ -111,6 +111,21 @@ Posters, backdrops, and logos in these screenshots come from TMDB.
 Without `OMDB_API_KEY`, detail pages continue showing TMDB ratings only. OMDb content is
 licensed for non-commercial use; commercial deployments should use a licensed ratings
 provider.
+
+- An optional [Wyzie Subs](https://sub.wyzie.io) API key (`WYZIE_API_KEY`, free at
+  [store.wyzie.io/redeem](https://store.wyzie.io/redeem)) for French and English subtitles
+  on sources that ship none
+
+The server keeps the Wyzie key and the download links, which are billed to it, and serves
+subtitle files from `/api/subtitles`. One search per episode or movie and one download per
+file are cached in memory, and only for sources that return no subtitles of their own.
+Wyzie requests stop for the rest of the UTC day after `WYZIE_DAILY_REQUESTS` (900 by
+default, under a free key's 1,000). The count is kept in memory per server process and
+resets on restart; Wyzie's own daily cap still applies to free keys. Running several
+instances on a paid key would need a shared counter.
+These subtitles are matched by title, not to the exact release being played, so some may
+drift out of sync. They start off; pick one from the player's subtitles menu or press C.
+Without the key, only subtitles from the playing source are offered.
 
 ### Installation
 

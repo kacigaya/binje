@@ -228,7 +228,10 @@ export default function CastControls({
             index + 1,
             api.chromeCast.media.TrackType.TEXT,
           );
-          remoteTrack.trackContentId = castProxyUrl(track.file, token);
+          // Same-origin subtitle files need no proxy, only an absolute URL.
+          remoteTrack.trackContentId = track.file.startsWith("/")
+            ? new URL(track.file, window.location.origin).href
+            : castProxyUrl(track.file, token);
           remoteTrack.trackContentType = "text/vtt";
           remoteTrack.name = track.label ?? `${t("Subtitles")} ${index + 1}`;
           remoteTrack.language = "und";
