@@ -148,3 +148,37 @@ test("native fullscreen remains available without container fullscreen support",
   await page.getByRole("button", { name: "Crop black bars" }).click();
   await expectRatio(page, 2.39);
 });
+
+test("fullscreen toolbar hides when idle and returns on pointer or keyboard input", async ({ page }) => {
+  await playLocalStream(page, 960, 540, true);
+  await page.clock.install();
+  const crop = page.locator("button[aria-label='Crop black bars']");
+  const toolbar = crop.locator("..");
+  await page.getByRole("button", { name: "Enter fullscreen" }).click();
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement !== null)).toBe(true);
+  await page.clock.runFor(2700);
+  await expect(toolbar).toHaveCSS("opacity", "0");
+  await expect(toolbar).toHaveAttribute("inert", "");
+  await expect(toolbar).toHaveAttribute("aria-hidden", "true");
+
+  await page.locator("video").dispatchEvent("pointermove", { pointerType: "mouse" });
+  await expect(toolbar).toHaveCSS("opacity", "1");
+  await expect(toolbar).not.toHaveAttribute("inert", "");
+  await page.clock.runFor(2700);
+  await expect(toolbar).toHaveCSS("opacity", "0");
+  await page.locator("video").dispatchEvent("pointerdown", { pointerType: "touch" });
+  await expect(toolbar).toHaveCSS("opacity", "1");
+  await page.clock.runFor(2700);
+  await expect(toolbar).toHaveCSS("opacity", "0");
+
+  await page.keyboard.press("Tab");
+  await crop.focus();
+  await expect(toolbar).toHaveCSS("opacity", "1");
+  await page.clock.runFor(2700);
+  await expect(toolbar).toHaveCSS("opacity", "1");
+  await page.evaluate(() => document.exitFullscreen());
+  await expect(toolbar).toHaveAttribute("aria-hidden", "false");
+  await expect(toolbar).not.toHaveAttribute("inert", "");
+  await page.clock.runFor(2700);
+  await expect(toolbar).toHaveCSS("opacity", "1");
+});

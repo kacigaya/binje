@@ -182,6 +182,7 @@ export default function Player({
   const sourceUrl = source ? `${RESOLVE_BASE}/resolve?${mediaQuery}&source=${source}` : null;
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
   const fullscreenButtonRef = useRef<HTMLButtonElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -205,6 +206,8 @@ export default function Player({
     : nativeAspectRatio ?? 16 / 9;
   const [fullscreenSupported, setFullscreenSupported] = useState(false);
   const [isFullscreen, setFullscreen] = useState(false);
+  const [fullscreenControlsVisible, setFullscreenControlsVisible] = useState(true);
+  const controlsHidden = isFullscreen && !fullscreenControlsVisible;
 
   useEffect(() => {
     setFullscreenSupported(Boolean(document.fullscreenEnabled && containerRef.current?.requestFullscreen));
@@ -218,6 +221,32 @@ export default function Player({
     document.addEventListener("fullscreenchange", onFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!isFullscreen || !container) return;
+    let timer: ReturnType<typeof setTimeout>;
+    function revealControls() {
+      setFullscreenControlsVisible(true);
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (controlsRef.current?.querySelector(':focus-visible, [aria-expanded="true"]')) return;
+        setFullscreenControlsVisible(false);
+      }, 2500);
+    }
+    revealControls();
+    container.addEventListener("pointermove", revealControls);
+    container.addEventListener("pointerdown", revealControls);
+    container.addEventListener("focusin", revealControls);
+    document.addEventListener("keydown", revealControls);
+    return () => {
+      clearTimeout(timer);
+      container.removeEventListener("pointermove", revealControls);
+      container.removeEventListener("pointerdown", revealControls);
+      container.removeEventListener("focusin", revealControls);
+      document.removeEventListener("keydown", revealControls);
+    };
+  }, [isFullscreen]);
 
   async function toggleFullscreen() {
     try {
@@ -424,7 +453,13 @@ export default function Player({
       )}
     >
       <div
-        className="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-full border border-white/15 bg-black/75 p-1"
+        ref={controlsRef}
+        aria-hidden={controlsHidden}
+        inert={controlsHidden}
+        className={cn(
+          "absolute top-2 right-2 z-10 flex items-center gap-1 rounded-full border border-white/15 bg-black/75 p-1 transition-opacity duration-150 motion-reduce:transition-none",
+          controlsHidden && "pointer-events-none opacity-0",
+        )}
         style={isFullscreen ? {
           top: "max(0.5rem, env(safe-area-inset-top))",
           right: "max(0.5rem, env(safe-area-inset-right))",

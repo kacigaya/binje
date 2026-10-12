@@ -39,7 +39,9 @@
 
 The web player's crop button zooms to 2.39:1 for widescreen movies stored with black bars.
 Click again to restore the full frame. Use the player's fullscreen button to keep the crop
-and controls visible; this requires support for fullscreen on a container element.
+and controls available; this requires support for fullscreen on a container element.
+In fullscreen, the toolbar hides after 2.5 seconds of inactivity. Tap, move the pointer,
+or use the keyboard to show it again. Keyboard focus and open menus keep it visible.
 Cropping is local to the player and does not change Cast or AirPlay playback.
 
 ## Screenshots
