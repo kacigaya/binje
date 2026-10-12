@@ -193,6 +193,8 @@ export default function Player({
   // Bumped by the retry control so the resolve below runs again without a
   // full page reload.
   const [reloadKey, setReloadKey] = useState(0);
+  const [videoAspectRatio, setVideoAspectRatio] = useState<Keyed<number> | null>(null);
+  const aspectRatioKey = `${sourceUrl}:${reloadKey}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -334,9 +336,21 @@ export default function Player({
     });
   }, [episode, season, tmdbId, type]);
 
+  function updateAspectRatio() {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) return;
+    const value = video.videoWidth / video.videoHeight;
+    setVideoAspectRatio((previous) =>
+      previous?.key === aspectRatioKey && previous.value === value
+        ? previous
+        : { key: aspectRatioKey, value },
+    );
+  }
+
   // Resumes on every source that loads, including failovers. A stream already
   // past its first second was positioned by the viewer and is left alone.
   function onLoadedMetadata() {
+    updateAspectRatio();
     const video = videoRef.current;
     if (!video || video.currentTime > 1) return;
     const position = getResumePosition(getPlayHistory(), {
@@ -367,7 +381,10 @@ export default function Player({
   else if (awaitingSources) statusText = t("Checking sources…");
 
   return (
-    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
+    <div
+      className="relative w-full bg-black rounded-xl overflow-hidden"
+      style={{ aspectRatio: forMedia(videoAspectRatio, aspectRatioKey) ?? 16 / 9 }}
+    >
       <div className="absolute top-2 right-2 z-10 flex gap-1 rounded-full border border-white/15 bg-black/75 p-1">
         {qualities.length > 0 && (
           <Select
@@ -400,8 +417,10 @@ export default function Player({
         controls={!googleCasting}
         playsInline
         onLoadedMetadata={onLoadedMetadata}
+        onResize={updateAspectRatio}
+        onEmptied={() => setVideoAspectRatio(null)}
         onTimeUpdate={onTimeUpdate}
-        className="absolute inset-0 h-full w-full rounded-xl bg-black"
+        className="absolute inset-0 h-full w-full rounded-xl bg-black object-contain"
         crossOrigin="anonymous"
         poster={poster ?? undefined}
       >
