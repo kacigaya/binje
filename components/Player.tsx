@@ -226,7 +226,9 @@ export default function Player({
   const [buffering, setBuffering] = useState(false);
   // Subtitles start on the first track, like the native `default` track did.
   const [subtitle, setSubtitle] = useState({ index: 0, on: true });
-  const activeSubtitle = subtitle.on && subtitle.index < tracks.length ? subtitle.index : -1;
+  // The TV page keeps this mounted across episodes; a pick past the next
+  // episode's track list falls back to its first track.
+  const activeSubtitle = !subtitle.on || !tracks.length ? -1 : subtitle.index < tracks.length ? subtitle.index : 0;
   const [seekHint, setSeekHint] = useState<{ forward: boolean; id: number } | null>(null);
   const lastTapRef = useRef(0);
   const lastPointerTypeRef = useRef("");
