@@ -3,7 +3,7 @@ import type { ResolveParams } from "@/lib/resolve-cache";
 import { BROWSER_USER_AGENT, fetchText, httpUrl, isPlayableManifest, isRecord, type ResolvedStream } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-const FREMBED_ORIGIN = "https://frembed.casa";
+const FREMBED_ORIGIN = "https://frembed.bar";
 
 const BASE_HEADERS = {
   "user-agent": BROWSER_USER_AGENT,
