@@ -80,6 +80,25 @@ test("rewrites mislabeled redirected playlists against the final URL and inherit
   expect(seen).toEqual(Array(3).fill("https://provider.test/"));
 });
 
+test("sends no Referer or Origin to a host pinned with an empty referer", async () => {
+  allowStreamHost("https://203.0.113.19/movie/1.m3u8", "");
+  const seen: Headers[] = [];
+  globalThis.fetch = mock(async (_input: unknown, init?: RequestInit) => {
+    seen.push(new Headers(init?.headers));
+    return new Response("#EXTM3U\nhttps://203.0.113.20/v/index.m3u8\n", {
+      headers: { "content-type": "application/vnd.apple.mpegurl" },
+    });
+  }) as unknown as typeof fetch;
+  const result = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.19/movie/1.m3u8"));
+  expect(result.status).toBe(200);
+  const child = new URL((await result.text()).trim().split("\n")[1], "https://binje.test");
+  await GET(new NextRequest(child));
+  expect(seen.map((headers) => [headers.get("referer"), headers.get("origin")])).toEqual([
+    [null, null],
+    [null, null],
+  ]);
+});
+
 test("rejects HTML and redirects into private networks", async () => {
   allowStreamHost("https://203.0.113.13/master");
   const request = new NextRequest("https://binje.test/api/hls?url=https://203.0.113.13/master");

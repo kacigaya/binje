@@ -30,6 +30,7 @@ type ResolvedMedia = { url: string; tracks: Track[]; sources: StreamSource[] };
 // loads for the title; ids this build does not know are ignored.
 const SOURCE_LABELS: Record<PlaybackSource, string> = {
   videasyws: "Videasy.ws · VO",
+  cine4k: "Cine4K · 4K VO",
   vidzee: "VidZee · EN",
   moviebox: "MovieBox · EN",
   vidnest: "Vidnest · VO",
@@ -48,6 +49,8 @@ function isKnownSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && Object.hasOwn(SOURCE_LABELS, value);
 }
 const ALL_SOURCES = Object.keys(SOURCE_LABELS).filter(isKnownSource);
+// Never listed for episodes: these providers have no TV streams at all.
+const MOVIE_ONLY_SOURCES: readonly PlaybackSource[] = ["cine4k"];
 
 // The TV page keeps this component mounted across episodes, so per-title
 // state carries the media key it belongs to and is ignored once that changes.
@@ -156,7 +159,12 @@ export default function Player({
     playingSource ??
     (availableList ?? [DEFAULT_SOURCE]).find((id) => !failedList.includes(id)) ??
     null;
-  const menu = sourceMenu(ALL_SOURCES, availableList, failedList, source);
+  const menu = sourceMenu(
+    type === "tv" ? ALL_SOURCES.filter((id) => !MOVIE_ONLY_SOURCES.includes(id)) : ALL_SOURCES,
+    availableList,
+    failedList,
+    source,
+  );
   // Once every source failed, the picker keeps showing the last one tried.
   const shownSource = source ?? failedList.at(-1) ?? DEFAULT_SOURCE;
   const exhausted = source === null && availableList !== undefined;

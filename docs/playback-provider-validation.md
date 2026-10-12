@@ -35,6 +35,29 @@ Verified locally:
 
 Not verified: subtitles (the API returned none), Safari, devices and Cast.
 
+## Cine4K (2026-10-12)
+
+Added `source=cine4k` (`lib/cine4k.ts`), second after Videasy.ws, for movies
+only; TV pickers leave it out. Found through FMHY's 4K list: Rive's "Mirage"
+server proxies `cine4k.mpddash.workers.dev/movie/{tmdbId}.m3u8`, which needs
+no key or token. Its master lists 3840x2160 H.264 (`avc1.640033`, about
+16 Mbit/s), 1080p, 720p and 480p, in fMP4 segments on rotating hosts.
+
+The Worker answers 403 to any Referer or Origin. The proxy now treats an empty
+pinned referer as "send none"; child hosts accept either.
+
+Other FMHY 4K sites were not added: Willow and the P-Stream forks (Cinecat,
+Basement, Aether…) take 4K from FebBox with user-submitted `ui` login tokens,
+and Rive's "Vanguard" (4K HEVC HDR, movies and TV) is reachable only through
+Rive's API with a per-title key computed in its client.
+
+Verified locally: Dune: Part Two, Inception and Fight Club masters list 4K.
+On the watch page the picker offered Auto/2160p/1080p/720p/480p and every
+`/api/hls` request, including 12-16 MB 4K segments, answered 200. The headless
+Chromium here (4 cores, no GPU) kept rendering 720p after 2160p was chosen, so
+4K decoding is not verified. Every 4K viewer pulls about 7 GB per film through
+the proxy.
+
 ## Every source in the picker (2026-10-11)
 
 Web and mobile pickers list every source again. The probe still orders them

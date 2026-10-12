@@ -7,6 +7,7 @@ export type { PlaybackSource };
 // are ignored so a newer server cannot break an older app.
 export const SOURCE_LABELS: Record<PlaybackSource, { label: string; pill: string }> = {
   videasyws: { label: "Videasy.ws · VO", pill: "Videasy.ws" },
+  cine4k: { label: "Cine4K · 4K VO", pill: "Cine4K" },
   vidzee: { label: "VidZee · EN", pill: "VidZee" },
   moviebox: { label: "MovieBox · EN", pill: "MovieBox" },
   vidnest: { label: "Vidnest · VO", pill: "Vidnest" },
@@ -27,6 +28,8 @@ export function isKnownSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && Object.hasOwn(SOURCE_LABELS, value);
 }
 export const ALL_SOURCES = Object.keys(SOURCE_LABELS).filter(isKnownSource);
+// Never listed for episodes: these providers have no TV streams at all.
+const MOVIE_ONLY_SOURCES: readonly PlaybackSource[] = ["cine4k"];
 
 // Every known source, the ones the probe listed first. Sources that failed
 // here or that the probe left out are flagged and sorted last, not hidden:
@@ -36,9 +39,11 @@ export function sourceMenu(
   available: readonly PlaybackSource[] | null | undefined,
   failed: readonly PlaybackSource[],
   current: PlaybackSource | null,
+  type: "movie" | "tv" = "movie",
 ): { id: PlaybackSource; unavailable: boolean }[] {
-  const listed = (available ?? []).filter((id) => ALL_SOURCES.includes(id));
-  const ordered = [...listed, ...ALL_SOURCES.filter((id) => !listed.includes(id))];
+  const all = type === "tv" ? ALL_SOURCES.filter((id) => !MOVIE_ONLY_SOURCES.includes(id)) : ALL_SOURCES;
+  const listed = (available ?? []).filter((id) => all.includes(id));
+  const ordered = [...listed, ...all.filter((id) => !listed.includes(id))];
   const unavailable = (id: PlaybackSource) =>
     id !== current && (failed.includes(id) || (Array.isArray(available) && !available.includes(id)));
   return [...ordered.filter((id) => !unavailable(id)), ...ordered.filter(unavailable)].map((id) => ({

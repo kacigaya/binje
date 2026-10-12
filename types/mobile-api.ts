@@ -3,6 +3,7 @@ export type MobileMediaType = "movie" | "tv";
 // Provider ids accepted by /api/resolve?source= and listed by /api/sources.
 export type PlaybackSource =
   | "videasyws"
+  | "cine4k"
   | "vidzee"
   | "moviebox"
   | "vidnest"

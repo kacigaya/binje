@@ -1,3 +1,4 @@
+import { resolveCine4kStream } from "@/lib/cine4k";
 import { resolveFrembedStream } from "@/lib/frembed";
 import { allowStreamCookie, allowStreamHost, allowStreamHosts } from "@/lib/hls-hosts";
 import { resolveMovieboxStream } from "@/lib/moviebox";
@@ -19,6 +20,7 @@ export type { PlaybackSource };
 // stays last because every other source plays the original audio.
 export const PLAYBACK_SOURCES = [
   "videasyws",
+  "cine4k",
   "vidzee",
   "moviebox",
   "vidnest",
@@ -33,6 +35,7 @@ export const PLAYBACK_SOURCES = [
 
 const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<ResolvedStream>> = {
   videasyws: resolveVideasyWsStream,
+  cine4k: resolveCine4kStream,
   vidzee: resolveVidzeeStream,
   moviebox: resolveMovieboxStream,
   vidnest: resolveVidnestStream,

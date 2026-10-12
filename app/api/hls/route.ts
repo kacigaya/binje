@@ -183,10 +183,12 @@ export async function GET(request: NextRequest) {
   const pinnedUserAgent = streamUserAgent(targetUrl);
   const headers = new Headers({
     accept: request.headers.get("accept") ?? "*/*",
-    origin: new URL(referer).origin,
-    referer,
     "user-agent": pinnedUserAgent ?? request.headers.get("user-agent") ?? BROWSER_USER_AGENT,
   });
+  if (referer) {
+    headers.set("origin", new URL(referer).origin);
+    headers.set("referer", referer);
+  }
   const range = request.headers.get("range");
   if (range) headers.set("range", range);
   const cookie = streamCookie(targetUrl);

@@ -6,7 +6,8 @@ const MAX_HOSTS = 1000;
 const hosts = new Map<string, { expiresAt: number; referer?: string; userAgent?: string }>();
 
 // Some providers sign a stream for the User-Agent that minted it, so a host
-// can pin one; the proxy otherwise forwards the viewer's own.
+// can pin one; the proxy otherwise forwards the viewer's own. An empty
+// referer pins "send none", for hosts that refuse any Referer or Origin.
 export function allowStreamHost(url: string | URL, referer?: string, userAgent?: string): void {
   let host: string;
   try {

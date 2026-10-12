@@ -69,6 +69,11 @@ describe("source menu", () => {
     expect(menu).toHaveLength(Object.keys(SOURCE_LABELS).length);
   });
 
+  test("leaves movie-only sources out of episodes", () => {
+    expect(sourceMenu(undefined, [], null, "tv").map((item) => item.id)).not.toContain("cine4k");
+    expect(sourceMenu(undefined, [], null, "movie").map((item) => item.id)).toContain("cine4k");
+  });
+
   test("flags only failures while probing", () => {
     expect(sourceMenu(undefined, ["vidzee"], "videasyws").filter((item) => item.unavailable)).toEqual([
       { id: "vidzee", unavailable: true },

@@ -97,7 +97,7 @@ export function PlayerScreen({
     playingSource ??
     (availableList ?? [DEFAULT_SOURCE]).find((item) => !failedList.includes(item)) ??
     null;
-  const menu = sourceMenu(availableList, failedList, source);
+  const menu = sourceMenu(availableList, failedList, source, type);
   // Once every source failed, the pill keeps showing the last one tried.
   const shownSource = source ?? failedList.at(-1) ?? DEFAULT_SOURCE;
   const exhausted = source === null && availableList !== undefined;
