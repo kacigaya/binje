@@ -46,7 +46,7 @@ test("player fits video dimensions and resets to the loading ratio", async ({ pa
   await playLocalStream(page, 960, 400);
   await expectRatio(page, 2.4);
   await expect(video).toHaveCSS("object-fit", "contain");
-  await expect(video).toHaveAttribute("controls", "");
+  await expect(video).not.toHaveAttribute("controls");
   await page.setViewportSize({ width: 1440, height: 900 });
   await expectRatio(page, 2.4);
 
@@ -75,7 +75,6 @@ test("crop removes encoded bars and stays enabled in container fullscreen", asyn
   await expect(crop).toHaveAttribute("aria-pressed", "true");
   await expectRatio(page, 2.39);
   await expect(video).toHaveCSS("object-fit", "cover");
-  await expect(video).toHaveAttribute("controls", "");
 
   const playbackTime = await video.evaluate((element: HTMLVideoElement) => element.currentTime);
   await page.getByRole("button", { name: "Enter fullscreen" }).click();
@@ -133,52 +132,114 @@ test("fullscreen failure leaves the cropped player usable", async ({ page }) => 
   await expectRatio(page, 16 / 9);
 });
 
-test("native fullscreen remains available without container fullscreen support", async ({ page }) => {
+test("video fullscreen is used without container fullscreen support", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(document, "fullscreenEnabled", { value: false });
+    Object.assign(HTMLVideoElement.prototype, {
+      webkitEnterFullscreen() {
+        document.body.dataset.videoFullscreen = "true";
+      },
+    });
   });
   const resolving = page.waitForRequest("**/api/resolve?*");
   await page.reload();
   await resolving;
-  await expect(page.getByRole("button", { name: "Enter fullscreen" })).toHaveCount(0);
-  const video = page.locator("video");
-  await expect(video).not.toHaveAttribute("controlslist", "nofullscreen");
-  await expect(video).not.toHaveAttribute("data-container-fullscreen", "");
+  await page.getByRole("button", { name: "Enter fullscreen" }).click();
+  await expect(page.locator("body")).toHaveAttribute("data-video-fullscreen", "true");
   await playLocalStream(page, 960, 540, true);
   await page.getByRole("button", { name: "Crop black bars" }).click();
   await expectRatio(page, 2.39);
 });
 
-test("fullscreen toolbar hides when idle and returns on pointer or keyboard input", async ({ page }) => {
-  await playLocalStream(page, 960, 540, true);
+test("controls hide while playing and return on pointer or keyboard input", async ({ page }) => {
+  // Installed first so the idle timer started by playback is a fake one too.
   await page.clock.install();
+  await playLocalStream(page, 960, 540, true);
+  const controls = page.locator("[data-player-controls]");
   const crop = page.locator("button[aria-label='Crop black bars']");
-  const toolbar = crop.locator("..");
-  await page.getByRole("button", { name: "Enter fullscreen" }).click();
-  await expect.poll(() => page.evaluate(() => document.fullscreenElement !== null)).toBe(true);
+  await page.locator("video").dispatchEvent("pointermove", { pointerType: "mouse" });
   await page.clock.runFor(2700);
-  await expect(toolbar).toHaveCSS("opacity", "0");
-  await expect(toolbar).toHaveAttribute("inert", "");
-  await expect(toolbar).toHaveAttribute("aria-hidden", "true");
+  await expect(controls).toHaveCSS("opacity", "0");
+  await expect(controls).toHaveAttribute("inert", "");
+  await expect(controls).toHaveAttribute("aria-hidden", "true");
 
   await page.locator("video").dispatchEvent("pointermove", { pointerType: "mouse" });
-  await expect(toolbar).toHaveCSS("opacity", "1");
-  await expect(toolbar).not.toHaveAttribute("inert", "");
+  await expect(controls).toHaveCSS("opacity", "1");
+  await expect(controls).not.toHaveAttribute("inert", "");
   await page.clock.runFor(2700);
-  await expect(toolbar).toHaveCSS("opacity", "0");
-  await page.locator("video").dispatchEvent("pointerdown", { pointerType: "touch" });
-  await expect(toolbar).toHaveCSS("opacity", "1");
-  await page.clock.runFor(2700);
-  await expect(toolbar).toHaveCSS("opacity", "0");
+  await expect(controls).toHaveCSS("opacity", "0");
 
   await page.keyboard.press("Tab");
   await crop.focus();
-  await expect(toolbar).toHaveCSS("opacity", "1");
+  await expect(controls).toHaveCSS("opacity", "1");
   await page.clock.runFor(2700);
-  await expect(toolbar).toHaveCSS("opacity", "1");
-  await page.evaluate(() => document.exitFullscreen());
-  await expect(toolbar).toHaveAttribute("aria-hidden", "false");
-  await expect(toolbar).not.toHaveAttribute("inert", "");
+  await expect(controls).toHaveCSS("opacity", "1");
+
+  await page.getByRole("button", { name: "Enter fullscreen" }).click();
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement !== null)).toBe(true);
+  await page.locator("video").evaluate((video: HTMLVideoElement) => video.pause());
   await page.clock.runFor(2700);
-  await expect(toolbar).toHaveCSS("opacity", "1");
+  await expect(controls).toHaveCSS("opacity", "1");
+});
+
+test("desktop controls play, seek, and mute", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await playLocalStream(page, 960, 540);
+  const video = page.locator("video");
+  const isPaused = () => video.evaluate((element: HTMLVideoElement) => element.paused);
+
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await expect.poll(isPaused).toBe(true);
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect.poll(isPaused).toBe(false);
+
+  // The test stream starts muted.
+  await page.getByRole("button", { name: "Unmute", exact: true }).click();
+  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.muted)).toBe(false);
+  await page.getByRole("button", { name: "Mute", exact: true }).click();
+  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.muted)).toBe(true);
+
+  // A click on the picture toggles playback; keyboard shortcuts work from the page.
+  await video.click({ force: true });
+  await expect.poll(isPaused).toBe(true);
+  await page.locator("body").press("k");
+  await expect.poll(isPaused).toBe(false);
+  await page.locator("body").press("m");
+  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.muted)).toBe(false);
+});
+
+test("seek bar seeks on commit and formats time", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.locator("video").evaluate(async (video: HTMLVideoElement) => {
+    // A silent one-minute WAV gives a finite, seekable duration.
+    const rate = 8000;
+    const samples = rate * 60;
+    const buffer = new ArrayBuffer(44 + samples);
+    const view = new DataView(buffer);
+    const text = (offset: number, value: string) => [...value].forEach((char, i) => view.setUint8(offset + i, char.charCodeAt(0)));
+    text(0, "RIFF");
+    view.setUint32(4, 36 + samples, true);
+    text(8, "WAVEfmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, rate, true);
+    view.setUint32(28, rate, true);
+    view.setUint16(32, 1, true);
+    view.setUint16(34, 8, true);
+    text(36, "data");
+    view.setUint32(40, samples, true);
+    new Uint8Array(buffer, 44).fill(128);
+    video.src = URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
+    await new Promise((resolve) => video.addEventListener("loadedmetadata", resolve, { once: true }));
+  });
+  const seek = page.getByRole("slider", { name: "Seek" });
+  await expect(seek).toBeEnabled();
+  await expect(seek).toHaveAttribute("aria-valuetext", "0:00 / 1:00");
+  await seek.focus();
+  await page.keyboard.press("End");
+  await expect.poll(() => page.locator("video").evaluate((video: HTMLVideoElement) => video.currentTime)).toBeGreaterThan(59);
+  await page.keyboard.press("Home");
+  await expect.poll(() => page.locator("video").evaluate((video: HTMLVideoElement) => video.currentTime)).toBe(0);
+  await expect(seek).toHaveAttribute("aria-valuetext", "0:00 / 1:00");
 });

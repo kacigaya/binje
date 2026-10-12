@@ -40,9 +40,26 @@
 The web player's crop button zooms to 2.39:1 for widescreen movies stored with black bars.
 Click again to restore the full frame. Use the player's fullscreen button to keep the crop
 and controls available; this requires support for fullscreen on a container element.
-In fullscreen, the toolbar hides after 2.5 seconds of inactivity. Tap, move the pointer,
-or use the keyboard to show it again. Keyboard focus and open menus keep it visible.
-Cropping is local to the player and does not change Cast or AirPlay playback.
+On iPhone, fullscreen hands off to the system player. Cropping is local to the player
+and does not change Cast or AirPlay playback.
+
+The web player uses its own controls: play, 10-second skips, seek, volume (remembered
+between visits), subtitles, picture-in-picture, fullscreen, and quality. While playing,
+controls hide after 2.5 seconds of inactivity. Move the pointer, tap, or press a key to
+show them again; keyboard focus and open menus keep them up. Click the picture to play
+or pause and double-click for fullscreen. On touch screens, tap toggles the controls and
+double-tapping the left or right side skips 10 seconds. Lock screen and media keys work
+through the Media Session API.
+
+| Key | Action |
+| --- | --- |
+| Space, K | Play or pause |
+| ← / → | Back or forward 5 seconds |
+| J / L | Back or forward 10 seconds |
+| ↑ / ↓ | Volume (while the player has focus or is fullscreen) |
+| M | Mute |
+| F | Fullscreen |
+| C | Subtitles on or off |
 
 ## Screenshots
 

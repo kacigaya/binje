@@ -1,6 +1,6 @@
 "use client";
 
-import { Cast, LoaderCircle, Pause, Play } from "lucide-react";
+import { Cast, LoaderCircle } from "lucide-react";
 import type { RefObject } from "react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import {
   type RemotePlayer,
   type RemotePlayerController,
 } from "@/lib/google-cast";
+import { PlayIcon, controlButtonClass } from "@/components/PlayerControls";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -333,9 +334,9 @@ export default function CastControls({
           type="button"
           onClick={() => remoteControllerRef.current?.playOrPause()}
           aria-label={remotePaused ? t("Play on device") : t("Pause on device")}
-          className="rounded-full p-1.5 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          className={controlButtonClass}
         >
-          {remotePaused ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
+          <PlayIcon paused={remotePaused} />
         </button>
       )}
       <button
@@ -347,10 +348,9 @@ export default function CastControls({
         aria-describedby={error ? noticeId : undefined}
         title={castLabel}
         className={cn(
-          "rounded-full p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:cursor-wait disabled:opacity-60",
-          connected
-            ? "bg-accent-red text-white"
-            : "text-white/70 hover:bg-white/10 hover:text-white",
+          controlButtonClass,
+          "disabled:cursor-wait",
+          connected && "bg-accent-red hover:bg-accent-red aria-pressed:bg-accent-red",
         )}
       >
         {connecting ? (
@@ -363,7 +363,7 @@ export default function CastControls({
         <span
           id={noticeId}
           role="status"
-          className="absolute right-0 top-12 w-max max-w-64 rounded-lg border border-white/15 bg-black px-3 py-2 text-xs text-white"
+          className="absolute top-full right-0 mt-2 w-max sm:top-auto sm:bottom-full sm:mt-0 sm:mb-2 max-w-64 rounded-lg border border-white/15 bg-black px-3 py-2 text-xs text-white"
         >
           {error}
         </span>

@@ -1,10 +1,23 @@
 "use client";
 
 import type Hls from "hls.js";
-import { Crop, Maximize, Minimize, RotateCcw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Captions, CaptionsOff, Crop, Maximize, Minimize, PictureInPicture2, RotateCcw } from "lucide-react";
+import type { PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { toast } from "sonner";
 import CastControls from "@/components/CastControls";
+import {
+  ControlButton,
+  ControlGroup,
+  PlayIcon,
+  SEEK_STEP,
+  SeekBar,
+  SkipIcon,
+  VolumeControl,
+  seekBy,
+  togglePlayback,
+} from "@/components/PlayerControls";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { qualityClass } from "@/lib/quality-class";
@@ -24,6 +37,7 @@ type Track = { file: string; label?: string };
 type Quality = { index: number; height: number; label: number; bitrate: number };
 type StreamSource = { file: string; height: number };
 type ResolvedMedia = { url: string; tracks: Track[]; sources: StreamSource[] };
+type PresentationVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
 
 // /api/sources lists, in playback order, only the sources whose stream loads
 // for the title; ids this build does not know are ignored. Viewers never pick:
@@ -204,53 +218,82 @@ export default function Player({
   const displayAspectRatio = cropEnabled
     ? Math.max(nativeAspectRatio ?? 16 / 9, 2.39)
     : nativeAspectRatio ?? 16 / 9;
-  const [fullscreenSupported, setFullscreenSupported] = useState(false);
+  const [fullscreenMode, setFullscreenMode] = useState<"container" | "video" | null>(null);
   const [isFullscreen, setFullscreen] = useState(false);
-  const [fullscreenControlsVisible, setFullscreenControlsVisible] = useState(true);
-  const controlsHidden = isFullscreen && !fullscreenControlsVisible;
+  const [pipSupported, setPipSupported] = useState(false);
+  const [inPip, setInPip] = useState(false);
+  const [paused, setPaused] = useState(true);
+  const [buffering, setBuffering] = useState(false);
+  // Subtitles start on the first track, like the native `default` track did.
+  const [subtitle, setSubtitle] = useState({ index: 0, on: true });
+  const activeSubtitle = subtitle.on && subtitle.index < tracks.length ? subtitle.index : -1;
+  const [seekHint, setSeekHint] = useState<{ forward: boolean; id: number } | null>(null);
+  const lastTapRef = useRef(0);
+  const lastPointerTypeRef = useRef("");
+  const idleTimerRef = useRef<number | undefined>(undefined);
+  const [idle, setIdle] = useState(false);
+  const controlsHidden = idle && !paused && !exhausted;
+  const playbackControls = !googleCasting && !exhausted;
+
+  // While playing, controls fade out after a short idle period. Hovering
+  // them, keyboard focus, or an open menu inside them keeps them up.
+  const revealControls = useCallback(() => {
+    setIdle(false);
+    window.clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = window.setTimeout(() => {
+      if (controlsRef.current?.querySelector(':hover, :focus-visible, [aria-expanded="true"]')) return;
+      setIdle(true);
+    }, 2500);
+  }, []);
 
   useEffect(() => {
-    setFullscreenSupported(Boolean(document.fullscreenEnabled && containerRef.current?.requestFullscreen));
+    const video = videoRef.current as PresentationVideo | null;
+    if (document.fullscreenEnabled && containerRef.current?.requestFullscreen) {
+      setFullscreenMode("container");
+    } else if (video?.webkitEnterFullscreen) {
+      // iOS Safari only fullscreens the video itself, with its own controls.
+      setFullscreenMode("video");
+    }
+    setPipSupported(Boolean(document.pictureInPictureEnabled && video?.requestPictureInPicture));
     let wasFullscreen = false;
     function onFullscreenChange() {
       const active = document.fullscreenElement === containerRef.current;
       setFullscreen(active);
-      if (wasFullscreen && !active) fullscreenButtonRef.current?.focus();
+      if (wasFullscreen && !active) {
+        // Hidden controls are inert and cannot take focus, so show them first.
+        flushSync(revealControls);
+        fullscreenButtonRef.current?.focus();
+      }
       wasFullscreen = active;
     }
+    const onEnterPip = () => setInPip(true);
+    const onLeavePip = () => setInPip(false);
     document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
-  }, []);
+    video?.addEventListener("enterpictureinpicture", onEnterPip);
+    video?.addEventListener("leavepictureinpicture", onLeavePip);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      video?.removeEventListener("enterpictureinpicture", onEnterPip);
+      video?.removeEventListener("leavepictureinpicture", onLeavePip);
+    };
+  }, [revealControls]);
+
+  function hideControls() {
+    window.clearTimeout(idleTimerRef.current);
+    if (controlsRef.current?.querySelector(':focus-visible, [aria-expanded="true"]')) return;
+    setIdle(true);
+  }
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!isFullscreen || !container) return;
-    let timer: ReturnType<typeof setTimeout>;
-    function revealControls() {
-      setFullscreenControlsVisible(true);
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        if (controlsRef.current?.querySelector(':focus-visible, [aria-expanded="true"]')) return;
-        setFullscreenControlsVisible(false);
-      }, 2500);
-    }
-    revealControls();
-    container.addEventListener("pointermove", revealControls);
-    container.addEventListener("pointerdown", revealControls);
-    container.addEventListener("focusin", revealControls);
-    document.addEventListener("keydown", revealControls);
-    return () => {
-      clearTimeout(timer);
-      container.removeEventListener("pointermove", revealControls);
-      container.removeEventListener("pointerdown", revealControls);
-      container.removeEventListener("focusin", revealControls);
-      document.removeEventListener("keydown", revealControls);
-    };
-  }, [isFullscreen]);
+    if (!paused) revealControls();
+    return () => window.clearTimeout(idleTimerRef.current);
+  }, [paused, revealControls]);
 
   async function toggleFullscreen() {
     try {
-      if (document.fullscreenElement === containerRef.current) {
+      if (fullscreenMode === "video") {
+        (videoRef.current as PresentationVideo | null)?.webkitEnterFullscreen?.();
+      } else if (document.fullscreenElement === containerRef.current) {
         await document.exitFullscreen();
       } else {
         await containerRef.current?.requestFullscreen();
@@ -259,6 +302,162 @@ export default function Player({
       toast.error(t("Fullscreen unavailable"));
     }
   }
+
+  async function togglePictureInPicture() {
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else await video.requestPictureInPicture();
+    } catch {
+      toast.error(t("Picture-in-picture unavailable"));
+    }
+  }
+
+  useEffect(() => {
+    videoRef.current?.querySelectorAll("track").forEach((element, index) => {
+      element.track.mode = index === activeSubtitle ? "showing" : "disabled";
+    });
+  }, [activeSubtitle, tracks]);
+
+  function toggleSubtitles() {
+    if (tracks.length) setSubtitle((previous) => ({ ...previous, on: activeSubtitle < 0 }));
+  }
+
+  function skip(forward: boolean) {
+    const video = videoRef.current;
+    if (!video) return;
+    seekBy(video, forward ? SEEK_STEP : -SEEK_STEP);
+    setSeekHint({ forward, id: Date.now() });
+  }
+
+  useEffect(() => {
+    if (!seekHint) return;
+    const timer = window.setTimeout(() => setSeekHint(null), 500);
+    return () => window.clearTimeout(timer);
+  }, [seekHint]);
+
+  // Mouse: click plays or pauses, double-click toggles fullscreen.
+  // Touch: tap shows or hides controls, double-tap on either side skips.
+  function onSurfacePointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    const video = videoRef.current;
+    lastPointerTypeRef.current = event.pointerType;
+    if (!video || googleCasting) return;
+    if (event.pointerType === "mouse") {
+      if (event.button === 0) togglePlayback(video);
+      revealControls();
+      return;
+    }
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const x = (event.clientX - bounds.left) / bounds.width;
+    const doubleTap = event.timeStamp - lastTapRef.current < 300;
+    lastTapRef.current = doubleTap ? 0 : event.timeStamp;
+    if (doubleTap && (x < 0.35 || x > 0.65)) {
+      skip(x > 0.65);
+      revealControls();
+    } else if (controlsHidden || paused) {
+      revealControls();
+    } else {
+      hideControls();
+    }
+  }
+
+  const onShortcut = useEffectEvent((event: KeyboardEvent) => {
+    const video = videoRef.current;
+    const container = containerRef.current;
+    const target = event.target;
+    if (!video || !container || !(target instanceof HTMLElement)) return;
+    if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+    const inPlayer = container.contains(target);
+    // Outside the player, only page-level focus counts, such as the body or
+    // the main landmark; other controls keep their keys.
+    if (!inPlayer && target.closest('a, button, input, textarea, select, [contenteditable], [role], [tabindex]:not([tabindex="-1"])')) return;
+    revealControls();
+    // Text fields, sliders, and menus keep their own keys.
+    if (target.closest("input, textarea, select, [contenteditable], [aria-haspopup], [role=option]")) return;
+    const onControl = Boolean(target.closest("button, a"));
+    switch (event.key) {
+      case " ":
+        if (onControl) return;
+        togglePlayback(video);
+        break;
+      case "k":
+        togglePlayback(video);
+        break;
+      case "ArrowLeft":
+        seekBy(video, -5);
+        break;
+      case "ArrowRight":
+        seekBy(video, 5);
+        break;
+      case "j":
+        skip(false);
+        break;
+      case "l":
+        skip(true);
+        break;
+      case "ArrowUp":
+      case "ArrowDown":
+        // The page scrolls with these unless the player has focus.
+        if (!inPlayer && !isFullscreen) return;
+        video.muted = false;
+        video.volume = Math.min(Math.max(video.volume + (event.key === "ArrowUp" ? 0.05 : -0.05), 0), 1);
+        break;
+      case "m":
+        video.muted = !video.muted;
+        break;
+      case "f":
+        if (!fullscreenMode) return;
+        void toggleFullscreen();
+        break;
+      case "c":
+        toggleSubtitles();
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+  });
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => onShortcut(event);
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Lock screen, headset, and OS media keys.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !("mediaSession" in navigator)) return;
+    const session = navigator.mediaSession;
+    session.metadata = new MediaMetadata({ title, artwork: poster ? [{ src: poster }] : [] });
+    const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
+      ["play", () => void video.play().catch(() => undefined)],
+      ["pause", () => video.pause()],
+      ["seekbackward", (details) => seekBy(video, -(details.seekOffset ?? SEEK_STEP))],
+      ["seekforward", (details) => seekBy(video, details.seekOffset ?? SEEK_STEP)],
+      ["seekto", (details) => {
+        if (details.seekTime !== undefined) video.currentTime = details.seekTime;
+      }],
+    ];
+    for (const [action, handler] of handlers) {
+      try {
+        session.setActionHandler(action, handler);
+      } catch {
+        // Unsupported actions are skipped.
+      }
+    }
+    return () => {
+      for (const [action] of handlers) {
+        try {
+          session.setActionHandler(action, null);
+        } catch {
+          // Unsupported actions were never set.
+        }
+      }
+      session.metadata = null;
+    };
+  }, [poster, title]);
 
   useEffect(() => {
     let cancelled = false;
@@ -444,82 +643,26 @@ export default function Player({
   if (exhausted) statusText = t("Stream unavailable. Try again later.");
   else if (awaitingSources) statusText = t("Checking sources…");
 
+  const interactive = controlsHidden ? "pointer-events-none" : "pointer-events-auto";
+
   return (
     <div
       ref={containerRef}
+      onPointerMove={(event) => {
+        if (event.pointerType === "mouse") revealControls();
+      }}
+      onPointerDown={revealControls}
+      onPointerLeave={(event) => {
+        if (event.pointerType === "mouse" && !paused) hideControls();
+      }}
+      onFocus={revealControls}
+      tabIndex={-1}
       className={cn(
-        "relative w-full bg-black rounded-xl overflow-hidden",
+        "relative w-full overflow-hidden rounded-xl bg-black outline-none select-none",
         isFullscreen && "flex h-dvh items-center justify-center rounded-none",
+        controlsHidden && "cursor-none",
       )}
     >
-      <div
-        ref={controlsRef}
-        aria-hidden={controlsHidden}
-        inert={controlsHidden}
-        className={cn(
-          "absolute top-2 right-2 z-10 flex items-center gap-1 rounded-full border border-white/15 bg-black/75 p-1 transition-opacity duration-150 motion-reduce:transition-none",
-          controlsHidden && "pointer-events-none opacity-0",
-        )}
-        style={isFullscreen ? {
-          top: "max(0.5rem, env(safe-area-inset-top))",
-          right: "max(0.5rem, env(safe-area-inset-right))",
-        } : undefined}
-      >
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label={t("Crop black bars")}
-          aria-pressed={cropEnabled}
-          title={cropEnabled ? t("Restore full frame") : t("Crop to widescreen (2.39:1)")}
-          disabled={nativeAspectRatio === undefined || googleCasting}
-          onClick={() => setCrop({ key: aspectRatioKey, value: !cropEnabled })}
-          className="size-11 rounded-full text-white hover:bg-white/15 aria-pressed:bg-white/20"
-        >
-          <Crop aria-hidden="true" className="size-4" />
-        </Button>
-        {fullscreenSupported && (
-          <Button
-            ref={fullscreenButtonRef}
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={isFullscreen ? t("Exit fullscreen") : t("Enter fullscreen")}
-            title={isFullscreen ? t("Exit fullscreen") : t("Enter fullscreen")}
-            disabled={googleCasting && !isFullscreen}
-            onClick={toggleFullscreen}
-            className="size-11 rounded-full text-white hover:bg-white/15"
-          >
-            {isFullscreen
-              ? <Minimize aria-hidden="true" className="size-4" />
-              : <Maximize aria-hidden="true" className="size-4" />}
-          </Button>
-        )}
-        {qualities.length > 0 && (
-          <Select
-            ariaLabel={t("Quality")}
-            value={quality}
-            onValueChange={changeQuality}
-            items={[
-              { value: -1, label: t("Auto") },
-              ...qualities.map((item) => ({
-                value: item.index,
-                label: `${item.label}p`,
-              })),
-            ]}
-            className="h-11 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums"
-          />
-        )}
-        <CastControls
-          videoRef={videoRef}
-          mediaKey={mediaKey}
-          source={castSource}
-          tracks={resolvedMedia?.tracks ?? []}
-          title={title}
-          onRemoteProgress={saveProgress}
-          onGoogleCastingChange={setGoogleCasting}
-        />
-      </div>
       <div
         className="relative w-full overflow-hidden"
         style={{
@@ -530,13 +673,17 @@ export default function Player({
         <video
           ref={videoRef}
           aria-label={`${t("Video player")}: ${title}`}
-          controls={!googleCasting}
-          controlsList={fullscreenSupported ? "nofullscreen" : undefined}
-          data-container-fullscreen={fullscreenSupported ? "" : undefined}
           playsInline
           onLoadedMetadata={onLoadedMetadata}
           onResize={updateAspectRatio}
+          onPlay={() => setPaused(false)}
+          onPause={() => setPaused(true)}
+          onWaiting={() => setBuffering(true)}
+          onPlaying={() => setBuffering(false)}
+          onCanPlay={() => setBuffering(false)}
           onEmptied={() => {
+            setPaused(true);
+            setBuffering(false);
             setVideoAspectRatio(null);
             setCrop(null);
           }}
@@ -551,16 +698,45 @@ export default function Player({
               kind="subtitles"
               label={track.label ?? `Track ${i + 1}`}
               src={proxied(track.file)}
-              default={i === 0}
             />
           ))}
         </video>
-        {(loading || awaitingSources || exhausted) && (
+        {/* Pointer target for click and tap gestures; every action it offers
+            also has a button or shortcut. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 touch-manipulation"
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            // Keeps shortcuts such as ↑/↓ volume working after a click on the
+            // picture. Touch skips it: the focus event would reveal controls
+            // the tap is about to toggle.
+            if (event.pointerType === "mouse") containerRef.current?.focus({ preventScroll: true });
+          }}
+          onPointerUp={onSurfacePointerUp}
+          onDoubleClick={() => {
+            if (lastPointerTypeRef.current === "mouse" && fullscreenMode === "container") void toggleFullscreen();
+          }}
+        />
+        {seekHint && (
+          <div
+            key={seekHint.id}
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute top-1/2 flex size-16 -translate-y-1/2 animate-in items-center justify-center rounded-full bg-black/60 text-white fade-in zoom-in-90 duration-150 motion-reduce:animate-none",
+              seekHint.forward ? "right-[12%]" : "left-[12%]",
+            )}
+          >
+            <SkipIcon forward={seekHint.forward} />
+          </div>
+        )}
+        {(loading || awaitingSources || exhausted || buffering) && (
           <div
             className={cn(
-              "absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 px-6 text-center text-sm text-white/80",
-              // While loading the overlay must not swallow the native controls;
-              // the error state has a control of its own to click.
+              "absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-sm text-white/80",
+              // A stall mid-playback only needs the spinner, not the dimmed frame.
+              (loading || awaitingSources || exhausted) && "bg-black/60",
+              // The error state has a control of its own to click.
               !exhausted && "pointer-events-none",
             )}
           >
@@ -570,7 +746,7 @@ export default function Player({
                 className="size-7 animate-spin rounded-full border-2 border-white/15 border-t-accent-red motion-reduce:animate-none"
               />
             )}
-            <p role="status" aria-live="polite" className="font-medium">
+            <p role="status" aria-live="polite" className={cn("font-medium", buffering && !loading && !awaitingSources && !exhausted && "sr-only")}>
               {statusText}
             </p>
             {exhausted && (
@@ -584,6 +760,146 @@ export default function Player({
                 {t("Try Again")}
               </Button>
             )}
+          </div>
+        )}
+      </div>
+      {/* Mobile: toolbar on top, playback in the middle, seek bar at the
+          bottom. From sm up everything sits in one bar at the bottom. */}
+      <div
+        ref={controlsRef}
+        data-player-controls=""
+        aria-hidden={controlsHidden}
+        inert={controlsHidden}
+        className={cn(
+          "pointer-events-none absolute inset-0 z-10 flex flex-col justify-between gap-2 p-2 transition-opacity duration-200 motion-reduce:transition-none sm:justify-end sm:p-3",
+          controlsHidden && "opacity-0",
+        )}
+        style={isFullscreen ? {
+          paddingTop: "max(0.75rem, env(safe-area-inset-top))",
+          paddingRight: "max(0.75rem, env(safe-area-inset-right))",
+          paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+          paddingLeft: "max(0.75rem, env(safe-area-inset-left))",
+        } : undefined}
+      >
+        <div aria-hidden="true" className="absolute inset-x-0 top-0 h-20 bg-linear-to-b from-black/60 to-transparent sm:hidden" />
+        <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-black/80 to-transparent sm:h-36" />
+        <div className="relative flex items-center justify-end gap-2 sm:order-last sm:justify-between">
+          {playbackControls && (
+            <ControlGroup className={cn("hidden sm:flex", interactive)}>
+              <ControlButton
+                aria-label={paused ? t("Play") : t("Pause")}
+                title={paused ? t("Play") : t("Pause")}
+                onClick={() => videoRef.current && togglePlayback(videoRef.current)}
+              >
+                <PlayIcon paused={paused} className="size-5!" />
+              </ControlButton>
+              <ControlButton aria-label={t("Back 10 seconds")} title={t("Back 10 seconds")} onClick={() => skip(false)} className="hidden md:inline-flex">
+                <SkipIcon />
+              </ControlButton>
+              <ControlButton aria-label={t("Forward 10 seconds")} title={t("Forward 10 seconds")} onClick={() => skip(true)} className="hidden md:inline-flex">
+                <SkipIcon forward />
+              </ControlButton>
+              <VolumeControl videoRef={videoRef} />
+            </ControlGroup>
+          )}
+          <ControlGroup className={cn("relative", interactive)}>
+            {tracks.length > 0 && !googleCasting && (
+              <Select
+                ariaLabel={t("Subtitles")}
+                value={activeSubtitle}
+                onValueChange={(index) => setSubtitle((previous) => (
+                  index < 0 ? { ...previous, on: false } : { index, on: true }
+                ))}
+                icon={activeSubtitle >= 0
+                  ? <Captions aria-hidden="true" className="size-4" />
+                  : <CaptionsOff aria-hidden="true" className="size-4 text-white/60" />}
+                items={[
+                  { value: -1, label: t("Off") },
+                  ...tracks.map((track, i) => ({ value: i, label: track.label ?? `Track ${i + 1}` })),
+                ]}
+                className="size-11 justify-center rounded-full text-white hover:bg-white/15"
+              />
+            )}
+            <ControlButton
+              aria-label={t("Crop black bars")}
+              aria-pressed={cropEnabled}
+              title={cropEnabled ? t("Restore full frame") : t("Crop to widescreen (2.39:1)")}
+              disabled={nativeAspectRatio === undefined || googleCasting}
+              onClick={() => setCrop({ key: aspectRatioKey, value: !cropEnabled })}
+            >
+              <Crop aria-hidden="true" />
+            </ControlButton>
+            {pipSupported && (
+              <ControlButton
+                aria-label={inPip ? t("Exit picture-in-picture") : t("Picture-in-picture")}
+                aria-pressed={inPip}
+                title={inPip ? t("Exit picture-in-picture") : t("Picture-in-picture")}
+                disabled={nativeAspectRatio === undefined || googleCasting}
+                onClick={togglePictureInPicture}
+                className="hidden sm:inline-flex"
+              >
+                <PictureInPicture2 aria-hidden="true" />
+              </ControlButton>
+            )}
+            {fullscreenMode && (
+              <ControlButton
+                ref={fullscreenButtonRef}
+                aria-label={isFullscreen ? t("Exit fullscreen") : t("Enter fullscreen")}
+                title={isFullscreen ? t("Exit fullscreen") : t("Enter fullscreen")}
+                disabled={googleCasting && !isFullscreen}
+                onClick={toggleFullscreen}
+              >
+                {isFullscreen
+                  ? <Minimize aria-hidden="true" />
+                  : <Maximize aria-hidden="true" />}
+              </ControlButton>
+            )}
+            {qualities.length > 0 && (
+              <Select
+                ariaLabel={t("Quality")}
+                value={quality}
+                onValueChange={changeQuality}
+                items={[
+                  { value: -1, label: t("Auto") },
+                  ...qualities.map((item) => ({
+                    value: item.index,
+                    label: `${item.label}p`,
+                  })),
+                ]}
+                className="h-11 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white tabular-nums hover:bg-white/15"
+              />
+            )}
+            <CastControls
+              videoRef={videoRef}
+              mediaKey={mediaKey}
+              source={castSource}
+              tracks={resolvedMedia?.tracks ?? []}
+              title={title}
+              onRemoteProgress={saveProgress}
+              onGoogleCastingChange={setGoogleCasting}
+            />
+          </ControlGroup>
+        </div>
+        {playbackControls && !loading && !awaitingSources && (
+          <div className="relative flex items-center justify-center gap-8 sm:hidden">
+            <ControlButton aria-label={t("Back 10 seconds")} onClick={() => skip(false)} className={cn("bg-black/40", interactive)}>
+              <SkipIcon />
+            </ControlButton>
+            <ControlButton
+              aria-label={paused ? t("Play") : t("Pause")}
+              onClick={() => videoRef.current && togglePlayback(videoRef.current)}
+              className={cn("size-14 border border-white/15 bg-black/60", interactive)}
+            >
+              <PlayIcon paused={paused} className="size-6!" />
+            </ControlButton>
+            <ControlButton aria-label={t("Forward 10 seconds")} onClick={() => skip(true)} className={cn("bg-black/40", interactive)}>
+              <SkipIcon forward />
+            </ControlButton>
+          </div>
+        )}
+        {playbackControls && (
+          <div className={cn("relative px-1", interactive)}>
+            <SeekBar videoRef={videoRef} />
           </div>
         )}
       </div>

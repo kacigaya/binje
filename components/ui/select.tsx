@@ -2,6 +2,7 @@
 
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { Check } from "lucide-react";
+import type { ReactNode } from "react";
 import { ChevronDownIcon } from "@/components/ui/chevron-down";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ function Select<T extends string | number>({
   ariaLabel,
   label,
   alignItemWithTrigger = true,
+  icon,
   className,
 }: {
   value: T;
@@ -25,6 +27,8 @@ function Select<T extends string | number>({
   label?: string;
   /** False drops the list below the trigger instead of over it. */
   alignItemWithTrigger?: boolean;
+  /** Icon-only trigger: the icon replaces the visible value and chevron. */
+  icon?: ReactNode;
   className?: string;
 }) {
   const [chevronIcon, chevronFeedback] = useAnimatedIcon();
@@ -50,10 +54,13 @@ function Select<T extends string | number>({
             {label}
           </span>
         )}
-        <BaseSelect.Value className="truncate" />
-        <BaseSelect.Icon className="shrink-0">
-          <ChevronDownIcon ref={chevronIcon} size={14} className="text-white/70" />
-        </BaseSelect.Icon>
+        {icon}
+        <BaseSelect.Value className={icon ? "sr-only" : "truncate"} />
+        {!icon && (
+          <BaseSelect.Icon className="shrink-0">
+            <ChevronDownIcon ref={chevronIcon} size={14} className="text-white/70" />
+          </BaseSelect.Icon>
+        )}
       </BaseSelect.Trigger>
       <BaseSelect.Portal>
         {/* Fixed, not absolute: the first frame sits at the trigger's x before

@@ -119,11 +119,6 @@
     scrollbar-width: none;
 }
 
-/* Native video fullscreen bypasses the container's crop and controls. */
-video[data-container-fullscreen]::-webkit-media-controls-fullscreen-button {
-    display: none;
-}
-
 /*
  * tw-animate-css's `animate-in` drives its `enter` keyframe through filter and
  * scale variables as well as translate, and an animation that touches a
