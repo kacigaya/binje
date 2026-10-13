@@ -46,7 +46,10 @@ and does not change Cast or AirPlay playback.
 The web player uses its own controls: play, 10-second skips, seek, volume (remembered
 between visits), subtitles, picture-in-picture, fullscreen, and quality. While playing,
 controls hide after 2.5 seconds of inactivity. Move the pointer, tap, or press a key to
-show them again; keyboard focus and open menus keep them up. Click the picture to play
+show them again; keyboard focus and open menus keep them up. While the controls show,
+subtitles move up to clear them (Chromium and Safari; Firefox gives pages no way to move
+its subtitles). Files that position their own lines, such as a sign at the top, stay
+where they are. Click the picture to play
 or pause and double-click for fullscreen. On touch screens, tap toggles the controls and
 double-tapping the left or right side skips 10 seconds. Lock screen and media keys work
 through the Media Session API.

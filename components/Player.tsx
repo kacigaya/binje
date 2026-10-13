@@ -238,6 +238,7 @@ export default function Player({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
+  const bottomRowRef = useRef<HTMLDivElement>(null);
   const fullscreenButtonRef = useRef<HTMLButtonElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -385,6 +386,36 @@ export default function Player({
     if (!paused) revealControls();
     return () => window.clearTimeout(idleTimerRef.current);
   }, [paused, revealControls]);
+
+  // The browser draws cues at the video's bottom edge, under the control bar.
+  // While the controls show, globals.css lifts them by the bar's overlap with
+  // the video, kept current as the layout resizes. The lift moves every cue,
+  // so files that place their own lines (a sign at the top) are left alone.
+  useEffect(() => {
+    const video = videoRef.current;
+    const row = bottomRowRef.current;
+    if (!video) return;
+    const update = () => {
+      const shown = Array.from(video.textTracks).find((track) => track.mode === "showing");
+      const placed = Array.from(shown?.cues ?? []).some((cue) => cue instanceof VTTCue && cue.line !== "auto");
+      const lift = !controlsHidden && row && !placed
+        ? Math.max(0, video.getBoundingClientRect().bottom - row.getBoundingClientRect().top)
+        : 0;
+      video.style.setProperty("--subtitle-lift", `${Math.round(lift)}px`);
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(video);
+    if (row) observer.observe(row);
+    // A picked file's cues arrive with its <track> load, which does not bubble.
+    video.addEventListener("load", update, true);
+    video.textTracks.addEventListener("change", update);
+    return () => {
+      observer.disconnect();
+      video.removeEventListener("load", update, true);
+      video.textTracks.removeEventListener("change", update);
+    };
+  }, [controlsHidden, playbackControls]);
 
   async function toggleFullscreen() {
     try {
@@ -1199,7 +1230,9 @@ export default function Player({
           </div>
         )}
         {playbackControls && (
-          <div className={cn("relative px-1", interactive)}>
+          // The top of the bottom controls on both layouts: the desktop
+          // toolbar sits below it.
+          <div ref={bottomRowRef} className={cn("relative px-1", interactive)}>
             <SeekBar videoRef={videoRef} visible={!controlsHidden} />
           </div>
         )}

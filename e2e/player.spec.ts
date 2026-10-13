@@ -391,6 +391,67 @@ test("subtitle delay moves the lines, by menu or G and H, and is remembered", as
   await expect.poll(() => cueStarts(page)).toEqual([10, 20]);
 });
 
+test("subtitles lift above the controls only while they show", async ({ page }) => {
+  await playerWithSubtitle(page, "WEBVTT\n\n00:00.000 --> 01:00.000\nOne\n");
+  const lift = () => page.locator("video").evaluate((video) => {
+    const bar = document.querySelector("[data-player-controls] > div:has(input[aria-label='Seek'])");
+    return {
+      lift: Number.parseFloat(video.style.getPropertyValue("--subtitle-lift")),
+      overlap: bar ? Math.round(video.getBoundingClientRect().bottom - bar.getBoundingClientRect().top) : null,
+    };
+  });
+  await expect.poll(async () => (await lift()).lift).toBeGreaterThan(0);
+  const shown = await lift();
+  expect(shown.lift).toBe(shown.overlap);
+
+  // Installed first so the idle timer started by playback is a fake one too.
+  await page.clock.install();
+  await playLocalStream(page, 640, 360);
+  await page.locator("video").dispatchEvent("pointermove", { pointerType: "mouse" });
+  await page.clock.runFor(2700);
+  await expect(page.locator("[data-player-controls]")).toHaveAttribute("aria-hidden", "true");
+  await expect.poll(async () => (await lift()).lift).toBe(0);
+});
+
+test("a lifted cue renders above the seek row", async ({ page }) => {
+  await playerWithSubtitle(page, "WEBVTT\n\n00:00.000 --> 01:00.000\nOne\n");
+  await playLocalStream(page, 640, 360);
+  // Paused on its first frame, the video can still show the poster; the check
+  // below needs the solid frame behind the strip.
+  await page.locator("video").evaluate((video: HTMLVideoElement) => {
+    video.pause();
+    video.removeAttribute("poster");
+  });
+  await expect.poll(() => cueStarts(page)).toEqual([0]);
+  const row = (await page.locator("[data-player-controls] > div:has(input[aria-label='Seek'])").boundingBox())!;
+  const video = (await page.locator("video").boundingBox())!;
+  // The strip just above the seek row shows the blue frame under the controls'
+  // dark gradient; only the cue's text, dimmed to gray by that gradient, has
+  // pixels whose every channel is bright.
+  const strip = { x: video.x, y: row.y - 30, width: video.width, height: 30 };
+  const cuePixels = async () => page.evaluate(async (png) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${png}`;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const context = canvas.getContext("2d")!;
+    context.drawImage(image, 0, 0);
+    const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+    let count = 0;
+    for (let i = 0; i < data.length; i += 4) if (Math.min(data[i], data[i + 1], data[i + 2]) > 90) count++;
+    return count;
+  }, (await page.screenshot({ clip: strip })).toString("base64"));
+  await expect.poll(cuePixels).toBeGreaterThan(0);
+});
+
+test("files that place their own lines are not lifted", async ({ page }) => {
+  await playerWithSubtitle(page, "WEBVTT\n\n00:00.000 --> 01:00.000 line:0\nSign\n\n00:00.000 --> 01:00.000\nOne\n");
+  await expect.poll(() => cueStarts(page)).toEqual([0, 0]);
+  await expect.poll(() => page.locator("video").evaluate((video) => video.style.getPropertyValue("--subtitle-lift"))).toBe("0px");
+});
+
 test("auto-sync applies the offset and scale the server finds", async ({ page }) => {
   const sent: { query?: URLSearchParams } = {};
   await page.route("**/api/subtitles/sync?*", (route) => {

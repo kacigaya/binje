@@ -145,3 +145,19 @@
         animation: none;
     }
 }
+
+/* Player.tsx sets --subtitle-lift while its controls cover the video's
+   bottom. Chromium and WebKit lay cues out against the video box, so only a
+   transform moves them, and it moves every cue: Player.tsx skips files that
+   place their own lines. Firefox exposes no cue container, so its cues stay
+   put. */
+video::-webkit-media-text-track-container {
+    transform: translateY(calc(-1 * var(--subtitle-lift, 0px)));
+    transition: transform 200ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    video::-webkit-media-text-track-container {
+        transition: none;
+    }
+}
