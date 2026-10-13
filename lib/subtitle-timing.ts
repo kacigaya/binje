@@ -25,23 +25,6 @@ export function cueTimes(text: string): [start: number, end: number][] {
     .filter(([start, end]) => end > start);
 }
 
-export type Fit = { rank: 0 | 1 | 2; scale: number };
-
-/**
- * How plausibly a file belongs to this video, from its last line: 0 when it
- * ends in the video's last fifth, 1 when it ends earlier (a partial file, or
- * just long credits), 2 when it runs past the end. Credits make "ends early"
- * normal, so only running past the end is treated as a timing fault: a file
- * timed for a film-rate release runs 4% long on a 25 fps video, and is
- * compressed by the frame-rate ratio when that makes it fit.
- */
-export function fitToDuration(lastEnd: number, duration: number): Fit {
-  if (!(lastEnd > 0) || !(duration > 0)) return { rank: 1, scale: 1 };
-  const fits = (end: number) => end <= duration * 1.005 && end >= duration * 0.8;
-  if (lastEnd <= duration * 1.005) return { rank: fits(lastEnd) ? 0 : 1, scale: 1 };
-  return fits(lastEnd * SCALES[2]) ? { rank: 0, scale: SCALES[2] } : { rank: 2, scale: 1 };
-}
-
 export function applySync(time: number, sync: SubtitleSync) {
   return time * sync.scale + sync.offset;
 }

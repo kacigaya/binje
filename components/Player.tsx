@@ -29,7 +29,7 @@ import {
   updatePlayHistoryProgress,
 } from "@/lib/play-history";
 import type { PlaybackSource } from "@/lib/sources";
-import { applySync, cueTimes, type Fit, fitToDuration, type SubtitleSync } from "@/lib/subtitle-timing";
+import { applySync, type SubtitleSync } from "@/lib/subtitle-timing";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -84,7 +84,7 @@ function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
 }
 
-// /api/subtitles labels are English language names.
+// Providers label these languages in English.
 const SITE_LANGUAGE_CODES: Record<string, string> = { english: "en", french: "fr" };
 
 // Provider numbering ("English 2") is dropped; the player numbers its own list.
@@ -99,8 +99,6 @@ function languageOf(label?: string): string | undefined {
 // Timing belongs to a release: providers can serve different cuts of a title.
 const SYNC_KEY = "subtitle-sync-v2";
 const MAX_SAVED_SYNCS = 300;
-// Files ranked by fit per language; each is downloaded once to read its timing.
-const FIT_CHECKS_PER_LANGUAGE = 10;
 // A cue's own times, before any delay or scale was applied to it.
 const originalCueTimes = new WeakMap<TextTrackCue, [number, number]>();
 
@@ -109,13 +107,6 @@ function isSync(value: unknown): value is SubtitleSync {
   const { offset, scale } = value as Record<string, unknown>;
   return typeof offset === "number" && Number.isFinite(offset) && Math.abs(offset) <= 600 &&
     typeof scale === "number" && scale > 0.9 && scale < 1.1;
-}
-
-function isTrack(value: unknown): value is Track {
-  if (typeof value !== "object" || value === null) return false;
-  const { file, label, format } = value as Record<string, unknown>;
-  return typeof file === "string" && /^https?:\/\//.test(file) && typeof label === "string" &&
-    (format === undefined || format === "srt");
 }
 
 function trackSrc(track: Track) {
@@ -266,43 +257,30 @@ export default function Player({
   const [inPip, setInPip] = useState(false);
   const [paused, setPaused] = useState(true);
   const [buffering, setBuffering] = useState(false);
-  const [externalTracks, setExternalTracks] = useState<Keyed<Track[]> | null>(null);
-  const externalList = forMedia(externalTracks, mediaKey);
-  // Every subtitle on offer: the source's own, then other providers' for the
-  // title. The viewer's language comes first, then English, then the rest,
-  // with the source's own first within a language. Site languages are named
-  // in the viewer's language and repeated names are numbered ("English 2").
-  const [fits, setFits] = useState<Keyed<Record<string, Fit>> | null>(null);
-  const fitList = forMedia(fits, mediaKey);
+  // Only the playing source's files, grouped by language and localized.
   const allTracks = useMemo<Track[]>(() => {
     const names = new Intl.DisplayNames([locale], { type: "language" });
     const rank = (lang?: string) => (lang === locale ? 0 : lang === "en" ? 1 : 2);
-    const own = new Set(tracks.map((track) => track.file));
-    // Within a language, the source's own files, then files whose timing fits
-    // this video, then unchecked ones, then ones that cannot fit.
-    const fitRank = (file: string) => (own.has(file) ? -1 : fitList?.[file]?.rank ?? 1);
     const counts = new Map<string, number>();
-    return [...tracks, ...(externalList ?? []).filter((track) => !own.has(track.file))]
+    return tracks
       .map((track) => {
-        // Numbers from the provider ("English 2") are dropped and redone below
-        // across the whole list, so two files never share a name.
+        // Number repeated language names consistently within this source.
         const base = baseLabel(track.label);
         const lang = languageOf(track.label);
         if (!lang) return { ...track, label: base };
         const name = names.of(lang);
         return name ? { ...track, lang, label: `${name.charAt(0).toLocaleUpperCase(locale)}${name.slice(1)}` } : { ...track, lang };
       })
-      .sort((a, b) => rank(a.lang) - rank(b.lang) || fitRank(a.file) - fitRank(b.file))
+      .sort((a, b) => rank(a.lang) - rank(b.lang))
       .map((track, index) => {
         const label = track.label?.trim() || `Track ${index + 1}`;
         const count = (counts.get(label) ?? 0) + 1;
         counts.set(label, count);
         return { ...track, label: count > 1 ? `${label} ${count}` : label };
       });
-  }, [externalList, fitList, locale, tracks]);
+  }, [locale, tracks]);
   // The pick is kept by file, so tracks arriving or changing later do not move
-  // it. Until the viewer picks, subtitles start on the source's first track,
-  // like the native `default` track did; other providers' start off.
+  // it. Until the viewer picks, subtitles start on the source's first track.
   const [subtitle, setSubtitle] = useState<{ file: string | null; on: boolean } | null>(null);
   const subtitleOn = subtitle ? subtitle.on : tracks.length > 0;
   const pickedFile = subtitle ? subtitle.file : tracks[0]?.file;
@@ -311,8 +289,7 @@ export default function Player({
   const activeSubtitle = !subtitleOn || !allTracks.length
     ? -1
     : Math.max(allTracks.findIndex((track) => track.file === pickedFile), 0);
-  // Cast gets only the subtitle shown here: a title can list hundreds, and a
-  // Cast load message is capped at 64 KB.
+  // Cast receives the same subtitle selected for local playback.
   const castTracks = useMemo(
     () => (activeSubtitle >= 0 ? [allTracks[activeSubtitle]] : []),
     [activeSubtitle, allTracks],
@@ -322,7 +299,6 @@ export default function Player({
   const activeSyncKey = activeFile ? JSON.stringify([mediaKey, source, activeFile]) : null;
   const activeSync: SubtitleSync = (activeSyncKey && syncs?.[activeSyncKey]) || { offset: 0, scale: 1 };
   const [syncStatus, setSyncStatus] = useState<{ key: string; status: SyncStatus } | null>(null);
-  const [videoDuration, setVideoDuration] = useState(0);
   const [subtitleNotice, setSubtitleNotice] = useState<{ text: string; id: number } | null>(null);
   const [seekHint, setSeekHint] = useState<{ forward: boolean; id: number } | null>(null);
   const lastTapRef = useRef(0);
@@ -562,67 +538,11 @@ export default function Player({
     return () => element.removeEventListener("load", shift);
   }, [activeSubtitle, allTracks, syncOffset, syncScale]);
 
-  // Other providers' files in the viewer's language and English are checked
-  // against this video's length to rank them. Duration alone cannot prove a
-  // frame-rate mismatch, so only auto-sync changes speed.
-  useEffect(() => {
-    if (!externalList?.length || !(videoDuration > 0)) return;
-    const own = new Set(tracks.map((track) => track.file));
-    const perLanguage = new Map<string, number>();
-    const queue = externalList.filter((track) => {
-      const lang = languageOf(track.label);
-      if (own.has(track.file) || (lang !== locale && lang !== "en") || fitList?.[track.file]) return false;
-      const count = (perLanguage.get(lang) ?? 0) + 1;
-      perLanguage.set(lang, count);
-      return count <= FIT_CHECKS_PER_LANGUAGE;
-    });
-    if (!queue.length) return;
-    const controller = new AbortController();
-    const key = mediaKey;
-    async function check() {
-      for (let track = queue.shift(); track; track = queue.shift()) {
-        const file = track.file;
-        let fit: Fit = { rank: 1, scale: 1 };
-        try {
-          const response = await fetch(trackSrc(track), { signal: controller.signal });
-          if (response.ok) {
-            const ends = cueTimes(await response.text()).map(([, end]) => end);
-            fit = fitToDuration(ends.length ? Math.max(...ends) : 0, videoDuration);
-          }
-        } catch {
-          if (controller.signal.aborted) return;
-        }
-        setFits((previous) => ({ key, value: { ...forMedia(previous, key), [file]: fit } }));
-      }
-    }
-    void Promise.all([check(), check(), check()]);
-    return () => controller.abort();
-    // fitList is left out: each check adds to it, which must not restart the queue.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [externalList, locale, mediaKey, tracks, videoDuration]);
-
   useEffect(() => {
     if (!subtitleNotice) return;
     const timer = window.setTimeout(() => setSubtitleNotice(null), 1200);
     return () => window.clearTimeout(timer);
   }, [subtitleNotice]);
-
-  // Fetched alongside the stream, once per title.
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/subtitles?${mediaQuery}`)
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("subtitles failed"))))
-      .then((data: { tracks?: unknown }) => {
-        const list = Array.isArray(data.tracks) ? data.tracks.filter(isTrack) : [];
-        if (!cancelled) setExternalTracks({ key: mediaKey, value: list });
-      })
-      .catch(() => {
-        // Optional: playback goes on without subtitles.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [mediaKey, mediaQuery]);
 
   function toggleSubtitles() {
     if (allTracks.length) setSubtitle({ file: pickedFile ?? null, on: activeSubtitle < 0 });
@@ -999,10 +919,6 @@ export default function Player({
           aria-label={`${t("Video player")}: ${title}`}
           playsInline
           onLoadedMetadata={onLoadedMetadata}
-          onDurationChange={(event) => {
-            const { duration } = event.currentTarget;
-            setVideoDuration(Number.isFinite(duration) ? duration : 0);
-          }}
           onResize={updateAspectRatio}
           onPlay={() => setPaused(false)}
           onPause={() => setPaused(true)}

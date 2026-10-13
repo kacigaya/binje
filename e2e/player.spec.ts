@@ -279,63 +279,61 @@ test("seek bar seeks on commit and formats time", async ({ page }) => {
   await expect(seek).toHaveAttribute("aria-valuetext", "0:00 / 1:00");
 });
 
-test("sources without subtitles borrow the title's, off at first, in the viewer's language", async ({ page }) => {
-  await page.route("**/api/subtitles?*", (route) => route.fulfill({
-    json: {
-      tracks: [
-        { file: "https://subs.test/ar.vtt", label: "Arabic" },
-        { file: "https://subs.test/en.vtt", label: "English" },
-        { file: "https://subs.test/fr.vtt", label: "French" },
-        { file: "https://subs.test/fr2.vtt", label: "French" },
-      ],
-    },
-  }));
-  // A source without tracks: the request waits for it. Its stream is held.
+test("a source without subtitles has no menu or external subtitle requests", async ({ page }) => {
+  const lookups: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/subtitles") lookups.push(request.url());
+  });
+  await page.route("**/api/subtitles?*", (route) => route.fulfill({ json: {
+    tracks: [{ file: "https://other.test/fr.vtt", label: "French" }],
+  } }));
   await page.unroute("**/api/resolve?*");
   await page.route("**/api/resolve?*", (route) => route.fulfill({
     json: { url: "https://cdn.test/master.m3u8", tracks: [] },
   }));
   await page.route("**/api/hls?*", () => {});
-  const fetching = page.waitForRequest("**/api/subtitles?*");
+  const resolved = page.waitForResponse("**/api/resolve?*");
   await page.goto("/fr/watch/353486");
-  await fetching;
-  const modes = () => page.locator("video track").evaluateAll((tracks: HTMLTrackElement[]) =>
-    tracks.map((track) => `${track.label}:${track.track.mode}`));
-  await expect.poll(modes).toEqual(["Français:disabled", "Français 2:disabled", "Anglais:disabled", "Arabic:disabled"]);
-
-  await page.getByRole("button", { name: "Sous-titres" }).click();
-  await page.getByText("Français 2", { exact: true }).click();
-  await page.keyboard.press("Escape");
-  await expect.poll(modes).toEqual(["Français:disabled", "Français 2:showing", "Anglais:disabled", "Arabic:disabled"]);
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-  await page.keyboard.press("c");
-  await expect.poll(modes).toEqual(["Français:disabled", "Français 2:disabled", "Anglais:disabled", "Arabic:disabled"]);
+  await resolved;
+  await expect(page.locator("video track")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Sous-titres", exact: true })).toHaveCount(0);
+  expect(lookups).toEqual([]);
 });
 
-test("other providers' subtitles join the source's own, which stays on", async ({ page }) => {
-  await page.route("**/api/subtitles?*", (route) => route.fulfill({
-    json: {
-      tracks: [
-        { file: "https://subs.test/fr.vtt", label: "French" },
-        { file: "https://subs.test/en.vtt", label: "English" },
-        { file: "https://subs.test/en2.vtt", label: "English" },
-        { file: "https://subs.test/ko.vtt", label: "Korean" },
-      ],
-    },
-  }));
+test("subtitle choices contain only files offered by the playing source", async ({ page }) => {
+  const lookups: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/subtitles") lookups.push(request.url());
+  });
+  await page.route("**/api/subtitles?*", (route) => route.fulfill({ json: {
+    tracks: [
+      { file: "https://other.test/fr.vtt", label: "French" },
+      { file: "https://other.test/en.vtt", label: "English" },
+      { file: "https://other.test/ko.vtt", label: "Korean" },
+    ],
+  } }));
   await page.unroute("**/api/resolve?*");
-  await page.route("**/api/resolve?*", (route) => route.fulfill({
-    json: {
-      url: "https://cdn.test/master.m3u8",
-      tracks: [{ file: "https://subs.test/en.vtt", label: "English" }, { file: "https://subs.test/own2.vtt", label: "English 2" }],
-    },
-  }));
+  await page.route("**/api/resolve?*", (route) => route.fulfill({ json: {
+    url: "https://cdn.test/master.m3u8",
+    tracks: [
+      { file: "https://subs.test/en.vtt", label: "English" },
+      { file: "https://subs.test/own2.vtt", label: "English 2" },
+    ],
+  } }));
   await page.route("**/api/hls?*", () => {});
   await page.reload();
   const modes = () => page.locator("video track").evaluateAll((tracks: HTMLTrackElement[]) =>
     tracks.map((track) => `${track.label}:${track.track.mode}`));
-  // The source's file is listed once, first within its language, and on.
-  await expect.poll(modes).toEqual(["English:showing", "English 2:disabled", "English 3:disabled", "French:disabled", "Korean:disabled"]);
+  await expect.poll(modes).toEqual(["English:showing", "English 2:disabled"]);
+  await page.getByRole("button", { name: "Subtitles", exact: true }).click();
+  await expect(page.getByRole("radio")).toHaveCount(3);
+  await page.getByText("English 2", { exact: true }).click();
+  await expect.poll(modes).toEqual(["English:disabled", "English 2:showing"]);
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press("c");
+  await expect.poll(modes).toEqual(["English:disabled", "English 2:disabled"]);
+  expect(lookups).toEqual([]);
 });
 
 test("mobile playback buttons sit at the player's center", async ({ page }) => {
@@ -354,7 +352,6 @@ test("mobile playback buttons sit at the player's center", async ({ page }) => {
 });
 
 async function playerWithSubtitle(page: Page, vtt: string, tracks = [{ file: "https://subs.test/en.vtt", label: "English" }]) {
-  await page.route("**/api/subtitles?*", (route) => route.fulfill({ json: { tracks: [] } }));
   await page.unroute("**/api/resolve?*");
   await page.route("**/api/resolve?*", (route) => route.fulfill({
     json: { url: "https://cdn.test/master.m3u8", tracks },
@@ -411,21 +408,6 @@ test("subtitle timing is saved for the source and ignores legacy unscoped correc
   await page.route("**/api/sources?*", (route) => route.fulfill({ json: { sources: ["cine4k"] } }));
   await playerWithSubtitle(page, vtt);
   await expect.poll(() => cueStarts(page)).toEqual([10.5]);
-});
-
-test("subtitle duration ranking does not guess a playback speed", async ({ page }) => {
-  await playerWithSubtitle(page, "WEBVTT\n\n00:10.000 --> 00:12.000\nOne\n\n01:42.000 --> 01:44.000\nLast\n", []);
-  await page.route("**/api/subtitles?*", (route) => route.fulfill({ json: {
-    tracks: [{ file: "https://subs.test/external.vtt", label: "English" }],
-  } }));
-  await page.reload();
-  await page.locator("video").evaluate((video) => {
-    Object.defineProperty(video, "duration", { configurable: true, value: 100 });
-    video.dispatchEvent(new Event("durationchange"));
-  });
-  await page.getByRole("button", { name: "Subtitles", exact: true }).click();
-  await page.getByText("English", { exact: true }).click();
-  await expect.poll(() => cueStarts(page)).toEqual([10, 102]);
 });
 
 test("subtitle delay moves the lines, by menu or G and H, and is remembered", async ({ page }) => {

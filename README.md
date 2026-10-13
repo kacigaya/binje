@@ -64,24 +64,17 @@ through the Media Session API.
 | F | Fullscreen |
 | C | Subtitles on or off |
 
-The subtitles menu lists every file on offer: the playing source's own, plus the lists
-other providers publish for the title from `/api/subtitles`, even if their own streams do
-not play: Vidrock's subtitle service (`sub.vdrk.site`, also used by Atlantic's player),
-VidZee, Vidrock, then OpenSubtitles' legacy REST API. OpenSubtitles files are SRT;
-`/api/hls` converts files requested with `format=srt` to WebVTT. Files are timed to
-different releases, so a language often has several ("English 2"); try another when one
-drifts. The viewer's language is listed first, then English. The source's first track
-starts on as before; other providers' start off. Google Cast receives only the subtitle
-selected in the player, since a title can list hundreds.
+The subtitles menu lists only files offered by the playing source. Sources without
+subtitles have no subtitles menu. The viewer's language is listed first, then English;
+repeated language names are numbered ("English 2"). The source's first track starts on.
+Google Cast receives the subtitle selected in the player. SRT files use `format=srt`
+so `/api/hls` converts them to WebVTT.
 
 Subtitle files are timed to different releases, so the subtitles panel can fix timing:
 
 - **Delay:** − and + move the shown file by 0.5 s; G and H by 0.1 s. Delays are saved per
   file and streaming source in the browser, and Reset clears them. Older corrections
   saved without a source are ignored to avoid applying them to a different release.
-- **Fit:** other providers' files in your language and English are checked against the
-  video's length and ranked within their language. This does not change timing;
-  only a manual delay or a successful audio sync does.
 - **Auto-sync:** matches the file's lines against speech in the stream's own audio, two
   150-second windows from the opening and the middle, and applies the best offset and
   frame-rate scale. `/api/subtitles/sync` fetches the lowest-quality variant's segments
