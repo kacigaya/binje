@@ -294,3 +294,18 @@ test("sources with subtitles skip the title search", async ({ page }) => {
   await page.waitForTimeout(500);
   expect(searched).toBe(false);
 });
+
+test("mobile playback buttons sit at the player's center", async ({ page }) => {
+  await page.unroute("**/api/resolve?*");
+  await page.route("**/api/resolve?*", (route) => route.fulfill({
+    json: { url: "https://cdn.test/master.m3u8", tracks: [{ file: "https://subs.test/en.vtt", label: "English" }] },
+  }));
+  await page.route("**/api/hls?*", () => {});
+  await page.reload();
+  const play = page.locator("[data-player-controls] button[aria-label='Play']").last();
+  await expect(play).toBeVisible();
+  const player = (await page.locator("video").boundingBox())!;
+  const button = (await play.boundingBox())!;
+  expect(Math.abs(button.x + button.width / 2 - (player.x + player.width / 2))).toBeLessThan(1);
+  expect(Math.abs(button.y + button.height / 2 - (player.y + player.height / 2))).toBeLessThan(1);
+});

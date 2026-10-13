@@ -943,7 +943,9 @@ export default function Player({
           </ControlGroup>
         </div>
         {playbackControls && !loading && !awaitingSources && (
-          <div className="relative flex items-center justify-center gap-8 sm:hidden">
+          // Centered on the whole player, outside the column flow: the toolbar
+          // above is taller than the seek row below.
+          <div className="absolute inset-0 flex items-center justify-center gap-8 sm:hidden">
             <ControlButton aria-label={t("Back 10 seconds")} onClick={() => skip(false)} className={cn("bg-black/40", interactive)}>
               <SkipIcon />
             </ControlButton>
