@@ -182,6 +182,41 @@ test("controls hide while playing and return on pointer or keyboard input", asyn
   await expect(controls).toHaveCSS("opacity", "1");
 });
 
+test("seek bar stops painting while controls are hidden and resumes when shown", async ({ page }) => {
+  await page.clock.install();
+  await page.evaluate(() => {
+    const setProperty = CSSStyleDeclaration.prototype.setProperty;
+    let paints = 0;
+    document.body.dataset.seekPaints = "0";
+    CSSStyleDeclaration.prototype.setProperty = function (property, value, priority) {
+      if (property === "--progress") document.body.dataset.seekPaints = String(++paints);
+      return setProperty.call(this, property, value, priority);
+    };
+  });
+  await playLocalStream(page, 960, 540);
+  const video = page.locator("video");
+  const controls = page.locator("[data-player-controls]");
+  const paints = () => page.locator("body").getAttribute("data-seek-paints");
+
+  await video.dispatchEvent("pointermove", { pointerType: "mouse" });
+  await page.clock.runFor(500);
+  expect(Number(await paints())).toBeGreaterThan(1);
+  await page.clock.runFor(2200);
+  await expect(controls).toHaveAttribute("aria-hidden", "true");
+  const hiddenPaints = await paints();
+  await video.dispatchEvent("timeupdate");
+  await video.dispatchEvent("progress");
+  await video.dispatchEvent("playing");
+  await page.clock.runFor(1000);
+  expect(await paints()).toBe(hiddenPaints);
+  expect(await video.evaluate((element: HTMLVideoElement) => element.paused)).toBe(false);
+
+  await video.dispatchEvent("pointermove", { pointerType: "mouse" });
+  await expect(controls).toHaveAttribute("aria-hidden", "false");
+  await page.clock.runFor(500);
+  expect(Number(await paints())).toBeGreaterThan(Number(hiddenPaints) + 1);
+});
+
 test("desktop controls play, seek, and mute", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await playLocalStream(page, 960, 540);

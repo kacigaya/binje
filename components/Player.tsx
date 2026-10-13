@@ -605,7 +605,11 @@ export default function Player({
         if (nativeHlsSupported) {
           video.src = src;
         } else if (hlsSupported && HlsModule) {
-          hls = new HlsModule({ enableWorker: true });
+          hls = new HlsModule({
+            enableWorker: true,
+            capLevelOnFPSDrop: true,
+            capLevelToPlayerSize: true,
+          });
           hlsRef.current = hls;
           hls.on(HlsModule.Events.MANIFEST_PARSED, (_event, data) => {
             const byLabel = new Map<number, Quality>();
@@ -991,7 +995,7 @@ export default function Player({
         )}
         {playbackControls && (
           <div className={cn("relative px-1", interactive)}>
-            <SeekBar videoRef={videoRef} />
+            <SeekBar videoRef={videoRef} visible={!controlsHidden} />
           </div>
         )}
       </div>

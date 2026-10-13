@@ -65,7 +65,7 @@ export function PlayIcon({ paused, className }: { paused: boolean; className?: s
  * Seek row and volume. Owns the per-frame playback state so the progress bar
  * updates without re-rendering the whole player.
  */
-export function SeekBar({ videoRef }: { videoRef: RefObject<HTMLVideoElement | null> }) {
+export function SeekBar({ videoRef, visible }: { videoRef: RefObject<HTMLVideoElement | null>; visible: boolean }) {
   const { t } = useTranslations();
   const fillRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -78,7 +78,7 @@ export function SeekBar({ videoRef }: { videoRef: RefObject<HTMLVideoElement | n
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !visible) return;
     let frame = 0;
     const paint = () => {
       const total = Number.isFinite(video.duration) ? video.duration : 0;
@@ -123,7 +123,7 @@ export function SeekBar({ videoRef }: { videoRef: RefObject<HTMLVideoElement | n
       video.removeEventListener("pause", stop);
       video.removeEventListener("waiting", stop);
     };
-  }, [videoRef]);
+  }, [videoRef, visible]);
 
   // React's onChange fires on every input; the native change event fires once
   // a drag ends or a key steps, so seeking waits for the viewer to let go.
