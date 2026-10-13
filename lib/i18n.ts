@@ -135,7 +135,6 @@ const FRENCH = {
   "Picture-in-picture": "Image dans l’image",
   "Exit picture-in-picture": "Quitter l’image dans l’image",
   "Picture-in-picture unavailable": "Image dans l’image indisponible",
-  "hearing impaired": "malentendants",
   "Cast to a device": "Diffuser sur un appareil",
   "Stop casting": "Arrêter la diffusion",
   "Connecting to device…": "Connexion à l’appareil…",

@@ -6,7 +6,7 @@ const LIMITS: [prefix: string, max: number][] = [
   ["/api/resolve", 20],
   // Each call resolves every provider for one title, so it is the costliest route.
   ["/api/sources", 20],
-  // Uncached searches and files spend the Wyzie key's daily requests.
+  // Each uncached title asks two providers for their subtitle lists.
   ["/api/subtitles", 20],
 ];
 const DEFAULT_LIMIT = 60;

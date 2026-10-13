@@ -3,6 +3,7 @@ import { isValidCastToken } from "@/lib/cast-token";
 import { type Manifest, masterPlaylist, mediaPlaylist, parseMpd } from "@/lib/dash-to-hls";
 import { allowStreamHost, isAllowedStreamHost, streamCookie, streamReferer, streamUserAgent } from "@/lib/hls-hosts";
 import { getTargetUrl, isSafeHost, safeFetch } from "@/lib/safe-fetch";
+import { srtToVtt } from "@/lib/srt";
 import { unwrapTransportStream } from "@/lib/transport-stream";
 import { createTtlCache } from "@/lib/ttl-cache";
 
@@ -21,6 +22,8 @@ const manifestCache = createTtlCache<Manifest>(MANIFEST_TTL_MS);
 // Bodies labelled as text or images are read whole to tell playlists from
 // disguised segments; those are a few MB, so anything larger streams through.
 const MAX_SNIFF_BYTES = 32 * 1024 * 1024;
+// Feature-length SRT files are a few hundred KB.
+const MAX_SUBTITLE_BYTES = 4 * 1024 * 1024;
 function proxiedUrl(
   url: string | URL,
   requestUrl: string,
@@ -133,6 +136,39 @@ function renderDashAsHls(
   return new NextResponse(body, { headers: responseHeaders });
 }
 
+// Read in chunks so a missing or false content-length cannot make the server
+// buffer more than the limit, and under its own deadline, since the fetch
+// timeout ends with the headers. Null past either.
+async function readSubtitle(response: Response): Promise<string | null> {
+  const reader = response.body?.getReader();
+  if (!reader) return "";
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    void reader.cancel();
+  }, FETCH_TIMEOUT_MS);
+  const decoder = new TextDecoder();
+  let text = "";
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (timedOut) return null;
+      if (done) return text + decoder.decode();
+      size += value.byteLength;
+      if (size > MAX_SUBTITLE_BYTES) {
+        await reader.cancel();
+        return null;
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function getCastCorsHeaders(request: NextRequest, castToken: string | null) {
   if (!castToken || !isValidCastToken(castToken)) return null;
   const origin = request.headers.get("origin");
@@ -189,7 +225,9 @@ export async function GET(request: NextRequest) {
     headers.set("origin", new URL(referer).origin);
     headers.set("referer", referer);
   }
-  const range = request.headers.get("range");
+  // SRT is converted whole, so its requests never ask upstream for a range.
+  const srt = request.nextUrl.searchParams.get("format") === "srt";
+  const range = srt ? null : request.headers.get("range");
   if (range) headers.set("range", range);
   const cookie = streamCookie(targetUrl);
   if (cookie) headers.set("cookie", cookie);
@@ -222,6 +260,7 @@ export async function GET(request: NextRequest) {
   }
   const mayBeDash =
     response.ok &&
+    !srt &&
     !range &&
     !/\.(?:m4s|mp4|m4a|ts|aac|vtt|srt)$/i.test(finalUrl.pathname) &&
     (contentType.includes("xml") || contentType.includes("dash") || contentType.includes("application/octet-stream"));
@@ -246,6 +285,18 @@ export async function GET(request: NextRequest) {
   });
   if (castHeaders) {
     for (const [key, value] of castHeaders) responseHeaders.set(key, value);
+  }
+  // Subtitle providers that only publish SRT mark their files with
+  // format=srt; <track> and Cast need WebVTT.
+  if (srt) {
+    if (!response.ok) await response.body?.cancel();
+    const text = response.ok ? await readSubtitle(response) : null;
+    if (text === null) {
+      return NextResponse.json({ error: "Upstream request failed." }, { status: 502 });
+    }
+    responseHeaders.set("content-type", "text/vtt; charset=utf-8");
+    responseHeaders.set("cache-control", SEGMENT_CACHE_CONTROL);
+    return new NextResponse(srtToVtt(text), { headers: responseHeaders });
   }
   for (const header of ["accept-ranges", "content-length", "content-range", "content-type"]) {
     const value = response.headers.get(header);

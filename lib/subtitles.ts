@@ -1,0 +1,93 @@
+import { allowStreamHosts } from "@/lib/hls-hosts";
+import type { ResolveParams } from "@/lib/resolve-cache";
+import { fetchJson, httpUrl, isRecord } from "@/lib/stream-check";
+import { createTtlCache } from "@/lib/ttl-cache";
+import { vidrockSubtitles } from "@/lib/vidrock";
+import { vidzeeSubtitles } from "@/lib/vidzee";
+
+// `format: "srt"` files are converted to WebVTT by /api/hls.
+export type SubtitleTrack = { file: string; label?: string; format?: "srt" };
+
+const cache = createTtlCache<SubtitleTrack[]>(10 * 60 * 1000);
+// Several files per language often exist, each timed to some release. The
+// site's languages keep a few to try when one drifts; others keep one.
+const SITE_LANGUAGES = new Set(["english", "french"]);
+const SITE_LANGUAGE_FILES = 3;
+// OpenSubtitles' legacy REST API asks clients to name themselves.
+const OPENSUBTITLES_AGENT = "binje";
+
+// Labels arrive as "English", "English2" or "English hi" (hearing impaired);
+// each language is named once and repeats are numbered ("English 2").
+export function pickSubtitleTracks(tracks: SubtitleTrack[]): SubtitleTrack[] {
+  const seenFiles = new Set<string>();
+  const perLanguage = new Map<string, number>();
+  return tracks.flatMap((track) => {
+    const language = track.label?.trim().replace(/\s*hi\d*$/i, "").replace(/\s*\d+$/, "");
+    if (!language || seenFiles.has(track.file)) return [];
+    seenFiles.add(track.file);
+    const key = language.toLowerCase();
+    const count = (perLanguage.get(key) ?? 0) + 1;
+    if (count > (SITE_LANGUAGES.has(key) ? SITE_LANGUAGE_FILES : 1)) return [];
+    perLanguage.set(key, count);
+    return [{ ...track, label: count > 1 ? `${language} ${count}` : language }];
+  });
+}
+
+// Vidrock's subtitle service, which Atlantic's player also reads: WebVTT by
+// TMDB id.
+async function graniteSubtitles({ type, id, season, episode }: ResolveParams): Promise<SubtitleTrack[]> {
+  const path = type === "tv" ? `tv/${id}/${season}/${episode}` : `movie/${id}`;
+  const body = await fetchJson(`https://sub.vdrk.site/v1/${path}`);
+  return Array.isArray(body)
+    ? body.flatMap((item) => {
+        const file = isRecord(item) ? httpUrl(item.file) : undefined;
+        return file && typeof item.label === "string" ? [{ file, label: item.label }] : [];
+      })
+    : [];
+}
+
+// SRT by IMDb id; a show's id with season and episode for TV.
+export function openSubtitlesTracks(body: unknown): SubtitleTrack[] {
+  if (!Array.isArray(body)) return [];
+  return body.flatMap((item) => {
+    if (!isRecord(item) || item.SubFormat !== "srt" || typeof item.LanguageName !== "string") return [];
+    if (typeof item.SubDownloadLink !== "string") return [];
+    // The UTF-8 variant of the link answers uncompressed text in one encoding.
+    const file = httpUrl(item.SubDownloadLink.replace(/\.gz$/, "").replace("/download/", "/download/subencoding-utf8/"));
+    if (!file || new URL(file).hostname !== "dl.opensubtitles.org") return [];
+    return [{ file, label: item.LanguageName, format: "srt" as const }];
+  });
+}
+
+async function openSubtitles({ type, imdbId, season, episode }: ResolveParams): Promise<SubtitleTrack[]> {
+  const id = `imdbid-${imdbId.slice(2)}`;
+  const path = type === "tv" ? `episode-${episode}/${id}/season-${season}` : id;
+  const body = await fetchJson(`https://rest.opensubtitles.org/search/${path}`, {
+    userAgent: OPENSUBTITLES_AGENT,
+    headers: { "x-user-agent": OPENSUBTITLES_AGENT },
+  });
+  return openSubtitlesTracks(body);
+}
+
+// Subtitle lists that providers publish per title, independent of which
+// source plays it: a source without tracks borrows these. WebVTT lists come
+// first; OpenSubtitles fills in what they lack.
+export async function titleSubtitles(params: ResolveParams): Promise<SubtitleTrack[]> {
+  const key = params.type === "tv" ? `tv:${params.id}:${params.season}:${params.episode}` : `movie:${params.id}`;
+  const tracks = await cache.get(key, async () => {
+    const lists = await Promise.allSettled([
+      graniteSubtitles(params),
+      vidzeeSubtitles(params),
+      vidrockSubtitles(params),
+      // It searches by IMDb id only; without one it is not asked at all.
+      ...(params.imdbId ? [openSubtitles(params)] : []),
+    ]);
+    // A full outage must not be cached as "no subtitles"; a rejection is not.
+    if (lists.every((list) => list.status === "rejected")) throw new Error("No subtitle provider answered.");
+    return pickSubtitleTracks(lists.flatMap((list) => (list.status === "fulfilled" ? list.value : [])));
+  });
+  // The player loads them through /api/hls, which serves allowlisted hosts
+  // only. Registered on every call: allowlist entries expire on their own.
+  allowStreamHosts(tracks.map((track) => track.file));
+  return tracks;
+}

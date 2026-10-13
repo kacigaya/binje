@@ -244,41 +244,37 @@ test("seek bar seeks on commit and formats time", async ({ page }) => {
   await expect(seek).toHaveAttribute("aria-valuetext", "0:00 / 1:00");
 });
 
-test("sources without subtitles fall back to ones found by title, off at first", async ({ page }) => {
-  await page.route("**/api/subtitles?*", (route) => {
-    const url = new URL(route.request().url());
-    if (url.searchParams.has("sub")) {
-      return route.fulfill({ contentType: "text/vtt", body: "WEBVTT\n\n00:00.000 --> 00:10.000\nHello\n" });
-    }
-    return route.fulfill({
-      json: {
-        tracks: [
-          { file: "/api/subtitles?type=movie&sub=fr1", language: "fr", hearingImpaired: false },
-          { file: "/api/subtitles?type=movie&sub=en1", language: "en", hearingImpaired: true },
-        ],
-      },
-    });
-  });
-  // A source without tracks: the search waits for it. Its stream is held.
+test("sources without subtitles borrow the title's, off at first, in the viewer's language", async ({ page }) => {
+  await page.route("**/api/subtitles?*", (route) => route.fulfill({
+    json: {
+      tracks: [
+        { file: "https://subs.test/ar.vtt", label: "Arabic" },
+        { file: "https://subs.test/en.vtt", label: "English" },
+        { file: "https://subs.test/fr.vtt", label: "French" },
+        { file: "https://subs.test/fr2.vtt", label: "French 2" },
+      ],
+    },
+  }));
+  // A source without tracks: the request waits for it. Its stream is held.
   await page.unroute("**/api/resolve?*");
   await page.route("**/api/resolve?*", (route) => route.fulfill({
     json: { url: "https://cdn.test/master.m3u8", tracks: [] },
   }));
   await page.route("**/api/hls?*", () => {});
-  const searching = page.waitForRequest((request) => request.url().includes("/api/subtitles?") && !request.url().includes("sub="));
-  await page.reload();
-  await searching;
+  const fetching = page.waitForRequest("**/api/subtitles?*");
+  await page.goto("/fr/watch/353486");
+  await fetching;
   const modes = () => page.locator("video track").evaluateAll((tracks: HTMLTrackElement[]) =>
     tracks.map((track) => `${track.label}:${track.track.mode}`));
-  await expect.poll(modes).toEqual(["English (hearing impaired):disabled", "French:disabled"]);
+  await expect.poll(modes).toEqual(["Français:disabled", "Français 2:disabled", "Anglais:disabled", "Arabic:disabled"]);
 
-  await page.getByRole("combobox", { name: "Subtitles" }).click();
-  await page.getByRole("option", { name: "French" }).click();
-  await expect.poll(modes).toEqual(["English (hearing impaired):disabled", "French:showing"]);
+  await page.getByRole("combobox", { name: "Sous-titres" }).click();
+  await page.getByRole("option", { name: "Français 2" }).click();
+  await expect.poll(modes).toEqual(["Français:disabled", "Français 2:showing", "Anglais:disabled", "Arabic:disabled"]);
   // The menu button keeps letter keys for typeahead, so leave it first.
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.press("c");
-  await expect.poll(modes).toEqual(["English (hearing impaired):disabled", "French:disabled"]);
+  await expect.poll(modes).toEqual(["Français:disabled", "Français 2:disabled", "Anglais:disabled", "Arabic:disabled"]);
 });
 
 test("sources with subtitles skip the title search", async ({ page }) => {

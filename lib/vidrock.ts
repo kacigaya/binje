@@ -9,6 +9,7 @@ import { createTtlCache } from "@/lib/ttl-cache";
 const API = "https://02pcembed.site";
 const PLAYER = "https://vidlux.xyz/";
 const cache = createTtlCache<ResolvedStream>(10 * 60 * 1000);
+const bodyCache = createTtlCache<unknown>(10 * 60 * 1000);
 
 type Target = { url: string; referer?: string; userAgent?: string };
 
@@ -50,11 +51,26 @@ export function vidrockStreams(body: unknown) {
   return { streams, tracks };
 }
 
-export function resolveVidrockStream({ type, id, season, episode }: ResolveParams): Promise<ResolvedStream> {
-  const path = type === "tv" ? `tv/${id}/seasons/${season}/episodes/${episode}` : `movies/${id}`;
+function vidrockPath({ type, id, season, episode }: ResolveParams) {
+  return type === "tv" ? `tv/${id}/seasons/${season}/episodes/${episode}` : `movies/${id}`;
+}
+
+// One request answers both the stream list and the subtitles.
+function vidrockBody(path: string): Promise<unknown> {
+  return bodyCache.get(path, () =>
+    fetchJson(`${API}/v1/vidrock/${path}`, { referer: PLAYER, headers: { origin: PLAYER.slice(0, -1) } }));
+}
+
+// Offered even when none of Vidrock's streams plays; the title's other
+// sources can play with them.
+export async function vidrockSubtitles(params: ResolveParams) {
+  return vidrockStreams(await vidrockBody(vidrockPath(params))).tracks;
+}
+
+export function resolveVidrockStream(params: ResolveParams): Promise<ResolvedStream> {
+  const path = vidrockPath(params);
   return cache.get(path, async () => {
-    const body = await fetchJson(`${API}/v1/vidrock/${path}`, { referer: PLAYER, headers: { origin: PLAYER.slice(0, -1) } });
-    const { streams, tracks } = vidrockStreams(body);
+    const { streams, tracks } = vidrockStreams(await vidrockBody(path));
     const stream = await firstInOrder(
       streams.map(async (stream) => {
         if (!(await isPlayableManifest(stream.url, stream))) throw new Error("Unplayable stream.");

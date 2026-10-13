@@ -232,3 +232,54 @@ test("serves segments disguised as images as MPEG-TS and passes subtitles throug
   expect(subtitles.headers.get("content-type")).toBe("text/vtt");
   expect(await subtitles.text()).toStartWith("WEBVTT");
 });
+
+test("serves SRT files marked format=srt as WebVTT and rejects failed ones", async () => {
+  allowStreamHost("https://203.0.113.21/file/1");
+  const request = new NextRequest("https://binje.test/api/hls?url=https://203.0.113.21/file/1&format=srt");
+  globalThis.fetch = mock(async () => new Response("1\r\n00:00:01,000 --> 00:00:02,500\r\nHi\r\n", {
+    headers: { "content-type": "application/octet-stream" },
+  })) as unknown as typeof fetch;
+  const response = await GET(request);
+  expect(response.headers.get("content-type")).toBe("text/vtt; charset=utf-8");
+  expect(await response.text()).toBe("WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.500\nHi\n");
+  globalThis.fetch = mock(async () => new Response("gone", { status: 404 })) as unknown as typeof fetch;
+  expect((await GET(request)).status).toBe(502);
+});
+
+test("fetches SRT whole and stops reading past the size limit", async () => {
+  allowStreamHost("https://203.0.113.22/file/1");
+  const url = "https://binje.test/api/hls?url=https://203.0.113.22/file/1&format=srt";
+  let sentRange: string | null = "unset";
+  globalThis.fetch = mock(async (_input: unknown, init?: RequestInit) => {
+    sentRange = new Headers(init?.headers).get("range");
+    return new Response("1\n00:00:01,000 --> 00:00:02,000\nHi\n");
+  }) as unknown as typeof fetch;
+  const ranged = await GET(new NextRequest(url, { headers: { range: "bytes=0-10" } }));
+  expect(sentRange).toBeNull();
+  expect(await ranged.text()).toStartWith("WEBVTT");
+
+  // No content-length: the limit applies while reading.
+  const chunk = new Uint8Array(1024 * 1024);
+  // Extensionless and octet-stream, like OpenSubtitles links, so the DASH
+  // sniffing must not buffer it first.
+  globalThis.fetch = mock(async () => new Response(new ReadableStream({
+    pull(controller) {
+      controller.enqueue(chunk);
+    },
+  }), { headers: { "content-type": "application/octet-stream" } })) as unknown as typeof fetch;
+  expect((await GET(new NextRequest(url))).status).toBe(502);
+});
+
+test("gives up on an SRT body that stalls after its headers", async () => {
+  allowStreamHost("https://203.0.113.23/file/1");
+  const realSetTimeout = globalThis.setTimeout;
+  // Run the read deadline at once instead of after the real timeout.
+  globalThis.setTimeout = ((handler: () => void) => realSetTimeout(handler, 0)) as typeof setTimeout;
+  try {
+    globalThis.fetch = mock(async () => new Response(new ReadableStream({ pull: () => new Promise(() => {}) }))) as unknown as typeof fetch;
+    const response = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.23/file/1&format=srt"));
+    expect(response.status).toBe(502);
+  } finally {
+    globalThis.setTimeout = realSetTimeout;
+  }
+});

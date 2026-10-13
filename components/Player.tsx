@@ -32,9 +32,8 @@ import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
 type PlayerMediaType = "movie" | "tv";
-type Track = { file: string; label?: string; lang?: string };
-// From /api/subtitles: files found by title, for sources that ship none.
-type ExternalTrack = { file: string; language: string; hearingImpaired: boolean };
+// `format: "srt"` asks /api/hls to convert the file to WebVTT.
+type Track = { file: string; label?: string; lang?: string; format?: "srt" };
 // height is the rendition's own; label is its 16:9 class (lib/quality-class).
 type Quality = { index: number; height: number; label: number; bitrate: number };
 type StreamSource = { file: string; height: number };
@@ -83,16 +82,19 @@ function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
 }
 
-// Same-origin subtitle files are served as-is; provider files go through the proxy.
-function trackSrc(file: string) {
-  return file.startsWith("/") ? file : proxied(file);
+// /api/subtitles labels are English language names, numbered when a
+// language has several files ("English 2").
+const SITE_LANGUAGE_CODES: Record<string, string> = { english: "en", french: "fr" };
+
+function isTrack(value: unknown): value is Track {
+  if (typeof value !== "object" || value === null) return false;
+  const { file, label, format } = value as Record<string, unknown>;
+  return typeof file === "string" && /^https?:\/\//.test(file) && typeof label === "string" &&
+    (format === undefined || format === "srt");
 }
 
-function isExternalTrack(value: unknown): value is ExternalTrack {
-  if (typeof value !== "object" || value === null) return false;
-  const { file, language, hearingImpaired } = value as Record<string, unknown>;
-  return typeof file === "string" && file.startsWith("/api/subtitles?") &&
-    typeof language === "string" && /^[a-z]{2}$/.test(language) && typeof hearingImpaired === "boolean";
+function trackSrc(track: Track) {
+  return track.format === "srt" ? `${proxied(track.file)}&format=srt` : proxied(track.file);
 }
 
 // Upstream reports height only, so bitrates come from a conservative H.264
@@ -238,26 +240,25 @@ export default function Player({
   const [inPip, setInPip] = useState(false);
   const [paused, setPaused] = useState(true);
   const [buffering, setBuffering] = useState(false);
-  const [externalTracks, setExternalTracks] = useState<Keyed<ExternalTrack[]> | null>(null);
+  const [externalTracks, setExternalTracks] = useState<Keyed<Track[]> | null>(null);
   const externalList = forMedia(externalTracks, mediaKey);
-  // Tracks found by title stand in only for a source that ships none, in the
-  // viewer's language first.
+  // Other providers' subtitles for the title stand in only for a source that
+  // ships none: the viewer's language first, then English, named in the
+  // viewer's language.
   const allTracks = useMemo<Track[]>(() => {
     if (tracks.length) return tracks;
     const names = new Intl.DisplayNames([locale], { type: "language" });
-    const external = [...(externalList ?? [])]
-      .sort((a, b) => Number(b.language === locale) - Number(a.language === locale))
+    const rank = (lang?: string) => (lang === locale ? 0 : lang === "en" ? 1 : 2);
+    return (externalList ?? [])
       .map((track) => {
-        const name = names.of(track.language) ?? track.language;
-        const label = name.charAt(0).toLocaleUpperCase(locale) + name.slice(1);
-        return {
-          file: track.file,
-          lang: track.language,
-          label: track.hearingImpaired ? `${label} (${t("hearing impaired")})` : label,
-        };
-      });
-    return external;
-  }, [externalList, locale, t, tracks]);
+        const [, base = "", number = ""] = track.label?.match(/^(.*?)( \d+)?$/) ?? [];
+        const lang = SITE_LANGUAGE_CODES[base.toLowerCase()];
+        if (!lang) return track;
+        const name = names.of(lang) ?? base;
+        return { ...track, lang, label: `${name.charAt(0).toLocaleUpperCase(locale)}${name.slice(1)}${number}` };
+      })
+      .sort((a, b) => rank(a.lang) - rank(b.lang));
+  }, [externalList, locale, tracks]);
   // The pick is kept by file, so tracks arriving or changing later do not move
   // it. Until the viewer picks, subtitles start on the source's first track,
   // like the native `default` track did; tracks found by title start off.
@@ -361,8 +362,7 @@ export default function Player({
     });
   }, [activeSubtitle, allTracks]);
 
-  // Searched only once a source resolved without tracks: each search spends
-  // the server's limited Wyzie requests.
+  // Fetched only once a source resolved without tracks of its own.
   const needsExternalTracks = resolvedMedia !== null && tracks.length === 0 && externalList === undefined;
   useEffect(() => {
     if (!needsExternalTracks) return;
@@ -370,7 +370,7 @@ export default function Player({
     fetch(`/api/subtitles?${mediaQuery}`)
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("subtitles failed"))))
       .then((data: { tracks?: unknown }) => {
-        const list = Array.isArray(data.tracks) ? data.tracks.filter(isExternalTrack) : [];
+        const list = Array.isArray(data.tracks) ? data.tracks.filter(isTrack) : [];
         if (!cancelled) setExternalTracks({ key: mediaKey, value: list });
       })
       .catch(() => {
@@ -759,7 +759,7 @@ export default function Player({
               kind="subtitles"
               label={track.label ?? `Track ${i + 1}`}
               srcLang={track.lang}
-              src={trackSrc(track.file)}
+              src={trackSrc(track)}
             />
           ))}
         </video>
