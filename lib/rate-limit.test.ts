@@ -7,6 +7,7 @@ describe("rate-limit", () => {
     expect(bucketFor("/api/resolve-vf")[0]).toBe("/api/resolve");
     expect(bucketFor("/api/search")[1]).toBe(bucketFor("/api/mobile/home")[1]);
     expect(bucketFor("/api/subtitles")[1]).toBeLessThan(bucketFor("/api/search")[1]);
+    expect(bucketFor("/api/subtitles/sync")).toEqual(["/api/subtitles/sync", 3]);
   });
 
   test("blocks past the bucket limit and keeps buckets independent", () => {

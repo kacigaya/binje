@@ -1,7 +1,7 @@
 "use client";
 
 import type Hls from "hls.js";
-import { Captions, CaptionsOff, Crop, Maximize, Minimize, PictureInPicture2, RotateCcw } from "lucide-react";
+import { Crop, Maximize, Minimize, PictureInPicture2, RotateCcw } from "lucide-react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -18,6 +18,7 @@ import {
   seekBy,
   togglePlayback,
 } from "@/components/PlayerControls";
+import SubtitleMenu, { DELAY_STEP, formatDelay, type SyncStatus } from "@/components/SubtitleMenu";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { qualityClass } from "@/lib/quality-class";
@@ -28,6 +29,7 @@ import {
   updatePlayHistoryProgress,
 } from "@/lib/play-history";
 import type { PlaybackSource } from "@/lib/sources";
+import { applySync, cueTimes, type Fit, fitToDuration, type SubtitleSync } from "@/lib/subtitle-timing";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -84,6 +86,30 @@ function proxied(url: string) {
 
 // /api/subtitles labels are English language names.
 const SITE_LANGUAGE_CODES: Record<string, string> = { english: "en", french: "fr" };
+
+// Provider numbering ("English 2") is dropped; the player numbers its own list.
+function baseLabel(label?: string) {
+  return label?.trim().replace(/\s*\d+$/, "") ?? "";
+}
+
+function languageOf(label?: string): string | undefined {
+  return SITE_LANGUAGE_CODES[baseLabel(label).toLowerCase()];
+}
+
+// Per-file delays and auto-sync results, kept between visits.
+const SYNC_KEY = "subtitle-sync";
+const MAX_SAVED_SYNCS = 300;
+// Files ranked by fit per language; each is downloaded once to read its timing.
+const FIT_CHECKS_PER_LANGUAGE = 10;
+// A cue's own times, before any delay or scale was applied to it.
+const originalCueTimes = new WeakMap<TextTrackCue, [number, number]>();
+
+function isSync(value: unknown): value is SubtitleSync {
+  if (typeof value !== "object" || value === null) return false;
+  const { offset, scale } = value as Record<string, unknown>;
+  return typeof offset === "number" && Number.isFinite(offset) && Math.abs(offset) <= 600 &&
+    typeof scale === "number" && scale > 0.9 && scale < 1.1;
+}
 
 function isTrack(value: unknown): value is Track {
   if (typeof value !== "object" || value === null) return false;
@@ -245,29 +271,34 @@ export default function Player({
   // title. The viewer's language comes first, then English, then the rest,
   // with the source's own first within a language. Site languages are named
   // in the viewer's language and repeated names are numbered ("English 2").
+  const [fits, setFits] = useState<Keyed<Record<string, Fit>> | null>(null);
+  const fitList = forMedia(fits, mediaKey);
   const allTracks = useMemo<Track[]>(() => {
     const names = new Intl.DisplayNames([locale], { type: "language" });
     const rank = (lang?: string) => (lang === locale ? 0 : lang === "en" ? 1 : 2);
     const own = new Set(tracks.map((track) => track.file));
+    // Within a language, the source's own files, then files whose timing fits
+    // this video, then unchecked ones, then ones that cannot fit.
+    const fitRank = (file: string) => (own.has(file) ? -1 : fitList?.[file]?.rank ?? 1);
     const counts = new Map<string, number>();
     return [...tracks, ...(externalList ?? []).filter((track) => !own.has(track.file))]
       .map((track) => {
         // Numbers from the provider ("English 2") are dropped and redone below
         // across the whole list, so two files never share a name.
-        const base = track.label?.trim().replace(/\s*\d+$/, "") ?? "";
-        const lang = SITE_LANGUAGE_CODES[base.toLowerCase()];
+        const base = baseLabel(track.label);
+        const lang = languageOf(track.label);
         if (!lang) return { ...track, label: base };
         const name = names.of(lang);
         return name ? { ...track, lang, label: `${name.charAt(0).toLocaleUpperCase(locale)}${name.slice(1)}` } : { ...track, lang };
       })
-      .sort((a, b) => rank(a.lang) - rank(b.lang))
+      .sort((a, b) => rank(a.lang) - rank(b.lang) || fitRank(a.file) - fitRank(b.file))
       .map((track, index) => {
         const label = track.label?.trim() || `Track ${index + 1}`;
         const count = (counts.get(label) ?? 0) + 1;
         counts.set(label, count);
         return { ...track, label: count > 1 ? `${label} ${count}` : label };
       });
-  }, [externalList, locale, tracks]);
+  }, [externalList, fitList, locale, tracks]);
   // The pick is kept by file, so tracks arriving or changing later do not move
   // it. Until the viewer picks, subtitles start on the source's first track,
   // like the native `default` track did; other providers' start off.
@@ -285,6 +316,14 @@ export default function Player({
     () => (activeSubtitle >= 0 ? [allTracks[activeSubtitle]] : []),
     [activeSubtitle, allTracks],
   );
+  const activeFile = activeSubtitle >= 0 ? allTracks[activeSubtitle].file : null;
+  const [syncs, setSyncs] = useState<Record<string, SubtitleSync> | null>(null);
+  // A delay set here or by auto-sync wins; else a frame-rate fix from the fit.
+  const activeSync: SubtitleSync = (activeFile && syncs?.[activeFile]) ||
+    { offset: 0, scale: (activeFile && fitList?.[activeFile]?.scale) || 1 };
+  const [syncStatus, setSyncStatus] = useState<{ file: string; status: SyncStatus } | null>(null);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [subtitleNotice, setSubtitleNotice] = useState<{ text: string; id: number } | null>(null);
   const [seekHint, setSeekHint] = useState<{ forward: boolean; id: number } | null>(null);
   const lastTapRef = useRef(0);
   const lastPointerTypeRef = useRef("");
@@ -391,6 +430,141 @@ export default function Player({
       video.textTracks.removeEventListener("addtrack", apply);
     };
   }, [activeSubtitle, allTracks]);
+
+  useEffect(() => {
+    let saved: Record<string, SubtitleSync> = {};
+    try {
+      const parsed: unknown = JSON.parse(localStorage.getItem(SYNC_KEY) ?? "{}");
+      if (parsed && typeof parsed === "object") {
+        saved = Object.fromEntries(Object.entries(parsed).filter(([, value]) => isSync(value)));
+      }
+    } catch {
+      // Unreadable storage starts empty.
+    }
+    setSyncs(saved);
+  }, []);
+
+  function saveSync(file: string, sync: SubtitleSync | null) {
+    setSyncs((previous) => {
+      const next = { ...previous };
+      delete next[file];
+      if (sync) next[file] = sync;
+      const entries = Object.entries(next);
+      const kept = Object.fromEntries(entries.slice(Math.max(0, entries.length - MAX_SAVED_SYNCS)));
+      try {
+        localStorage.setItem(SYNC_KEY, JSON.stringify(kept));
+      } catch {
+        // Storage may be full or blocked; the delay still applies now.
+      }
+      return kept;
+    });
+  }
+
+  // A pending auto-sync is dropped when the viewer sets timing by hand, so its
+  // answer cannot overwrite the newer choice.
+  const autoSyncRef = useRef<AbortController | null>(null);
+
+  function changeDelay(offset: number) {
+    if (!activeFile) return;
+    autoSyncRef.current?.abort();
+    saveSync(activeFile, { offset: Math.round(offset * 100) / 100, scale: activeSync.scale });
+    setSyncStatus(null);
+  }
+
+  async function autoSync() {
+    const stream = resolvedMedia?.url;
+    const track = activeSubtitle >= 0 ? allTracks[activeSubtitle] : null;
+    if (!stream || !track) return;
+    autoSyncRef.current?.abort();
+    const controller = new AbortController();
+    autoSyncRef.current = controller;
+    setSyncStatus({ file: track.file, status: "syncing" });
+    const query = new URLSearchParams({ stream, file: track.file });
+    if (track.format) query.set("format", track.format);
+    let status: SyncStatus = "failed";
+    try {
+      const response = await fetch(`/api/subtitles/sync?${query}`, { signal: controller.signal });
+      const data: unknown = response.ok ? await response.json() : null;
+      if (controller.signal.aborted) return;
+      if (isSync(data)) {
+        saveSync(track.file, { offset: data.offset, scale: data.scale });
+        status = "synced";
+      } else if (response.status === 503 || response.status === 429) {
+        status = "busy";
+      }
+    } catch {
+      if (controller.signal.aborted) return;
+    }
+    setSyncStatus((previous) => (previous?.file === track.file ? { file: track.file, status } : previous));
+  }
+
+  // Delay and scale are applied to the shown track's cues, from their own
+  // times, whenever either changes or the file finishes loading.
+  const { offset: syncOffset, scale: syncScale } = activeSync;
+  useEffect(() => {
+    const element = activeSubtitle >= 0 ? videoRef.current?.querySelectorAll("track")[activeSubtitle] : undefined;
+    if (!element) return;
+    const sync = { offset: syncOffset, scale: syncScale };
+    const shift = () => {
+      for (const cue of Array.from(element.track.cues ?? [])) {
+        let original = originalCueTimes.get(cue);
+        if (!original) {
+          original = [cue.startTime, cue.endTime];
+          originalCueTimes.set(cue, original);
+        }
+        cue.startTime = applySync(original[0], sync);
+        cue.endTime = applySync(original[1], sync);
+      }
+    };
+    shift();
+    element.addEventListener("load", shift);
+    return () => element.removeEventListener("load", shift);
+  }, [activeSubtitle, allTracks, syncOffset, syncScale]);
+
+  // Other providers' files in the viewer's language and English are checked
+  // against this video's length, a few at a time, to rank them and catch a
+  // frame-rate mismatch. The browser keeps the downloads for playback.
+  useEffect(() => {
+    if (!externalList?.length || !(videoDuration > 0)) return;
+    const own = new Set(tracks.map((track) => track.file));
+    const perLanguage = new Map<string, number>();
+    const queue = externalList.filter((track) => {
+      const lang = languageOf(track.label);
+      if (own.has(track.file) || (lang !== locale && lang !== "en") || fitList?.[track.file]) return false;
+      const count = (perLanguage.get(lang) ?? 0) + 1;
+      perLanguage.set(lang, count);
+      return count <= FIT_CHECKS_PER_LANGUAGE;
+    });
+    if (!queue.length) return;
+    const controller = new AbortController();
+    const key = mediaKey;
+    async function check() {
+      for (let track = queue.shift(); track; track = queue.shift()) {
+        const file = track.file;
+        let fit: Fit = { rank: 1, scale: 1 };
+        try {
+          const response = await fetch(trackSrc(track), { signal: controller.signal });
+          if (response.ok) {
+            const ends = cueTimes(await response.text()).map(([, end]) => end);
+            fit = fitToDuration(ends.length ? Math.max(...ends) : 0, videoDuration);
+          }
+        } catch {
+          if (controller.signal.aborted) return;
+        }
+        setFits((previous) => ({ key, value: { ...forMedia(previous, key), [file]: fit } }));
+      }
+    }
+    void Promise.all([check(), check(), check()]);
+    return () => controller.abort();
+    // fitList is left out: each check adds to it, which must not restart the queue.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalList, locale, mediaKey, tracks, videoDuration]);
+
+  useEffect(() => {
+    if (!subtitleNotice) return;
+    const timer = window.setTimeout(() => setSubtitleNotice(null), 1200);
+    return () => window.clearTimeout(timer);
+  }, [subtitleNotice]);
 
   // Fetched alongside the stream, once per title.
   useEffect(() => {
@@ -502,6 +676,15 @@ export default function Player({
       case "c":
         toggleSubtitles();
         break;
+      // VLC's keys for subtitle delay, in finer steps than the menu's.
+      case "g":
+      case "h": {
+        if (!activeFile) return;
+        const offset = activeSync.offset + (event.key === "h" ? DELAY_STEP : -DELAY_STEP) / 5;
+        changeDelay(offset);
+        setSubtitleNotice({ text: `${t("Subtitle delay")}: ${formatDelay(offset)}`, id: Date.now() });
+        break;
+      }
       default:
         return;
     }
@@ -609,6 +792,13 @@ export default function Player({
             enableWorker: true,
             capLevelOnFPSDrop: true,
             capLevelToPlayerSize: true,
+            // Subtitles come from <track> elements. hls.js's subtitle and
+            // caption controllers clear the cues of every text track on the
+            // video when a manifest loads or the player detaches, and a
+            // loaded <track> is never fetched again, so they are left out.
+            subtitleStreamController: undefined,
+            subtitleTrackController: undefined,
+            timelineController: undefined,
           });
           hlsRef.current = hls;
           hls.on(HlsModule.Events.MANIFEST_PARSED, (_event, data) => {
@@ -768,6 +958,10 @@ export default function Player({
           aria-label={`${t("Video player")}: ${title}`}
           playsInline
           onLoadedMetadata={onLoadedMetadata}
+          onDurationChange={(event) => {
+            const { duration } = event.currentTarget;
+            setVideoDuration(Number.isFinite(duration) ? duration : 0);
+          }}
           onResize={updateAspectRatio}
           onPlay={() => setPaused(false)}
           onPause={() => setPaused(true)}
@@ -812,6 +1006,15 @@ export default function Player({
             if (lastPointerTypeRef.current === "mouse" && fullscreenMode === "container") void toggleFullscreen();
           }}
         />
+        {subtitleNotice && (
+          <p
+            key={subtitleNotice.id}
+            role="status"
+            className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/75 px-3 py-1.5 text-xs font-semibold text-white tabular-nums"
+          >
+            {subtitleNotice.text}
+          </p>
+        )}
         {seekHint && (
           <div
             key={seekHint.id}
@@ -898,20 +1101,22 @@ export default function Player({
           )}
           <ControlGroup className={cn("relative", interactive)}>
             {allTracks.length > 0 && !googleCasting && (
-              <Select
-                ariaLabel={t("Subtitles")}
-                value={activeSubtitle}
-                onValueChange={(index) => setSubtitle(
+              <SubtitleMenu
+                container={containerRef}
+                labels={allTracks.map((track, i) => track.label ?? `Track ${i + 1}`)}
+                active={activeSubtitle}
+                onSelect={(index) => setSubtitle(
                   index < 0 ? { file: pickedFile ?? null, on: false } : { file: allTracks[index].file, on: true },
                 )}
-                icon={activeSubtitle >= 0
-                  ? <Captions aria-hidden="true" className="size-4" />
-                  : <CaptionsOff aria-hidden="true" className="size-4 text-white/60" />}
-                items={[
-                  { value: -1, label: t("Off") },
-                  ...allTracks.map((track, i) => ({ value: i, label: track.label ?? `Track ${i + 1}` })),
-                ]}
-                className="size-11 justify-center rounded-full text-white hover:bg-white/15"
+                delay={activeSync.offset}
+                onDelayChange={changeDelay}
+                onReset={() => {
+                  autoSyncRef.current?.abort();
+                  if (activeFile) saveSync(activeFile, null);
+                  setSyncStatus(null);
+                }}
+                syncStatus={syncStatus && syncStatus.file === activeFile ? syncStatus.status : "idle"}
+                onAutoSync={autoSync}
               />
             )}
             <ControlButton

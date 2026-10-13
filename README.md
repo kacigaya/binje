@@ -71,6 +71,23 @@ drifts. The viewer's language is listed first, then English. The source's first 
 starts on as before; other providers' start off. Google Cast receives only the subtitle
 selected in the player, since a title can list hundreds.
 
+Subtitle files are timed to different releases, so the subtitles panel can fix timing:
+
+- **Delay:** − and + move the shown file by 0.5 s; G and H by 0.1 s. Delays are saved per
+  file in the browser, and Reset clears them.
+- **Fit:** other providers' files in your language and English are checked against the
+  video's length and ranked within their language. A file that runs past the end is
+  compressed by the 25 / 23.976 fps ratio when that makes it fit.
+- **Auto-sync:** matches the file's lines against speech in the stream's own audio, two
+  150-second windows from the opening and the middle, and applies the best offset and
+  frame-rate scale. `/api/subtitles/sync` fetches the lowest-quality variant's segments
+  through `/api/hls` and pipes them into ffmpeg, which only decodes. A run downloads a few
+  minutes of video and takes 10–40 seconds; results are cached for a day, two runs at most
+  happen at once, and the route allows 3 requests a minute per IP. It needs `ffmpeg` on
+  the server (installed in the Docker image) and reaches `/api/hls` at `INTERNAL_ORIGIN`,
+  by default `http://127.0.0.1:$PORT`. When no shift clearly matches, it reports that
+  instead of guessing; adjust the delay or try another file.
+
 ## Screenshots
 
 ### Desktop

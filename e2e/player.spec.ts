@@ -303,10 +303,10 @@ test("sources without subtitles borrow the title's, off at first, in the viewer'
     tracks.map((track) => `${track.label}:${track.track.mode}`));
   await expect.poll(modes).toEqual(["Français:disabled", "Français 2:disabled", "Anglais:disabled", "Arabic:disabled"]);
 
-  await page.getByRole("combobox", { name: "Sous-titres" }).click();
-  await page.getByRole("option", { name: "Français 2" }).click();
+  await page.getByRole("button", { name: "Sous-titres" }).click();
+  await page.getByText("Français 2", { exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect.poll(modes).toEqual(["Français:disabled", "Français 2:showing", "Anglais:disabled", "Arabic:disabled"]);
-  // The menu button keeps letter keys for typeahead, so leave it first.
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.press("c");
   await expect.poll(modes).toEqual(["Français:disabled", "Français 2:disabled", "Anglais:disabled", "Arabic:disabled"]);
@@ -351,4 +351,74 @@ test("mobile playback buttons sit at the player's center", async ({ page }) => {
   const button = (await play.boundingBox())!;
   expect(Math.abs(button.x + button.width / 2 - (player.x + player.width / 2))).toBeLessThan(1);
   expect(Math.abs(button.y + button.height / 2 - (player.y + player.height / 2))).toBeLessThan(1);
+});
+
+async function playerWithSubtitle(page: Page, vtt: string) {
+  await page.route("**/api/subtitles?*", (route) => route.fulfill({ json: { tracks: [] } }));
+  await page.unroute("**/api/resolve?*");
+  await page.route("**/api/resolve?*", (route) => route.fulfill({
+    json: { url: "https://cdn.test/master.m3u8", tracks: [{ file: "https://subs.test/en.vtt", label: "English" }] },
+  }));
+  // Only the subtitle file loads; the stream is held.
+  await page.route("**/api/hls?*", (route) => route.request().url().includes("subs.test")
+    ? route.fulfill({ contentType: "text/vtt", body: vtt })
+    : undefined);
+  await page.reload();
+}
+
+const cueStarts = (page: Page) => page.locator("video track").first().evaluate((track: HTMLTrackElement) =>
+  Array.from(track.track.cues ?? []).map((cue) => Math.round(cue.startTime * 100) / 100));
+
+test("subtitle delay moves the lines, by menu or G and H, and is remembered", async ({ page }) => {
+  await playerWithSubtitle(page, "WEBVTT\n\n00:10.000 --> 00:12.000\nOne\n\n00:20.000 --> 00:22.000\nTwo\n");
+  await expect.poll(() => cueStarts(page)).toEqual([10, 20]);
+
+  await page.getByRole("button", { name: "Subtitles" }).click();
+  await page.getByRole("button", { name: "Subtitles later" }).click();
+  await page.getByRole("button", { name: "Subtitles later" }).click();
+  await expect(page.locator("output")).toHaveText("+1 s");
+  await expect.poll(() => cueStarts(page)).toEqual([11, 21]);
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press("g");
+  await expect(page.getByRole("status").filter({ hasText: "Subtitle delay: +0.9 s" })).toBeVisible();
+  await expect.poll(() => cueStarts(page)).toEqual([10.9, 20.9]);
+
+  await page.reload();
+  await expect.poll(() => cueStarts(page)).toEqual([10.9, 20.9]);
+  await page.getByRole("button", { name: "Subtitles" }).click();
+  await page.getByRole("button", { name: "Reset" }).click();
+  await expect.poll(() => cueStarts(page)).toEqual([10, 20]);
+});
+
+test("auto-sync applies the offset and scale the server finds", async ({ page }) => {
+  const sent: { query?: URLSearchParams } = {};
+  await page.route("**/api/subtitles/sync?*", (route) => {
+    sent.query = new URL(route.request().url()).searchParams;
+    return route.fulfill({ json: { offset: -2.5, scale: 1 } });
+  });
+  await playerWithSubtitle(page, "WEBVTT\n\n00:10.000 --> 00:12.000\nOne\n");
+  await expect.poll(() => cueStarts(page)).toEqual([10]);
+  await page.getByRole("button", { name: "Subtitles" }).click();
+  await page.getByRole("button", { name: "Auto-sync" }).click();
+  await expect(page.getByText("Synced to the audio.")).toBeVisible();
+  await expect.poll(() => cueStarts(page)).toEqual([7.5]);
+  expect(sent.query?.get("stream")).toBe("https://cdn.test/master.m3u8");
+  expect(sent.query?.get("file")).toBe("https://subs.test/en.vtt");
+});
+
+test("a delay set during auto-sync wins over its late answer", async ({ page }) => {
+  let answer: () => void = () => {};
+  await page.route("**/api/subtitles/sync?*", (route) => {
+    answer = () => void route.fulfill({ json: { offset: -2.5, scale: 1 } }).catch(() => undefined);
+  });
+  await playerWithSubtitle(page, "WEBVTT\n\n00:10.000 --> 00:12.000\nOne\n");
+  await expect.poll(() => cueStarts(page)).toEqual([10]);
+  await page.getByRole("button", { name: "Subtitles" }).click();
+  await page.getByRole("button", { name: "Auto-sync" }).click();
+  await page.getByRole("button", { name: "Subtitles later" }).click();
+  answer();
+  await page.waitForTimeout(500);
+  await expect.poll(() => cueStarts(page)).toEqual([10.5]);
+  await expect(page.locator("output")).toHaveText("+0.5 s");
 });
