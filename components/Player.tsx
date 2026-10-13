@@ -96,8 +96,8 @@ function languageOf(label?: string): string | undefined {
   return SITE_LANGUAGE_CODES[baseLabel(label).toLowerCase()];
 }
 
-// Per-file delays and auto-sync results, kept between visits.
-const SYNC_KEY = "subtitle-sync";
+// Timing belongs to a release: providers can serve different cuts of a title.
+const SYNC_KEY = "subtitle-sync-v2";
 const MAX_SAVED_SYNCS = 300;
 // Files ranked by fit per language; each is downloaded once to read its timing.
 const FIT_CHECKS_PER_LANGUAGE = 10;
@@ -319,10 +319,9 @@ export default function Player({
   );
   const activeFile = activeSubtitle >= 0 ? allTracks[activeSubtitle].file : null;
   const [syncs, setSyncs] = useState<Record<string, SubtitleSync> | null>(null);
-  // A delay set here or by auto-sync wins; else a frame-rate fix from the fit.
-  const activeSync: SubtitleSync = (activeFile && syncs?.[activeFile]) ||
-    { offset: 0, scale: (activeFile && fitList?.[activeFile]?.scale) || 1 };
-  const [syncStatus, setSyncStatus] = useState<{ file: string; status: SyncStatus } | null>(null);
+  const activeSyncKey = activeFile ? JSON.stringify([mediaKey, source, activeFile]) : null;
+  const activeSync: SubtitleSync = (activeSyncKey && syncs?.[activeSyncKey]) || { offset: 0, scale: 1 };
+  const [syncStatus, setSyncStatus] = useState<{ key: string; status: SyncStatus } | null>(null);
   const [videoDuration, setVideoDuration] = useState(0);
   const [subtitleNotice, setSubtitleNotice] = useState<{ text: string; id: number } | null>(null);
   const [seekHint, setSeekHint] = useState<{ forward: boolean; id: number } | null>(null);
@@ -475,11 +474,11 @@ export default function Player({
     setSyncs(saved);
   }, []);
 
-  function saveSync(file: string, sync: SubtitleSync | null) {
+  function saveSync(key: string, sync: SubtitleSync | null) {
     setSyncs((previous) => {
       const next = { ...previous };
-      delete next[file];
-      if (sync) next[file] = sync;
+      delete next[key];
+      if (sync) next[key] = sync;
       const entries = Object.entries(next);
       const kept = Object.fromEntries(entries.slice(Math.max(0, entries.length - MAX_SAVED_SYNCS)));
       try {
@@ -495,38 +494,49 @@ export default function Player({
   // answer cannot overwrite the newer choice.
   const autoSyncRef = useRef<AbortController | null>(null);
 
+  useEffect(() => () => { autoSyncRef.current?.abort(); }, [activeSyncKey, sourceUrl]);
+
   function changeDelay(offset: number) {
-    if (!activeFile) return;
+    if (!activeSyncKey) return;
     autoSyncRef.current?.abort();
-    saveSync(activeFile, { offset: Math.round(offset * 100) / 100, scale: activeSync.scale });
+    saveSync(activeSyncKey, { offset: Math.round(offset * 100) / 100, scale: activeSync.scale });
     setSyncStatus(null);
   }
 
   async function autoSync() {
     const stream = resolvedMedia?.url;
     const track = activeSubtitle >= 0 ? allTracks[activeSubtitle] : null;
-    if (!stream || !track) return;
+    if (!stream || !track || !activeSyncKey) return;
+    const key = activeSyncKey;
     autoSyncRef.current?.abort();
     const controller = new AbortController();
     autoSyncRef.current = controller;
-    setSyncStatus({ file: track.file, status: "syncing" });
+    setSyncStatus({ key, status: "syncing" });
     const query = new URLSearchParams({ stream, file: track.file });
     if (track.format) query.set("format", track.format);
     let status: SyncStatus = "failed";
     try {
       const response = await fetch(`/api/subtitles/sync?${query}`, { signal: controller.signal });
-      const data: unknown = response.ok ? await response.json() : null;
+      const data: unknown = await response.json().catch(() => null);
       if (controller.signal.aborted) return;
-      if (isSync(data)) {
-        saveSync(track.file, { offset: data.offset, scale: data.scale });
+      if (response.ok && isSync(data)) {
+        saveSync(key, { offset: data.offset, scale: data.scale });
         status = "synced";
       } else if (response.status === 503 || response.status === 429) {
         status = "busy";
+      } else if (data && typeof data === "object" && "code" in data) {
+        const code = data.code;
+        if (code === "unmatched" || code === "unsupported" || code === "unavailable" || code === "invalid-subtitles") status = code;
       }
     } catch {
       if (controller.signal.aborted) return;
+    } finally {
+      if (autoSyncRef.current === controller) {
+        autoSyncRef.current = null;
+        if (controller.signal.aborted) setSyncStatus((previous) => previous?.key === key ? null : previous);
+      }
     }
-    setSyncStatus((previous) => (previous?.file === track.file ? { file: track.file, status } : previous));
+    setSyncStatus((previous) => (previous?.key === key ? { key, status } : previous));
   }
 
   // Delay and scale are applied to the shown track's cues, from their own
@@ -553,8 +563,8 @@ export default function Player({
   }, [activeSubtitle, allTracks, syncOffset, syncScale]);
 
   // Other providers' files in the viewer's language and English are checked
-  // against this video's length, a few at a time, to rank them and catch a
-  // frame-rate mismatch. The browser keeps the downloads for playback.
+  // against this video's length to rank them. Duration alone cannot prove a
+  // frame-rate mismatch, so only auto-sync changes speed.
   useEffect(() => {
     if (!externalList?.length || !(videoDuration > 0)) return;
     const own = new Set(tracks.map((track) => track.file));
@@ -1143,10 +1153,10 @@ export default function Player({
                 onDelayChange={changeDelay}
                 onReset={() => {
                   autoSyncRef.current?.abort();
-                  if (activeFile) saveSync(activeFile, null);
+                  if (activeSyncKey) saveSync(activeSyncKey, null);
                   setSyncStatus(null);
                 }}
-                syncStatus={syncStatus && syncStatus.file === activeFile ? syncStatus.status : "idle"}
+                syncStatus={syncStatus && syncStatus.key === activeSyncKey ? syncStatus.status : "idle"}
                 onAutoSync={autoSync}
               />
             )}

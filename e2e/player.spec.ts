@@ -353,11 +353,11 @@ test("mobile playback buttons sit at the player's center", async ({ page }) => {
   expect(Math.abs(button.y + button.height / 2 - (player.y + player.height / 2))).toBeLessThan(1);
 });
 
-async function playerWithSubtitle(page: Page, vtt: string) {
+async function playerWithSubtitle(page: Page, vtt: string, tracks = [{ file: "https://subs.test/en.vtt", label: "English" }]) {
   await page.route("**/api/subtitles?*", (route) => route.fulfill({ json: { tracks: [] } }));
   await page.unroute("**/api/resolve?*");
   await page.route("**/api/resolve?*", (route) => route.fulfill({
-    json: { url: "https://cdn.test/master.m3u8", tracks: [{ file: "https://subs.test/en.vtt", label: "English" }] },
+    json: { url: "https://cdn.test/master.m3u8", tracks },
   }));
   // Only the subtitle file loads; the stream is held.
   await page.route("**/api/hls?*", (route) => route.request().url().includes("subs.test")
@@ -368,6 +368,65 @@ async function playerWithSubtitle(page: Page, vtt: string) {
 
 const cueStarts = (page: Page) => page.locator("video track").first().evaluate((track: HTMLTrackElement) =>
   Array.from(track.track.cues ?? []).map((cue) => Math.round(cue.startTime * 100) / 100));
+
+for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1440, height: 900 }]) {
+  test(`subtitle list scrolls with fixed timing controls at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await playerWithSubtitle(page, "WEBVTT\n\n00:10.000 --> 00:12.000\nOne\n", Array.from({ length: 40 }, (_, i) => ({
+      file: `https://subs.test/en-${i}.vtt`, label: "English",
+    })));
+    await page.getByRole("button", { name: "Subtitles", exact: true }).click();
+    const scroll = page.getByRole("group", { name: "Subtitles", exact: true }).locator("..");
+    const sync = page.getByRole("button", { name: "Auto-sync", exact: true });
+    const header = await sync.boundingBox();
+    await scroll.hover();
+    await page.mouse.wheel(0, 3000);
+    await expect.poll(() => scroll.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+    await expect(page.getByText("English 40", { exact: true })).toBeInViewport();
+    expect(await sync.boundingBox()).toEqual(header);
+    await page.getByText("English 40", { exact: true }).click();
+    await expect(page.getByRole("radio", { name: "English 40", exact: true })).toBeChecked();
+    await page.keyboard.press("ArrowUp");
+    await expect(page.getByRole("radio", { name: "English 39", exact: true })).toBeChecked();
+  });
+}
+
+test("subtitle timing is saved for the source and ignores legacy unscoped corrections", async ({ page }) => {
+  const vtt = "WEBVTT\n\n00:10.000 --> 00:12.000\nOne\n";
+  await page.evaluate(() => localStorage.setItem("subtitle-sync", JSON.stringify({ "https://subs.test/en.vtt": { offset: 40, scale: 1.04 } })));
+  await playerWithSubtitle(page, vtt);
+  await expect.poll(() => cueStarts(page)).toEqual([10]);
+  await page.getByRole("button", { name: "Subtitles", exact: true }).click();
+  await page.getByRole("button", { name: "Subtitles later" }).click();
+  await expect.poll(() => cueStarts(page)).toEqual([10.5]);
+
+  await page.route("**/api/sources?*", (route) => route.fulfill({ json: { sources: ["athena"] } }));
+  await page.unroute("**/api/resolve?*");
+  await page.route("**/api/resolve?*", (route) => route.fulfill({
+    json: { url: "https://cdn.test/other.m3u8", tracks: [{ file: "https://subs.test/en.vtt", label: "English" }] },
+  }));
+  await page.reload();
+  await expect.poll(() => cueStarts(page)).toEqual([10]);
+
+  await page.route("**/api/sources?*", (route) => route.fulfill({ json: { sources: ["cine4k"] } }));
+  await playerWithSubtitle(page, vtt);
+  await expect.poll(() => cueStarts(page)).toEqual([10.5]);
+});
+
+test("subtitle duration ranking does not guess a playback speed", async ({ page }) => {
+  await playerWithSubtitle(page, "WEBVTT\n\n00:10.000 --> 00:12.000\nOne\n\n01:42.000 --> 01:44.000\nLast\n", []);
+  await page.route("**/api/subtitles?*", (route) => route.fulfill({ json: {
+    tracks: [{ file: "https://subs.test/external.vtt", label: "English" }],
+  } }));
+  await page.reload();
+  await page.locator("video").evaluate((video) => {
+    Object.defineProperty(video, "duration", { configurable: true, value: 100 });
+    video.dispatchEvent(new Event("durationchange"));
+  });
+  await page.getByRole("button", { name: "Subtitles", exact: true }).click();
+  await page.getByText("English", { exact: true }).click();
+  await expect.poll(() => cueStarts(page)).toEqual([10, 102]);
+});
 
 test("subtitle delay moves the lines, by menu or G and H, and is remembered", async ({ page }) => {
   await playerWithSubtitle(page, "WEBVTT\n\n00:10.000 --> 00:12.000\nOne\n\n00:20.000 --> 00:22.000\nTwo\n");
@@ -466,6 +525,48 @@ test("auto-sync applies the offset and scale the server finds", async ({ page })
   await expect.poll(() => cueStarts(page)).toEqual([7.5]);
   expect(sent.query?.get("stream")).toBe("https://cdn.test/master.m3u8");
   expect(sent.query?.get("file")).toBe("https://subs.test/en.vtt");
+});
+
+for (const failure of [
+  { status: 422, code: "unmatched", message: "These subtitles don’t match the audio closely enough." },
+  { status: 422, code: "unsupported", message: "Auto-sync isn’t available for this stream." },
+  { status: 501, code: "unavailable", message: "Auto-sync is unavailable on the server." },
+  { status: 422, code: "invalid-subtitles", message: "This subtitle file has too few usable lines." },
+  { status: 502, code: "failed", message: "Couldn’t read the stream’s audio." },
+  { status: 503, code: "busy", message: "Sync is busy." },
+]) {
+  test(`auto-sync reports ${failure.code} and keeps the existing timing`, async ({ page }) => {
+    await page.route("**/api/subtitles/sync?*", (route) => route.fulfill({
+      status: failure.status, json: { error: "Sync failed.", code: failure.code },
+    }));
+    await playerWithSubtitle(page, "WEBVTT\n\n00:10.000 --> 00:12.000\nOne\n");
+    await page.getByRole("button", { name: "Subtitles", exact: true }).click();
+    await page.getByRole("button", { name: "Auto-sync", exact: true }).click();
+    await expect(page.getByRole("status").filter({ hasText: failure.message })).toBeVisible();
+    await expect.poll(() => cueStarts(page)).toEqual([10]);
+    await expect(page.getByRole("button", { name: "Auto-sync", exact: true })).toBeEnabled();
+  });
+}
+
+test("switching subtitle files cancels auto-sync and allows another attempt", async ({ page }) => {
+  let answer: () => void = () => {};
+  await page.route("**/api/subtitles/sync?*", (route) => {
+    answer = () => void route.fulfill({ json: { offset: -2.5, scale: 1 } }).catch(() => undefined);
+  });
+  await playerWithSubtitle(page, "WEBVTT\n\n00:10.000 --> 00:12.000\nOne\n", [
+    { file: "https://subs.test/en.vtt", label: "English" },
+    { file: "https://subs.test/en2.vtt", label: "English" },
+  ]);
+  await expect.poll(() => cueStarts(page)).toEqual([10]);
+  await page.getByRole("button", { name: "Subtitles", exact: true }).click();
+  const syncing = page.waitForRequest("**/api/subtitles/sync?*");
+  await page.getByRole("button", { name: "Auto-sync", exact: true }).click();
+  await syncing;
+  await page.getByText("English 2", { exact: true }).click();
+  answer();
+  await page.getByText("English", { exact: true }).click();
+  await expect(page.getByRole("button", { name: "Auto-sync", exact: true })).toBeEnabled();
+  await expect.poll(() => cueStarts(page)).toEqual([10]);
 });
 
 test("a delay set during auto-sync wins over its late answer", async ({ page }) => {

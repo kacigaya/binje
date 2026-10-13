@@ -23,17 +23,18 @@ const FFMPEG_TIMEOUT_MS = 90_000;
 const MAX_FEED_BYTES = 300 * 1024 * 1024;
 const MAX_RUNS = 2;
 type SyncResult = SubtitleSync & { confidence: number };
-const cache = createTtlCache<SyncResult | null>(24 * 60 * 60 * 1000, 200);
+const cache = createTtlCache<SyncResult>(24 * 60 * 60 * 1000, 200);
 let running = 0;
 
 class SyncError extends Error {
-  constructor(readonly status: number, message: string) {
+  constructor(readonly status: number, message: string, readonly code = "failed") {
     super(message);
   }
 }
 
 // Playlists and segments are read through this server's /api/hls, so the host
 // allowlist, private-network checks and provider headers all still apply.
+// Forward the viewer’s User-Agent too: unpinned CDNs see it during playback.
 function internalOrigin() {
   return process.env.INTERNAL_ORIGIN ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`;
 }
@@ -45,8 +46,10 @@ function proxied(url: string, format?: string | null) {
 }
 
 // One retry: CDNs drop the odd request, and a run fetches dozens.
-async function fetchOk(url: string, range?: Part["range"]): Promise<Response> {
-  const headers = range ? { range: `bytes=${range.offset}-${range.offset + range.length - 1}` } : undefined;
+async function fetchOk(url: string, userAgent: string | null, range?: Part["range"]): Promise<Response> {
+  const headers = new Headers();
+  if (range) headers.set("range", `bytes=${range.offset}-${range.offset + range.length - 1}`);
+  if (userAgent) headers.set("user-agent", userAgent);
   for (let attempt = 0; ; attempt++) {
     try {
       const response = await fetch(url, { cache: "no-store", headers, signal: AbortSignal.timeout(20_000) });
@@ -59,26 +62,50 @@ async function fetchOk(url: string, range?: Part["range"]): Promise<Response> {
   }
 }
 
-async function readText(url: string) {
-  return (await fetchOk(url)).text();
+async function readText(url: string, code: string, userAgent: string | null) {
+  const response = await fetchOk(url, userAgent);
+  const reader = response.body?.getReader();
+  if (!reader) return "";
+  const decoder = new TextDecoder();
+  let text = "";
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return text + decoder.decode();
+      size += value.byteLength;
+      if (size > 4 * 1024 * 1024) throw new SyncError(422, "Text file is too large.", code);
+      text += decoder.decode(value, { stream: true });
+    }
+  } finally {
+    await reader.cancel();
+  }
+}
+
+async function readPlaylist(url: string, userAgent: string | null) {
+  const text = await readText(url, "unsupported", userAgent);
+  if (!text.trimStart().startsWith("#EXTM3U")) throw new SyncError(422, "Unsupported stream.", "unsupported");
+  return text;
 }
 
 // ffmpeg only decodes: this server fetches the playlist and segments through
 // its own proxy and pipes the bytes in, so ffmpeg itself opens no URLs. (Its
 // HLS reader resolved proxied segment URLs back to the upstream host.)
-async function decodeAudio(parts: Part[]): Promise<Int16Array> {
+async function decodeAudio(parts: Part[], userAgent: string | null): Promise<Int16Array> {
   const ffmpeg = spawn(
     "ffmpeg",
-    ["-nostdin", "-loglevel", "error", "-i", "pipe:0", "-vn", "-ac", "1", "-ar", String(SAMPLE_RATE), "-f", "s16le", "pipe:1"],
+    ["-nostdin", "-loglevel", "error", "-protocol_whitelist", "pipe", "-i", "pipe:0", "-vn", "-ac", "1", "-ar", String(SAMPLE_RATE), "-t", String(WINDOW_SECONDS + 30), "-f", "s16le", "pipe:1"],
     { stdio: ["pipe", "pipe", "ignore"] },
   );
   const limit = (WINDOW_SECONDS + 30) * SAMPLE_RATE * 2;
   const chunks: Buffer[] = [];
   let size = 0;
-  const finished = new Promise<void>((resolve, reject) => {
+  const finished = new Promise<SyncError | null>((resolve) => {
     ffmpeg.on("error", (error: NodeJS.ErrnoException) =>
-      reject(error.code === "ENOENT" ? new SyncError(501, "ffmpeg is not installed.") : error));
-    ffmpeg.on("close", () => resolve());
+      resolve(error.code === "ENOENT"
+        ? new SyncError(501, "ffmpeg is not installed.", "unavailable")
+        : new SyncError(502, "Audio decoding failed.")));
+    ffmpeg.on("close", (code) => resolve(code === 0 ? null : new SyncError(502, "Audio decoding failed.")));
   });
   ffmpeg.stdout.on("data", (chunk: Buffer) => {
     size += chunk.length;
@@ -92,7 +119,7 @@ async function decodeAudio(parts: Part[]): Promise<Int16Array> {
     let fed = 0;
     for (const part of parts) {
       if (ffmpeg.exitCode !== null || ffmpeg.stdin.destroyed) break;
-      const response = await fetchOk(part.url, part.range);
+      const response = await fetchOk(part.url, userAgent, part.range);
       if (fed + Number(response.headers.get("content-length") ?? 0) > MAX_FEED_BYTES) {
         await response.body?.cancel();
         break;
@@ -100,10 +127,13 @@ async function decodeAudio(parts: Part[]): Promise<Int16Array> {
       const bytes = Buffer.from(await response.arrayBuffer());
       fed += bytes.length;
       if (fed > MAX_FEED_BYTES) break;
-      if (!ffmpeg.stdin.write(bytes)) await once(ffmpeg.stdin, "drain").catch(() => undefined);
+      if (!ffmpeg.stdin.write(bytes)) {
+        await Promise.race([once(ffmpeg.stdin, "drain").catch(() => undefined), finished]);
+      }
     }
     ffmpeg.stdin.end();
-    await finished;
+    const error = await finished;
+    if (error) throw error;
   } finally {
     clearTimeout(timer);
     if (ffmpeg.exitCode === null) ffmpeg.kill("SIGKILL");
@@ -113,27 +143,28 @@ async function decodeAudio(parts: Part[]): Promise<Int16Array> {
   return new Int16Array(bytes.buffer, bytes.byteOffset, Math.floor(bytes.length / 2));
 }
 
-async function sync(stream: string, file: string, format: string | null): Promise<SyncResult | null> {
-  if (running >= MAX_RUNS) throw new SyncError(503, "Busy.");
+async function sync(stream: string, file: string, format: string | null, userAgent: string | null): Promise<SyncResult> {
+  if (running >= MAX_RUNS) throw new SyncError(503, "Busy.", "busy");
   running++;
   try {
-    const cues = cueTimes(await readText(proxied(file, format)));
-    if (cues.length < 10) throw new SyncError(422, "Too few subtitle lines.");
+    const cues = cueTimes(await readText(proxied(file, format), "invalid-subtitles", userAgent));
+    if (cues.length < 10) throw new SyncError(422, "Too few subtitle lines.", "invalid-subtitles");
     const master = proxied(stream);
-    const playlistUrl = audioPlaylist(await readText(master), master);
-    const { segments, total, encrypted } = mediaSegments(await readText(playlistUrl), playlistUrl);
-    if (encrypted) throw new SyncError(422, "Encrypted stream.");
+    const playlistUrl = audioPlaylist(await readPlaylist(master, userAgent), master);
+    const { segments, total, encrypted } = mediaSegments(await readPlaylist(playlistUrl, userAgent), playlistUrl);
+    if (encrypted) throw new SyncError(422, "Encrypted stream.", "unsupported");
     const starts = total > 2 * WINDOW_SECONDS ? [0, Math.max(WINDOW_SECONDS, total * MIDDLE)] : [0];
     const windows: SpeechWindow[] = [];
     for (const from of starts) {
       const window = segmentWindow(segments, from, WINDOW_SECONDS);
       if (!window.length) continue;
-      const pcm = await decodeAudio(windowParts(window));
+      const pcm = await decodeAudio(windowParts(window), userAgent);
       windows.push({ start: window[0].start, speech: speechActivity(pcm, SAMPLE_RATE) });
     }
     if (!windows.length) throw new SyncError(502, "Empty playlist.");
     const result = alignCues(windows, cues);
-    return result && { offset: result.offset, scale: result.scale, confidence: Math.round(result.confidence * 100) / 100 };
+    if (!result) throw new SyncError(422, "Could not sync.", "unmatched");
+    return { offset: result.offset, scale: result.scale, confidence: Math.round(result.confidence * 100) / 100 };
   } finally {
     running--;
   }
@@ -153,14 +184,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
   }
 
-  // Signed stream URLs change per resolve; the path names the video.
-  const key = `${stream.host}${stream.pathname}\n${file.href}`;
+  // Query parameters can select a different cut or audio rendition.
+  const key = JSON.stringify([stream.href, file.href, format]);
   try {
-    const result = await cache.get(key, () => sync(stream.href, file.href, format));
-    if (!result) return NextResponse.json({ error: "Could not sync." }, { status: 422 });
+    const result = await cache.get(key, () => sync(stream.href, file.href, format, request.headers.get("user-agent")));
     return NextResponse.json(result, { headers: { "cache-control": "no-store" } });
   } catch (error) {
     const status = error instanceof SyncError ? error.status : 502;
-    return NextResponse.json({ error: error instanceof SyncError ? error.message : "Sync failed." }, { status });
+    return NextResponse.json({
+      error: error instanceof SyncError ? error.message : "Sync failed.",
+      code: error instanceof SyncError ? error.code : "failed",
+    }, { status, headers: { "cache-control": "no-store" } });
   }
 }

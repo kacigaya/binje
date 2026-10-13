@@ -60,6 +60,23 @@ test("gives up when speech has nothing to do with the file", () => {
   expect(alignCues([{ start: 0, speech: noise() }, { start: 600, speech: noise() }], lines(4, 900))).toBeNull();
 });
 
+test("a silent opening does not dilute a usable dialogue window", () => {
+  const cues = lines(1, 900);
+  const middle = speechFor(cues, 600, 150, (t) => t + 3.2);
+  const next = random(11);
+  middle.speech = middle.speech.map((value) => next() < 0.35 ? 1 - value : value);
+  const result = alignCues([{ start: 0, speech: new Float32Array(1500) }, middle], cues);
+  expect(result?.scale).toBe(1);
+  expect(result?.offset).toBeCloseTo(3.2, 1);
+});
+
+test("empty or constant audio cannot produce a timing correction", () => {
+  const cues = lines(1, 900);
+  expect(alignCues([], cues)).toBeNull();
+  expect(alignCues([{ start: 0, speech: new Float32Array(1500) }], cues)).toBeNull();
+  expect(alignCues([{ start: 0, speech: new Float32Array(1500).fill(1) }], cues)).toBeNull();
+});
+
 test("marks speech-band bursts above the local background, not steady sound", () => {
   const rate = 8000;
   const pcm = new Int16Array(rate * 8);

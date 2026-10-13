@@ -142,8 +142,16 @@ const FRENCH = {
   Reset: "Réinitialiser",
   "Listening to the audio… This can take a minute.": "Analyse de l’audio… Cela peut prendre une minute.",
   "Synced to the audio.": "Synchronisés sur l’audio.",
-  "Couldn’t sync these subtitles. Adjust the delay or try another file.":
-    "Impossible de synchroniser ces sous-titres. Ajustez le décalage ou essayez un autre fichier.",
+  "Couldn’t read the stream’s audio. Try again or adjust the delay.":
+    "Impossible de lire l’audio de cette source. Réessayez ou ajustez le décalage.",
+  "These subtitles don’t match the audio closely enough. Try another file or adjust the delay.":
+    "Ces sous-titres ne correspondent pas assez à l’audio. Essayez un autre fichier ou ajustez le décalage.",
+  "Auto-sync isn’t available for this stream. Adjust the delay manually.":
+    "La synchro auto n’est pas disponible pour cette source. Ajustez le décalage manuellement.",
+  "Auto-sync is unavailable on the server. Adjust the delay manually.":
+    "La synchro auto est indisponible sur le serveur. Ajustez le décalage manuellement.",
+  "This subtitle file has too few usable lines. Try another file.":
+    "Ce fichier de sous-titres contient trop peu de lignes utilisables. Essayez un autre fichier.",
   "Sync is busy. Try again shortly.": "Synchronisation occupée. Réessayez dans un instant.",
   "Cast to a device": "Diffuser sur un appareil",
   "Stop casting": "Arrêter la diffusion",

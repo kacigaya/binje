@@ -103,6 +103,10 @@ function correlations(window: SpeechWindow, cues: [number, number][], scale: num
  * speech in every window together, or null when no shift stands out.
  */
 export function alignCues(windows: SpeechWindow[], cues: [number, number][]): (SubtitleSync & { confidence: number }) | null {
+  // A silent opening contributes no timing evidence and must not dilute the
+  // dialogue window's score. Constant activity cannot identify a shift either.
+  windows = windows.filter(({ speech }) => speech.some((value) => value !== speech[0]));
+  if (!windows.length || !cues.length) return null;
   const pad = Math.round(MAX_SHIFT / STEP);
   const width = Math.round(PEAK_WIDTH / STEP);
   let best: { score: number; shift: number; scale: number; scores: Float32Array } | null = null;
