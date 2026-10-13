@@ -82,8 +82,7 @@ function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
 }
 
-// /api/subtitles labels are English language names, numbered when a
-// language has several files ("English 2").
+// /api/subtitles labels are English language names.
 const SITE_LANGUAGE_CODES: Record<string, string> = { english: "en", french: "fr" };
 
 function isTrack(value: unknown): value is Track {
@@ -242,33 +241,50 @@ export default function Player({
   const [buffering, setBuffering] = useState(false);
   const [externalTracks, setExternalTracks] = useState<Keyed<Track[]> | null>(null);
   const externalList = forMedia(externalTracks, mediaKey);
-  // Other providers' subtitles for the title stand in only for a source that
-  // ships none: the viewer's language first, then English, named in the
-  // viewer's language.
+  // Every subtitle on offer: the source's own, then other providers' for the
+  // title. The viewer's language comes first, then English, then the rest,
+  // with the source's own first within a language. Site languages are named
+  // in the viewer's language and repeated names are numbered ("English 2").
   const allTracks = useMemo<Track[]>(() => {
-    if (tracks.length) return tracks;
     const names = new Intl.DisplayNames([locale], { type: "language" });
     const rank = (lang?: string) => (lang === locale ? 0 : lang === "en" ? 1 : 2);
-    return (externalList ?? [])
+    const own = new Set(tracks.map((track) => track.file));
+    const counts = new Map<string, number>();
+    return [...tracks, ...(externalList ?? []).filter((track) => !own.has(track.file))]
       .map((track) => {
-        const [, base = "", number = ""] = track.label?.match(/^(.*?)( \d+)?$/) ?? [];
+        // Numbers from the provider ("English 2") are dropped and redone below
+        // across the whole list, so two files never share a name.
+        const base = track.label?.trim().replace(/\s*\d+$/, "") ?? "";
         const lang = SITE_LANGUAGE_CODES[base.toLowerCase()];
-        if (!lang) return track;
-        const name = names.of(lang) ?? base;
-        return { ...track, lang, label: `${name.charAt(0).toLocaleUpperCase(locale)}${name.slice(1)}${number}` };
+        if (!lang) return { ...track, label: base };
+        const name = names.of(lang);
+        return name ? { ...track, lang, label: `${name.charAt(0).toLocaleUpperCase(locale)}${name.slice(1)}` } : { ...track, lang };
       })
-      .sort((a, b) => rank(a.lang) - rank(b.lang));
+      .sort((a, b) => rank(a.lang) - rank(b.lang))
+      .map((track, index) => {
+        const label = track.label?.trim() || `Track ${index + 1}`;
+        const count = (counts.get(label) ?? 0) + 1;
+        counts.set(label, count);
+        return { ...track, label: count > 1 ? `${label} ${count}` : label };
+      });
   }, [externalList, locale, tracks]);
   // The pick is kept by file, so tracks arriving or changing later do not move
   // it. Until the viewer picks, subtitles start on the source's first track,
-  // like the native `default` track did; tracks found by title start off.
+  // like the native `default` track did; other providers' start off.
   const [subtitle, setSubtitle] = useState<{ file: string | null; on: boolean } | null>(null);
   const subtitleOn = subtitle ? subtitle.on : tracks.length > 0;
+  const pickedFile = subtitle ? subtitle.file : tracks[0]?.file;
   // A file missing from the list, such as the previous episode's on the TV
   // page, falls back to the first track.
   const activeSubtitle = !subtitleOn || !allTracks.length
     ? -1
-    : Math.max(allTracks.findIndex((track) => track.file === subtitle?.file), 0);
+    : Math.max(allTracks.findIndex((track) => track.file === pickedFile), 0);
+  // Cast gets only the subtitle shown here: a title can list hundreds, and a
+  // Cast load message is capped at 64 KB.
+  const castTracks = useMemo(
+    () => (activeSubtitle >= 0 ? [allTracks[activeSubtitle]] : []),
+    [activeSubtitle, allTracks],
+  );
   const [seekHint, setSeekHint] = useState<{ forward: boolean; id: number } | null>(null);
   const lastTapRef = useRef(0);
   const lastPointerTypeRef = useRef("");
@@ -356,16 +372,28 @@ export default function Player({
     }
   }
 
+  // Reapplied whenever the browser changes a mode or adds a track: Chrome's
+  // automatic track selection can turn on a matching language by itself.
   useEffect(() => {
-    videoRef.current?.querySelectorAll("track").forEach((element, index) => {
-      element.track.mode = index === activeSubtitle ? "showing" : "disabled";
-    });
+    const video = videoRef.current;
+    if (!video) return;
+    const apply = () => {
+      video.querySelectorAll("track").forEach((element, index) => {
+        const mode = index === activeSubtitle ? "showing" : "disabled";
+        if (element.track.mode !== mode) element.track.mode = mode;
+      });
+    };
+    apply();
+    video.textTracks.addEventListener("change", apply);
+    video.textTracks.addEventListener("addtrack", apply);
+    return () => {
+      video.textTracks.removeEventListener("change", apply);
+      video.textTracks.removeEventListener("addtrack", apply);
+    };
   }, [activeSubtitle, allTracks]);
 
-  // Fetched only once a source resolved without tracks of its own.
-  const needsExternalTracks = resolvedMedia !== null && tracks.length === 0 && externalList === undefined;
+  // Fetched alongside the stream, once per title.
   useEffect(() => {
-    if (!needsExternalTracks) return;
     let cancelled = false;
     fetch(`/api/subtitles?${mediaQuery}`)
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("subtitles failed"))))
@@ -379,10 +407,10 @@ export default function Player({
     return () => {
       cancelled = true;
     };
-  }, [mediaKey, mediaQuery, needsExternalTracks]);
+  }, [mediaKey, mediaQuery]);
 
   function toggleSubtitles() {
-    if (allTracks.length) setSubtitle({ file: subtitle?.file ?? null, on: activeSubtitle < 0 });
+    if (allTracks.length) setSubtitle({ file: pickedFile ?? null, on: activeSubtitle < 0 });
   }
 
   function skip(forward: boolean) {
@@ -870,7 +898,7 @@ export default function Player({
                 ariaLabel={t("Subtitles")}
                 value={activeSubtitle}
                 onValueChange={(index) => setSubtitle(
-                  index < 0 ? { file: subtitle?.file ?? null, on: false } : { file: allTracks[index].file, on: true },
+                  index < 0 ? { file: pickedFile ?? null, on: false } : { file: allTracks[index].file, on: true },
                 )}
                 icon={activeSubtitle >= 0
                   ? <Captions aria-hidden="true" className="size-4" />
@@ -935,7 +963,7 @@ export default function Player({
               videoRef={videoRef}
               mediaKey={mediaKey}
               source={castSource}
-              tracks={allTracks}
+              tracks={castTracks}
               title={title}
               onRemoteProgress={saveProgress}
               onGoogleCastingChange={setGoogleCasting}

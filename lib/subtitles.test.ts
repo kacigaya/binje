@@ -3,7 +3,7 @@ import { openSubtitlesTracks, pickSubtitleTracks } from "./subtitles";
 
 const track = (label: string | undefined, file: string) => ({ file: `https://subs.test/${file}.vtt`, label });
 
-test("keeps three files for site languages and one for others, numbering repeats", () => {
+test("keeps every file and reduces labels to the language", () => {
   expect(pickSubtitleTracks([
     track("English", "en1"),
     track("Arabic", "ar1"),
@@ -11,13 +11,13 @@ test("keeps three files for site languages and one for others, numbering repeats
     track("Arabic hi", "ar2"),
     track("english hi1", "en3"),
     track("English", "en4"),
-    track("French", "fr1"),
   ])).toEqual([
     track("English", "en1"),
     track("Arabic", "ar1"),
-    track("English 2", "en2"),
-    track("english 3", "en3"),
-    track("French", "fr1"),
+    track("English", "en2"),
+    track("Arabic", "ar2"),
+    track("english", "en3"),
+    track("English", "en4"),
   ]);
 });
 

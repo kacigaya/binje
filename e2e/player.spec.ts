@@ -251,7 +251,7 @@ test("sources without subtitles borrow the title's, off at first, in the viewer'
         { file: "https://subs.test/ar.vtt", label: "Arabic" },
         { file: "https://subs.test/en.vtt", label: "English" },
         { file: "https://subs.test/fr.vtt", label: "French" },
-        { file: "https://subs.test/fr2.vtt", label: "French 2" },
+        { file: "https://subs.test/fr2.vtt", label: "French" },
       ],
     },
   }));
@@ -277,22 +277,30 @@ test("sources without subtitles borrow the title's, off at first, in the viewer'
   await expect.poll(modes).toEqual(["Français:disabled", "Français 2:disabled", "Anglais:disabled", "Arabic:disabled"]);
 });
 
-test("sources with subtitles skip the title search", async ({ page }) => {
-  let searched = false;
-  await page.route("**/api/subtitles?*", (route) => {
-    searched = true;
-    return route.fulfill({ json: { tracks: [] } });
-  });
+test("other providers' subtitles join the source's own, which stays on", async ({ page }) => {
+  await page.route("**/api/subtitles?*", (route) => route.fulfill({
+    json: {
+      tracks: [
+        { file: "https://subs.test/fr.vtt", label: "French" },
+        { file: "https://subs.test/en.vtt", label: "English" },
+        { file: "https://subs.test/en2.vtt", label: "English" },
+        { file: "https://subs.test/ko.vtt", label: "Korean" },
+      ],
+    },
+  }));
   await page.unroute("**/api/resolve?*");
   await page.route("**/api/resolve?*", (route) => route.fulfill({
-    json: { url: "https://cdn.test/master.m3u8", tracks: [{ file: "https://subs.test/en.vtt", label: "English" }] },
+    json: {
+      url: "https://cdn.test/master.m3u8",
+      tracks: [{ file: "https://subs.test/en.vtt", label: "English" }, { file: "https://subs.test/own2.vtt", label: "English 2" }],
+    },
   }));
   await page.route("**/api/hls?*", () => {});
   await page.reload();
-  await expect(page.locator("video track")).toHaveCount(1);
-  await expect.poll(() => page.locator("video track").evaluate((track: HTMLTrackElement) => track.track.mode)).toBe("showing");
-  await page.waitForTimeout(500);
-  expect(searched).toBe(false);
+  const modes = () => page.locator("video track").evaluateAll((tracks: HTMLTrackElement[]) =>
+    tracks.map((track) => `${track.label}:${track.track.mode}`));
+  // The source's file is listed once, first within its language, and on.
+  await expect.poll(modes).toEqual(["English:showing", "English 2:disabled", "English 3:disabled", "French:disabled", "Korean:disabled"]);
 });
 
 test("mobile playback buttons sit at the player's center", async ({ page }) => {

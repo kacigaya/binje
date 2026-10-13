@@ -9,27 +9,20 @@ import { vidzeeSubtitles } from "@/lib/vidzee";
 export type SubtitleTrack = { file: string; label?: string; format?: "srt" };
 
 const cache = createTtlCache<SubtitleTrack[]>(10 * 60 * 1000);
-// Several files per language often exist, each timed to some release. The
-// site's languages keep a few to try when one drifts; others keep one.
-const SITE_LANGUAGES = new Set(["english", "french"]);
-const SITE_LANGUAGE_FILES = 3;
 // OpenSubtitles' legacy REST API asks clients to name themselves.
 const OPENSUBTITLES_AGENT = "binje";
 
-// Labels arrive as "English", "English2" or "English hi" (hearing impaired);
-// each language is named once and repeats are numbered ("English 2").
+// Every file is kept: several per language, each timed to some release, give
+// viewers others to try when one drifts. Labels arrive as "English",
+// "English2" or "English hi" (hearing impaired) and are reduced to the
+// language; the player numbers repeats.
 export function pickSubtitleTracks(tracks: SubtitleTrack[]): SubtitleTrack[] {
   const seenFiles = new Set<string>();
-  const perLanguage = new Map<string, number>();
   return tracks.flatMap((track) => {
     const language = track.label?.trim().replace(/\s*hi\d*$/i, "").replace(/\s*\d+$/, "");
     if (!language || seenFiles.has(track.file)) return [];
     seenFiles.add(track.file);
-    const key = language.toLowerCase();
-    const count = (perLanguage.get(key) ?? 0) + 1;
-    if (count > (SITE_LANGUAGES.has(key) ? SITE_LANGUAGE_FILES : 1)) return [];
-    perLanguage.set(key, count);
-    return [{ ...track, label: count > 1 ? `${language} ${count}` : language }];
+    return [{ ...track, label: language }];
   });
 }
 
@@ -70,8 +63,8 @@ async function openSubtitles({ type, imdbId, season, episode }: ResolveParams): 
 }
 
 // Subtitle lists that providers publish per title, independent of which
-// source plays it: a source without tracks borrows these. WebVTT lists come
-// first; OpenSubtitles fills in what they lack.
+// source plays it; the player offers them next to the source's own. WebVTT
+// lists come first, then OpenSubtitles.
 export async function titleSubtitles(params: ResolveParams): Promise<SubtitleTrack[]> {
   const key = params.type === "tv" ? `tv:${params.id}:${params.season}:${params.episode}` : `movie:${params.id}`;
   const tracks = await cache.get(key, async () => {

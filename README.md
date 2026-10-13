@@ -24,7 +24,7 @@
 - Dedicated `/movies` and `/tv-shows` browse pages with shareable genre, sort, and decade filters
 - Detailed movie and TV show pages (ratings, cast, per-season episode list, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
-- Watch pages with automatic source selection and failover, subtitles (borrowed from other providers when the playing source has none), manual HLS quality selection, and a crop toggle for encoded black bars
+- Watch pages with automatic source selection and failover, subtitles from the playing source and other providers, manual HLS quality selection, and a crop toggle for encoded black bars
 - Google Cast on web, Android, and iOS, plus AirPlay on supported Apple devices
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
 - "Continue Watching" row backed by local play history; Resume/Continue buttons and the player pick up at the saved position
@@ -61,13 +61,15 @@ through the Media Session API.
 | F | Fullscreen |
 | C | Subtitles on or off |
 
-When the playing source ships no subtitles, the player asks `/api/subtitles` for the lists
-other providers publish for the title, even if their own streams do not play: Vidrock's
-subtitle service (`sub.vdrk.site`, also used by Atlantic's player), VidZee, Vidrock, then
-OpenSubtitles' legacy REST API. OpenSubtitles files are SRT; `/api/hls` converts files
-requested with `format=srt` to WebVTT. Each language keeps one file, French and English
-up to three ("English 2"), since files are timed to different releases and one may
-drift. Borrowed subtitles start off.
+The subtitles menu lists every file on offer: the playing source's own, plus the lists
+other providers publish for the title from `/api/subtitles`, even if their own streams do
+not play: Vidrock's subtitle service (`sub.vdrk.site`, also used by Atlantic's player),
+VidZee, Vidrock, then OpenSubtitles' legacy REST API. OpenSubtitles files are SRT;
+`/api/hls` converts files requested with `format=srt` to WebVTT. Files are timed to
+different releases, so a language often has several ("English 2"); try another when one
+drifts. The viewer's language is listed first, then English. The source's first track
+starts on as before; other providers' start off. Google Cast receives only the subtitle
+selected in the player, since a title can list hundreds.
 
 ## Screenshots
 
