@@ -279,16 +279,13 @@ test("seek bar seeks on commit and formats time", async ({ page }) => {
   await expect(seek).toHaveAttribute("aria-valuetext", "0:00 / 1:00");
 });
 
-test("a source without subtitles offers the title's, off by default", async ({ page }) => {
+test("a source without subtitles has no menu or external subtitle requests", async ({ page }) => {
   const lookups: string[] = [];
   page.on("request", (request) => {
     if (new URL(request.url()).pathname === "/api/subtitles") lookups.push(request.url());
   });
   await page.route("**/api/subtitles?*", (route) => route.fulfill({ json: {
-    tracks: [
-      { file: "https://other.test/en.vtt", label: "English" },
-      { file: "https://other.test/fr.vtt", label: "French" },
-    ],
+    tracks: [{ file: "https://other.test/fr.vtt", label: "French" }],
   } }));
   await page.unroute("**/api/resolve?*");
   await page.route("**/api/resolve?*", (route) => route.fulfill({
@@ -298,14 +295,9 @@ test("a source without subtitles offers the title's, off by default", async ({ p
   const resolved = page.waitForResponse("**/api/resolve?*");
   await page.goto("/fr/watch/353486");
   await resolved;
-  const modes = () => page.locator("video track").evaluateAll((tracks: HTMLTrackElement[]) =>
-    tracks.map((track) => `${track.label}:${track.track.mode}`));
-  // The viewer's language first; nothing shows until the viewer picks.
-  await expect.poll(modes).toEqual(["Français:disabled", "Anglais:disabled"]);
-  await page.getByRole("button", { name: "Sous-titres", exact: true }).click();
-  await page.getByText("Français", { exact: true }).click();
-  await expect.poll(modes).toEqual(["Français:showing", "Anglais:disabled"]);
-  expect(lookups).toHaveLength(1);
+  await expect(page.locator("video track")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Sous-titres", exact: true })).toHaveCount(0);
+  expect(lookups).toEqual([]);
 });
 
 test("subtitle choices contain only files offered by the playing source", async ({ page }) => {

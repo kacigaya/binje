@@ -111,13 +111,6 @@ function isSync(value: unknown): value is SubtitleSync {
     typeof scale === "number" && scale > 0.9 && scale < 1.1;
 }
 
-function isTrack(value: unknown): value is Track {
-  if (typeof value !== "object" || value === null) return false;
-  const { file, label, format } = value as Record<string, unknown>;
-  return typeof file === "string" && /^https?:\/\//.test(file) && typeof label === "string" &&
-    (format === undefined || format === "srt");
-}
-
 function trackSrc(track: Track) {
   return track.format === "srt" ? `${proxied(track.file)}&format=srt` : proxied(track.file);
 }
@@ -266,23 +259,12 @@ export default function Player({
   const [inPip, setInPip] = useState(false);
   const [paused, setPaused] = useState(true);
   const [buffering, setBuffering] = useState(false);
-  // Subtitles other providers publish for the title (/api/subtitles), asked
-  // for only once the playing source turns out to have none of its own. Most
-  // sources at the top of the chain carry no subtitles.
-  const [titleTracks, setTitleTracks] = useState<Keyed<Track[]> | null>(null);
-  const titleList = forMedia(titleTracks, mediaKey);
-  const needsTitleTracks = resolvedMedia !== null && tracks.length === 0;
-  const shownTracks = useMemo(
-    () => (tracks.length ? tracks : needsTitleTracks ? (titleList ?? []) : []),
-    [needsTitleTracks, titleList, tracks],
-  );
-  // The source's files when it has any, else the title's; grouped by language
-  // and localized.
+  // Only the playing source's files, grouped by language and localized.
   const allTracks = useMemo<Track[]>(() => {
     const names = new Intl.DisplayNames([locale], { type: "language" });
     const rank = (lang?: string) => (lang === locale ? 0 : lang === "en" ? 1 : 2);
     const counts = new Map<string, number>();
-    return shownTracks
+    return tracks
       .map((track) => {
         // Number repeated language names consistently within this source.
         const base = baseLabel(track.label);
@@ -298,25 +280,7 @@ export default function Player({
         counts.set(label, count);
         return { ...track, label: count > 1 ? `${label} ${count}` : label };
       });
-  }, [locale, shownTracks]);
-  // One request per title: the source can resolve more than once while the
-  // availability list settles, and each answer is kept for the whole title.
-  const titleRequestRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!needsTitleTracks || titleRequestRef.current === mediaKey) return;
-    const key = mediaKey;
-    titleRequestRef.current = key;
-    fetch(`/api/subtitles?${mediaQuery}`)
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("subtitles failed"))))
-      .then((data: { tracks?: unknown }) => {
-        const list = Array.isArray(data.tracks) ? data.tracks.filter(isTrack) : [];
-        setTitleTracks({ key, value: list });
-      })
-      .catch(() => {
-        // Optional: playback goes on without subtitles; a later resolve retries.
-        if (titleRequestRef.current === key) titleRequestRef.current = null;
-      });
-  }, [mediaKey, mediaQuery, needsTitleTracks]);
+  }, [locale, tracks]);
   // The pick is kept by file, so tracks arriving or changing later do not move
   // it. Until the viewer picks, subtitles start on the source's first track.
   const [subtitle, setSubtitle] = useState<{ file: string | null; on: boolean } | null>(null);
