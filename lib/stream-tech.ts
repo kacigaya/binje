@@ -2,9 +2,7 @@ import { cachedResolveVideasyStream, type ResolveParams } from "@/lib/resolve-ca
 import { createTtlCache } from "@/lib/ttl-cache";
 import { parseTsCodecs, type StreamTech } from "@/lib/stream-probe";
 
-// The badges describe the stream a title ships with, which only changes when
-// the provider re-encodes it. Probing costs a resolve plus two playlists plus
-// 128 KB of transport stream, so the answer is worth holding for a long time.
+// Probes cost a resolve, two playlists and 128 KB of video; cache until a provider re-encode is likely.
 const TECH_TTL_MS = 6 * 60 * 60 * 1000;
 const PROBE_BYTES = 131_072;
 const PLAYER_ORIGIN = "https://player.videasy.to";

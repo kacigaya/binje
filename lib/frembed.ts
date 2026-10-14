@@ -52,9 +52,7 @@ async function extract({ type, id, season, episode }: ResolveParams): Promise<Re
   throw new Error("No VF server returned a stream.");
 }
 
-// Walking the hoster list costs one request per candidate server plus a
-// playability check, so repeat viewers of the same episode reuse the answer.
-// Short window: the hoster URLs expire.
+// Cache hoster walks and playability checks briefly; their URLs expire.
 const VF_TTL_MS = 10 * 60 * 1000;
 const vfCache = createTtlCache<ResolvedStream>(VF_TTL_MS);
 

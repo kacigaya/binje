@@ -17,12 +17,8 @@ import { resolveVideasyWsStream } from "@/lib/videasyws";
 
 export type { PlaybackSource };
 
-// Playback order: players start with the first available source and move
-// down the list on failure; viewers never pick. Atlantic's servers come
-// first, in its own order (minus Aphrodite, see lib/atlantic.ts), then the
-// remaining sources as silent last resorts.
-// VF is out of the chain for now (its resolver stays reachable through
-// RESOLVERS for /api/resolve-vf).
+// Automatic failover follows Atlantic's server order, excluding Aphrodite, then other providers.
+// VF stays outside the chain but remains available through RESOLVERS and /api/resolve-vf.
 export const PLAYBACK_SOURCES = [
   "athena",
   "helios",
@@ -64,8 +60,7 @@ const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<Resol
   vf: resolveFrembedStream,
 };
 
-// A source counts as unavailable when it has not answered by then; the
-// availability route must finish inside its own maxDuration.
+// Drop sources past this deadline so the availability route stays within maxDuration.
 const PROBE_DEADLINE_MS = 15_000;
 const AVAILABILITY_TTL_MS = 2 * 60 * 1000;
 const availabilityCache = createTtlCache<PlaybackSource[]>(AVAILABILITY_TTL_MS);
@@ -74,8 +69,7 @@ export function isPlaybackSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && (PLAYBACK_SOURCES as readonly string[]).includes(value);
 }
 
-// Registers everything the proxy will be asked for: the stream, its tracks
-// and fixed-quality renditions, with the headers the provider requires.
+// Register streams, subtitle tracks and quality renditions with their required proxy headers.
 export async function resolvePlaybackSource(source: PlaybackSource, params: ResolveParams): Promise<ResolvedStream> {
   const result = await RESOLVERS[source](params);
   allowStreamHost(result.url, result.referer, result.userAgent);
@@ -97,9 +91,8 @@ async function isAvailable(source: PlaybackSource, params: ResolveParams) {
   return isPlayableManifest(result.url, { referer: result.referer, userAgent: result.userAgent, cookie });
 }
 
-// Every source is resolved for the title, in parallel, and only those whose
-// manifest loads are listed. The resolved streams stay in each resolver's
-// cache, so the playback request that follows does not resolve again.
+// Resolve sources in parallel and list only those with loadable manifests.
+// Resolver caches let playback reuse the result without resolving again.
 export function availablePlaybackSources(params: ResolveParams): Promise<PlaybackSource[]> {
   const key = params.type === "tv" ? `tv:${params.id}:${params.season}:${params.episode}` : `movie:${params.id}`;
   return availabilityCache.get(key, async () => {

@@ -11,7 +11,6 @@ export interface CastMember {
   photo: string | null;
 }
 
-/** Cast strip for detail pages, with the same edge fade and arrows as Carousel. */
 export default function CastRow({ label, cast }: { label: string; cast: CastMember[] }) {
   const { scrollRef, canScrollLeft, canScrollRight, scroll } = useHorizontalScroll(cast);
 

@@ -64,8 +64,7 @@ const nextConfig: NextConfig = {
       source: "/api/mobile/:path*",
       headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
     },
-    // /api/hls is deliberately absent: the segment proxy is same-origin only,
-    // so no third-party page can drive it from a browser.
+    // Keep /api/hls same-origin so third-party pages cannot drive the segment proxy from a browser.
     {
       source: "/api/(search|resolve|resolve-vf|sources|episodes)",
       headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],

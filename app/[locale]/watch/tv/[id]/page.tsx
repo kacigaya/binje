@@ -68,8 +68,7 @@ export async function generateMetadata({
   }
 }
 
-// Request-memoized so the info and player Suspense branches share one
-// underlying show-details read instead of fetching it twice.
+// Memoize per request so the info and player Suspense branches share one show-details fetch.
 const getCachedTVDetails = cache(getTVDetails);
 
 export default async function WatchTVPage({
@@ -83,7 +82,6 @@ export default async function WatchTVPage({
   const locale = isLocale(rootLocale) ? rootLocale : "en";
 
   return (
-    // Player first: it is what the page is for. Show details follow it.
     <div className="flex flex-col pt-24" data-testid="watch-tv-shell">
       <Suspense fallback={<WatchTVPlayerLoading />}>
         <WatchTVPlayer params={params} searchParams={searchParams} />
@@ -124,8 +122,7 @@ async function WatchTVInfo({
           >
             {logo && showLogoUrl ? (
               <>
-                {/* The logo replaces the title visually; the heading keeps
-                    the page from rendering without an h1. */}
+                {/* Keep an h1 in the document when the logo replaces the visible title. */}
                 <h1 className="sr-only">{show.name}</h1>
                 <Image
                   src={showLogoUrl}

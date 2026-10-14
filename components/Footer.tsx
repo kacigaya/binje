@@ -19,12 +19,8 @@ function localeLinkClassName(active: boolean) {
   }`;
 }
 
-/**
- * The locale switch is navigation, so each option is a real link: it opens in
- * a new tab on middle-click and survives a Cmd-click. The query string is read
- * in a nested component because `useSearchParams` opts its whole subtree out of
- * static rendering, and the footer sits in the root layout.
- */
+/** Use real links to preserve modified clicks.
+ * Isolate `useSearchParams` so the rest of the root footer stays static. */
 function LocaleLinks({
   locale,
   path,
@@ -90,8 +86,7 @@ export default function Footer() {
           <button
             type="button"
             onClick={() => {
-              // Storage access can be denied outright; reload anyway so the
-              // button never looks dead.
+              // Reload even when storage access is denied.
               try {
                 window.localStorage.removeItem(CONSENT_STORAGE_KEY);
               } catch {

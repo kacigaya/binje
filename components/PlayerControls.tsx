@@ -43,7 +43,6 @@ export function ControlGroup({ className, children }: { className?: string; chil
   );
 }
 
-// Skip icon with the step drawn inside the arrow, like Apple's gobackward.10.
 export function SkipIcon({ forward }: { forward?: boolean }) {
   const Icon = forward ? RotateCw : RotateCcw;
   return (
@@ -61,10 +60,7 @@ export function PlayIcon({ paused, className }: { paused: boolean; className?: s
   return <Icon aria-hidden="true" fill="currentColor" strokeWidth={0} className={className} />;
 }
 
-/**
- * Seek row and volume. Owns the per-frame playback state so the progress bar
- * updates without re-rendering the whole player.
- */
+/** Keep per-frame progress state here to avoid re-rendering the whole player. */
 export function SeekBar({ videoRef, visible }: { videoRef: RefObject<HTMLVideoElement | null>; visible: boolean }) {
   const { t } = useTranslations();
   const fillRef = useRef<HTMLDivElement>(null);
@@ -125,8 +121,7 @@ export function SeekBar({ videoRef, visible }: { videoRef: RefObject<HTMLVideoEl
     };
   }, [videoRef, visible]);
 
-  // React's onChange fires on every input; the native change event fires once
-  // a drag ends or a key steps, so seeking waits for the viewer to let go.
+  // Use native change to seek on release or a key step; React onChange fires throughout a drag.
   useEffect(() => {
     const input = inputRef.current;
     const video = videoRef.current;
@@ -219,8 +214,7 @@ export function VolumeControl({ videoRef }: { videoRef: RefObject<HTMLVideoEleme
         // Storage may be full or blocked; volume still applies to this page.
       }
     };
-    // Loading a new source drops volumechange events still queued for the
-    // element, so the start of a load re-reads the state too.
+    // Re-read volume on load because source changes can drop queued volumechange events.
     const events = ["volumechange", "loadstart", "play"];
     sync();
     events.forEach((name) => video.addEventListener(name, sync));

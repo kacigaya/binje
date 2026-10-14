@@ -40,7 +40,6 @@ export function WatchInfoLoading({ heading }: { heading?: string } = {}) {
 export function WatchPlayerLoading() {
   return (
     <div className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-6">
-      {/* Sources are picked inside the player, so the frame is the whole slot. */}
       <Skeleton className="w-full aspect-video rounded-xl" />
     </div>
   );

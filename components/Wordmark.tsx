@@ -1,21 +1,15 @@
 import { cn } from "@/lib/utils";
 
-/**
- * "b!nje" with the mark standing in for the "!": the bar, and its dot drawn as
- * a play button. Same glyph as `app/icon.svg` (cropped, no tile); change them
- * together. The hidden "!" keeps the name intact for screen readers and copy.
- */
+/** Keep the glyph in sync with `app/icon.svg`.
+ * The hidden "!" preserves the name for screen readers and copying. */
 export default function Wordmark({ className }: { className?: string }) {
   return (
     <span translate="no" className={cn("inline-flex items-baseline", className)}>
-      {/* No tracking on the "b": its trailing letter-spacing would eat into
-          the left gap and make it depend on the caller's tracking. */}
+      {/* Remove trailing tracking from "b" so callers cannot change the gap before the mark. */}
       <span className="tracking-normal">b</span>
       <span className="sr-only">!</span>
-      {/* viewBox is cropped to the ink. Ink gaps: 0.11em after the "b" (0.044em
-          side bearing + margin), ~0.085em before the "n" (~0.071em visible left
-          space + margin), tighter on the right because the triangle tip reads
-          as more open than the bar's straight edge. */}
+      {/* Crop the viewBox to the ink; gaps are 0.11em after "b" and about 0.085em before "n".
+       * The triangle needs a tighter right gap because its tip appears more open than the bar. */}
       <svg
         viewBox="216 88 100 348"
         aria-hidden="true"

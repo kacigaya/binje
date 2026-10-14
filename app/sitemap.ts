@@ -2,9 +2,7 @@ import type { MetadataRoute } from "next";
 import { LOCALES } from "@/lib/i18n";
 import { SITE_URL } from "@/lib/site";
 
-// Only indexable routes belong here: /search is noindex (see
-// app/[locale]/search/layout.tsx) and /watch/* canonicalizes to its
-// movie/tv page, so neither is listed.
+// Exclude /search (noindex) and /watch/* (canonical movie/TV URLs).
 const PATHS = ["", "/movies", "/tv-shows", "/watchlist", "/privacy", "/dmca"];
 
 export default function sitemap(): MetadataRoute.Sitemap {

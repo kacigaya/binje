@@ -5,8 +5,7 @@ import { useEffect, useRef, useState, type ComponentProps } from "react";
 
 // Long enough that cards passing through during a scroll don't qualify.
 const DWELL_MS = 800;
-// A finger that starts a scroll moves past the browser's pan threshold, and
-// fires pointercancel, well within this window. A still finger is a tap.
+// Wait for scrolling gestures to trigger pointercancel before treating a held touch as intent.
 const TOUCH_STILL_MS = 50;
 
 // Network Information API is Chromium-only and missing from TypeScript's DOM lib.
@@ -23,21 +22,8 @@ function savesData() {
   );
 }
 
-/**
- * A `<Link>` that keeps the default App Shell prefetch while it sits in the
- * viewport, then upgrades to a full prefetch (`prefetch={true}`) on hover,
- * focus, or a touch that is not the start of a scroll. The full prefetch
- * resolves the destination's cached, id-dependent TMDB data before the click.
- * Doing that for every visible card would cost one server render per card, so
- * it waits for intent.
- *
- * Touch screens have no hover, so with `dwell` the link also counts a stop
- * near the middle of the viewport as intent. Only for cards in rows and
- * grids: links that are always on screen would all prefetch. Skipped when
- * the user asked to save data or the connection is 2G.
- *
- * Prefetching only runs in production builds.
- */
+/** In production, keep App Shell prefetch until hover, focus or a still touch warrants a full render.
+ * Use `dwell` only on row/grid cards; it skips data-saving and 2G connections. */
 export default function IntentPrefetchLink({
   dwell = false,
   onMouseEnter,
@@ -68,9 +54,7 @@ export default function IntentPrefetchLink({
     }
 
     let timer: number | undefined;
-    // A thin band across the vertical middle of the viewport: the cards in
-    // the row being looked at, minus ones peeking in at the screen edges.
-    // No ratio threshold: cards larger than the band could never reach it.
+    // Watch the viewport's middle band; ratio thresholds exclude cards larger than that band.
     const observer = new IntersectionObserver(
       ([entry]) => {
         window.clearTimeout(timer);
@@ -112,7 +96,6 @@ export default function IntentPrefetchLink({
         onPointerDown?.(event);
       }}
       onPointerUp={(event) => {
-        // A tap shorter than the still window.
         if (touchTimer.current !== undefined) {
           window.clearTimeout(touchTimer.current);
           touchTimer.current = undefined;
@@ -121,7 +104,6 @@ export default function IntentPrefetchLink({
         onPointerUp?.(event);
       }}
       onPointerCancel={(event) => {
-        // The browser took the gesture over as a scroll.
         window.clearTimeout(touchTimer.current);
         touchTimer.current = undefined;
         onPointerCancel?.(event);

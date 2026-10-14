@@ -60,8 +60,7 @@ export async function generateMetadata({
   }
 }
 
-// Request-memoized so the info and player Suspense branches share one
-// underlying read instead of issuing the same details fetch twice.
+// Memoize per request so the info and player Suspense branches share one details fetch.
 const getCachedMovieDetails = cache(getMovieDetails);
 
 export default async function WatchPage({
@@ -73,7 +72,6 @@ export default async function WatchPage({
   const locale = isLocale(rootLocale) ? rootLocale : "en";
 
   return (
-    // Player first: it is what the page is for. Title details follow it.
     <div className="flex flex-col pt-24" data-testid="watch-movie-shell">
       <Suspense fallback={<WatchPlayerLoading />}>
         <WatchMoviePlayer params={params} />
@@ -124,8 +122,7 @@ async function WatchMovieInfo({
           >
             {logo && movieLogoUrl ? (
               <>
-                {/* The logo replaces the title visually; the heading keeps
-                    the page from rendering without an h1. */}
+                {/* Keep an h1 in the document when the logo replaces the visible title. */}
                 <h1 className="sr-only">{movie.title}</h1>
                 <Image
                   src={movieLogoUrl}

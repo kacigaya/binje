@@ -77,8 +77,7 @@ export default async function TVShowsPage({
         <Separator className="mt-5 bg-white/10" />
       </header>
 
-      {/* Reading the query string makes the rest request-time, so it sits
-          in its own boundary and the header stays in the static shell. */}
+      {/* Isolate request-time query reads so the header stays in the static shell. */}
       <Suspense fallback={<BrowseViewSkeleton />}>
         <BrowseView
           type="tv"

@@ -2,10 +2,8 @@ import type { ResolveParams } from "@/lib/resolve-cache";
 import { fetchJson, firstInOrder, httpUrl, isPlayableManifest, isRecord, type ResolvedStream } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// Vidrock's own API encrypts its server list. The 02pcembed API behind Vidlux
-// resolves the same servers in plain JSON, but wraps every URL in its own
-// relay; the target and its headers are unwrapped so playback goes through
-// b!nje's proxy instead of a third-party one.
+// 02pcembed returns Vidrock's servers in plain JSON but wraps URLs in its own relay.
+// Unwrap targets and headers so playback uses our proxy.
 const API = "https://02pcembed.site";
 const PLAYER = "https://vidlux.xyz/";
 const cache = createTtlCache<ResolvedStream>(10 * 60 * 1000);

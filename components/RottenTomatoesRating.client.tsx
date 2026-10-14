@@ -36,8 +36,7 @@ export default function RottenTomatoesRating({
         scores.set(imdbId, nextScore);
         if (!cancelled) setResult({ imdbId, score: nextScore });
       })
-      // Remember the miss too: the hero rotates back to the same title every
-      // few seconds, and a failing id would otherwise refetch forever.
+      // Cache misses too so hero rotation does not repeatedly fetch failing titles.
       .catch(() => {
         if (!controller.signal.aborted) scores.set(imdbId, null);
       });
@@ -48,9 +47,7 @@ export default function RottenTomatoesRating({
     };
   }, [imdbId]);
 
-  // The id guard keeps a previous item's score off the next one while the
-  // hero rotates; without the explicit null test both sides are undefined
-  // before the first fetch resolves.
+  // Guard by id during hero rotation; before the first fetch, both ids are undefined.
   const score = result && result.imdbId === imdbId ? result.score : null;
   if (score === null) return null;
 

@@ -7,10 +7,7 @@ test.use({ viewport, userAgent, deviceScaleFactor, isMobile, hasTouch });
 
 const BROWSE = "/en/movies";
 
-/**
- * Records full prefetches (`prefetch={true}`). App Shell prefetches from
- * `prefetch="auto"` carry a segment header; full ones do not.
- */
+/** App Shell prefetches carry a segment header; full prefetches (`prefetch={true}`) do not. */
 function recordFullPrefetches(page: Page) {
   const paths: string[] = [];
   page.on("request", (request) => {
@@ -97,8 +94,7 @@ test("a held touch prefetches, a swipe does not", async ({ page }) => {
   // Cancel instead of lifting so the press does not navigate.
   await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
 
-  // Finger moving down scrolls the page up, carrying the card further below
-  // the dwell band, so only the touch handlers could prefetch it.
+  // Scroll away from the dwell band so only touch handlers can trigger a prefetch.
   const scrollBefore = await page.evaluate(() => scrollY);
   await cdp.send("Input.dispatchTouchEvent", {
     type: "touchStart",

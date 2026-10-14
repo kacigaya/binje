@@ -2,8 +2,7 @@
 
 FROM oven/bun:1.4.0-slim AS deps
 WORKDIR /app
-# apps/mobile is a workspace member, so its manifest has to be present or the
-# lockfile install fails. Its dependencies are never used by the web build.
+# Frozen installs need the mobile workspace manifest, even for web-only builds.
 COPY package.json bun.lock ./
 COPY apps/mobile/package.json ./apps/mobile/package.json
 COPY patches ./patches
@@ -14,9 +13,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-# The /en and /fr routes prerender at build time and call TMDB, so the key must
-# exist during the build. Mounted as BuildKit secrets rather than ARGs so they
-# never land in an image layer or in `docker history`.
+# Prerendering needs API keys at build time; use BuildKit secrets to keep them out of image layers and history.
 RUN --mount=type=secret,id=TMDB_API_KEY \
     --mount=type=secret,id=OMDB_API_KEY \
     TMDB_API_KEY="$(cat /run/secrets/TMDB_API_KEY)" \

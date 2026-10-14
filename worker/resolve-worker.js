@@ -1,6 +1,5 @@
-// French (VF) provider. frembed serves no HLS directly — its /api/stream slots
-// 302 to file hosters; only uqload gives a clean signed m3u8. Keep the unpacker
-// inline (this Worker ships as a single file, separate build from the Next app).
+// Frembed redirects to file hosters; only uqload resolves to playable HLS.
+// Keep unpacking inline because this Worker ships separately as a single file.
 const FREMBED_ORIGIN = "https://frembed.casa";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
@@ -120,8 +119,7 @@ async function resolveVideasyStream(type, id, title, year, imdbId, season, episo
 
 const FR_HEADERS = { "user-agent": UA, referer: `${FREMBED_ORIGIN}/` };
 
-// Reverse the Dean Edwards p.a.c.k.e.r uqload wraps its jwplayer setup in, then
-// pull the signed HLS url. Pure string work — never eval remote code.
+// Unpack uqload's Dean Edwards p.a.c.k.e.r setup without evaluating remote code.
 function unpackPacked(source) {
   const m = source.match(
     /\}\('([\s\S]+?)',\s*(\d+),\s*(\d+),\s*'([\s\S]*?)'\.split\('\|'\)/,
@@ -142,9 +140,8 @@ function unpackPacked(source) {
   return payload;
 }
 
-// Generic: unpack any packer, then grab the first in-page HLS url. Caller must
-// probe it. In practice only uqload resolves; other hosters (netu IP-locked,
-// playmogo JS-gated) yield nothing and fall through to a 502 + UI note.
+// Unpack and extract an HLS URL; callers must probe it.
+// Only uqload resolves; netu is IP-locked and playmogo is JS-gated, so failures fall through to 502.
 function scrapeM3u8(embedHtml) {
   const unpacked = unpackPacked(embedHtml) ?? embedHtml;
   const m = unpacked.match(/https?:\/\/[^"'\s\\)]+\.m3u8[^"'\s\\)]*/);
@@ -186,8 +183,7 @@ async function resolveVf(type, id, season, episode) {
   throw new Error("no vf stream");
 }
 
-// Stream CDNs block the Worker's IP, so probe through Netlify's /api/hls;
-// the same proxy the player fetches through, so the probe tests the real path.
+// CDNs block Worker IPs; probe through Netlify's /api/hls to test the player's actual path.
 async function isPlayable(url) {
   try {
     const res = await fetch(

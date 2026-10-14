@@ -2,9 +2,8 @@ import type { ResolveParams } from "@/lib/resolve-cache";
 import { isPlayableManifest, type ResolvedStream } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// The Worker behind Rive's "Mirage" server: an unauthenticated HLS master per
-// TMDB movie id, 4K H.264 down to 480p. It has no TV paths, and no subtitles.
-// It answers 403 to any Referer or Origin, so the proxy is pinned to send none.
+// Rive's Mirage worker serves movie-only HLS from 4K to 480p, without subtitles.
+// It rejects any Referer or Origin, so the proxy must send neither.
 const ORIGIN = "https://cine4k.mpddash.workers.dev";
 const cache = createTtlCache<ResolvedStream>(10 * 60 * 1000);
 

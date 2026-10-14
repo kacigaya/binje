@@ -3,9 +3,7 @@ import type { PlaybackSource, SourcesResponse, StreamResponse } from "../../type
 
 export type { PlaybackSource };
 
-// The server lists sources in playback order; ids this build does not know
-// are ignored so a newer server cannot break an older app. Viewers never
-// pick: a failure moves on to the next listed source.
+// Follow server source order for automatic failover; ignore unknown ids so newer servers work with older apps.
 const KNOWN_SOURCES: Record<PlaybackSource, true> = {
   athena: true,
   helios: true,
@@ -26,8 +24,7 @@ const KNOWN_SOURCES: Record<PlaybackSource, true> = {
   videasy: true,
   vf: true,
 };
-// Tried before the availability list arrives, so playback does not wait on
-// it. Athena serves both movies and episodes.
+// Try Athena before the availability list arrives to avoid delaying movie and episode playback.
 export const DEFAULT_SOURCE: PlaybackSource = "athena";
 // The server resolves every provider before answering.
 const SOURCES_TIMEOUT_MS = 25_000;

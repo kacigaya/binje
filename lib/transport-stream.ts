@@ -9,9 +9,8 @@ function isTransportStreamAt(bytes: Uint8Array, offset: number) {
   );
 }
 
-// Some CDNs host MPEG-TS segments as images or text: either only mislabeled,
-// or behind a complete small PNG so the upload passes an image check. Returns
-// the transport stream, or null when the body is anything else.
+// CDNs may disguise MPEG-TS with an image MIME type or a PNG prefix.
+// Return the transport stream, or null for other bodies.
 export function unwrapTransportStream(bytes: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> | null {
   let offset = 0;
   if (PNG_SIGNATURE.every((byte, index) => bytes[index] === byte)) {

@@ -1,5 +1,4 @@
-// Timing helpers shared by the player and the server's audio sync. A sync maps
-// a subtitle file's time onto the video: video = subtitle * scale + offset.
+// Map subtitle time to video time: video = subtitle * scale + offset.
 export type SubtitleSync = { offset: number; scale: number };
 
 export const NO_SYNC: SubtitleSync = { offset: 0, scale: 1 };

@@ -4,16 +4,13 @@ import { fetchPublic } from "@/lib/safe-fetch";
 export const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 const CHECK_TIMEOUT_MS = 6000;
-// Masters, media playlists and DASH manifests fit well inside these; a larger
-// body is not a manifest, and provider pages are a few hundred KB at most.
+// Bound manifest and provider-page reads; larger bodies may be video files.
 const MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
 const MAX_PAGE_BYTES = 4 * 1024 * 1024;
-// A finished stream this short is a provider's decoy clip (Aphrodite's
-// "error code 4" screen, ViDZY's /troll/ playlist), not a movie or episode.
+// Short finished streams can be decoys, such as Aphrodite's error clip or ViDZY's /troll/ playlist.
 const MIN_STREAM_SECONDS = 120;
 
-// Reads at most maxBytes so a provider answering with a video file cannot make
-// the server buffer all of it.
+// Cap reads so a provider returning video cannot make the server buffer the entire file.
 async function readCapped(response: Response, maxBytes: number): Promise<string> {
   const reader = response.body?.getReader();
   if (!reader) return "";
@@ -36,8 +33,7 @@ async function readCapped(response: Response, maxBytes: number): Promise<string>
   return new TextDecoder().decode(bytes);
 }
 
-// Upstream headers a resolver hands back stay on the server: the proxy
-// attaches them, the JSON response never carries them.
+// Keep provider headers server-side; attach them in the proxy, never in JSON responses.
 export type Upstream = { referer?: string; userAgent?: string };
 export type ResolvedStream = ResolverResult & Upstream & { cookie?: string; cookieScope?: string };
 
@@ -61,11 +57,8 @@ export function finishedStreamSeconds(manifest: string): number | undefined {
   return [...manifest.matchAll(/#EXTINF:([\d.]+)/g)].reduce((total, match) => total + Number(match[1]), 0);
 }
 
-// A signed URL can still be dead: a 403, an HTML error page, a CDN that
-// refuses this server, or a short decoy clip in place of the title. Only a
-// manifest that loads counts as available; a master is judged by its first
-// variant, and one that does not load is given the benefit of the doubt. The
-// URLs come from a third party, so they get the proxy's private-network guard.
+// Reject failed manifests and short decoys; probe a master's first variant but tolerate an unreadable variant.
+// Apply private-network checks to every third-party URL.
 export async function isPlayableManifest(url: string, upstream: Upstream & { cookie?: string } = {}) {
   const headers = new Headers({ accept: "*/*", "user-agent": upstream.userAgent ?? BROWSER_USER_AGENT });
   if (upstream.referer) {
@@ -104,8 +97,7 @@ export async function isPlayableManifest(url: string, upstream: Upstream & { coo
   }
 }
 
-// Probed together so a dead server cannot cost its full timeout; the earliest
-// task wins once every task before it has failed.
+// Probe concurrently, but honor order: a result wins only after all earlier tasks fail.
 export function firstInOrder<T>(tasks: Promise<T>[]): Promise<T> {
   return new Promise((resolve, reject) => {
     const settled: ({ ok: true; value: T } | { ok: false } | undefined)[] = tasks.map(() => undefined);
@@ -142,8 +134,7 @@ export class UpstreamError extends Error {
   }
 }
 
-// Some provider requests follow URLs taken from earlier responses (a page's
-// base href, a script's host, a redirect), so all of them get the guard.
+// Guard URLs from provider responses too, including base hrefs, script hosts and redirects.
 export async function fetchText(url: string, init: { referer?: string; userAgent?: string; headers?: Record<string, string> } = {}) {
   const response = await fetchPublic(url, {
     cache: "no-store",

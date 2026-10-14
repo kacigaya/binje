@@ -20,11 +20,7 @@ type SeasonInfo = { season_number: number; name: string; episode_count: number }
 
 const EMPTY_HISTORY: PlayHistoryItem[] = [];
 
-/**
- * Season picker and episode list on the show page, so an episode can be
- * chosen without going through the player first. Opens on the season the
- * viewer last watched, when local history has one.
- */
+/** Open on the last watched season when local history is available. */
 export default function SeasonEpisodes({
   showId,
   seasons,
@@ -123,7 +119,6 @@ export default function SeasonEpisodes({
           <p>{t("Couldn’t load episodes.")}</p>
           <button
             type="button"
-            // Dropping the cached failure lets the fetch effect run again.
             onClick={() =>
               setEpisodesBySeason((prev) => {
                 const next = { ...prev };

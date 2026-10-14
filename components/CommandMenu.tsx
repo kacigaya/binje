@@ -140,8 +140,7 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
               className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
             />
             <input
-              // The palette only ever opens from an explicit shortcut or
-              // click, so focusing its single input is what was asked for.
+              // The palette opens on explicit input, so autofocus is expected.
               autoFocus
               type="search"
               name="q"
@@ -180,8 +179,7 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
               const active = index === activeIndex;
 
               return (
-                // A plain link so results open in new tabs; `role="option"` would strip that.
-                // Tab reaches every result; arrows/Enter are an enhancement.
+                // Keep link semantics for new tabs and Tab navigation; arrows/Enter are optional shortcuts.
                 <Link
                   key={item.key}
                   href={localizedHref(locale, item.href)}

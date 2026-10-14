@@ -21,12 +21,10 @@ export default function ExpandableOverview({
 
   useEffect(() => {
     const el = textRef.current;
-    // Only the clamped state can be measured: expanded, the overflow is gone
-    // by definition and re-measuring would hide the control that undoes it.
+    // Measure only while clamped; measuring expanded text would hide the collapse control.
     if (!el || expanded) return;
 
-    // The clamp depends on the column width, so a rotation or a window resize
-    // can add or remove the overflow that decides whether the toggle shows.
+    // Column width changes can alter overflow and whether the toggle is needed.
     const measure = () => setIsTruncated(el.scrollHeight > el.clientHeight);
     measure();
 

@@ -11,16 +11,13 @@ const PLAYER_ORIGIN = "https://player.videasy.to";
 const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
 const FETCH_TIMEOUT_MS = 12000;
-// Segment URLs are content-addressed and signed, so the bytes behind one never
-// change. Playlists do change, but slowly enough to survive a seek.
+// Signed segment URLs have stable bytes; playlists can change, so cache them only briefly.
 const SEGMENT_CACHE_CONTROL = "public, max-age=3600, immutable";
 const PLAYLIST_CACHE_CONTROL = "public, max-age=30";
-// A DASH manifest becomes one master plus one media playlist per
-// representation; the parsed manifest is shared between those requests.
+// Share the parsed DASH manifest across master and per-representation playlist requests.
 const MANIFEST_TTL_MS = 60_000;
 const manifestCache = createTtlCache<Manifest>(MANIFEST_TTL_MS);
-// Bodies labelled as text or images are read whole to tell playlists from
-// disguised segments; those are a few MB, so anything larger streams through.
+// Sniff bounded text/image bodies for disguised segments or playlists; stream larger bodies through.
 const MAX_SNIFF_BYTES = 32 * 1024 * 1024;
 // Feature-length SRT files are a few hundred KB.
 const MAX_SUBTITLE_BYTES = 4 * 1024 * 1024;
@@ -61,9 +58,8 @@ function rewritePlaylist(
     .join("\n");
 }
 
-// DASH is served as HLS: the manifest URL answers with a master playlist and
-// `rep=<id>` selects the media playlist of one representation. Segments go
-// through the regular proxy path, so the cookie scope and host allowlist apply.
+// Serve DASH as an HLS master; `rep=<id>` selects a representation's media playlist.
+// Segments still use the proxy's cookie scope and host allowlist.
 async function serveDashAsHls(
   request: NextRequest,
   targetUrl: URL,
@@ -136,9 +132,8 @@ function renderDashAsHls(
   return new NextResponse(body, { headers: responseHeaders });
 }
 
-// Read in chunks so a missing or false content-length cannot make the server
-// buffer more than the limit, and under its own deadline, since the fetch
-// timeout ends with the headers. Null past either.
+// Bound chunked reads independently of content-length and enforce a body deadline.
+// The fetch timeout ends at headers; return null when either body limit is exceeded.
 async function readSubtitle(response: Response): Promise<string | null> {
   const reader = response.body?.getReader();
   if (!reader) return "";
@@ -286,8 +281,7 @@ export async function GET(request: NextRequest) {
   if (castHeaders) {
     for (const [key, value] of castHeaders) responseHeaders.set(key, value);
   }
-  // Subtitle providers that only publish SRT mark their files with
-  // format=srt; <track> and Cast need WebVTT.
+  // format=srt requests conversion to WebVTT for <track> and Cast.
   if (srt) {
     if (!response.ok) await response.body?.cancel();
     const text = response.ok ? await readSubtitle(response) : null;
@@ -303,8 +297,7 @@ export async function GET(request: NextRequest) {
     if (value) responseHeaders.set(header, value);
   }
 
-  // Playlists arrive as text/plain, javascript or HTML, and segments as PNG or
-  // JPEG, so labelled-as-text-or-image bodies are judged by their bytes.
+  // Upstream MIME types can disguise playlists as HTML or segments as images; inspect their bytes.
   const expectsPlaylist = contentType.includes("mpegurl") || /\.(?:m3u8|txt)$/i.test(finalUrl.pathname);
   const contentLength = Number(response.headers.get("content-length") ?? 0);
   const sniff =
@@ -343,8 +336,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(bytes, { status: response.status, headers: responseHeaders });
   }
 
-  // Only cache bodies the upstream actually delivered: an error page must not
-  // stick to a segment URL for an hour.
+  // Never cache upstream errors under segment URLs.
   if (response.status === 200 || response.status === 206) {
     responseHeaders.set("cache-control", SEGMENT_CACHE_CONTROL);
   }

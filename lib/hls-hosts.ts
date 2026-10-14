@@ -1,13 +1,12 @@
-// Resolvers register every host they hand out and the proxy serves only those.
-// ponytail: in-memory per instance; move to a shared store past one instance.
+// The proxy serves only resolver-registered hosts.
+// This allowlist is per instance; multiple instances need a shared store.
 const TTL_MS = 6 * 60 * 60 * 1000;
 const MAX_HOSTS = 1000;
 
 const hosts = new Map<string, { expiresAt: number; referer?: string; userAgent?: string }>();
 
-// Some providers sign a stream for the User-Agent that minted it, so a host
-// can pin one; the proxy otherwise forwards the viewer's own. An empty
-// referer pins "send none", for hosts that refuse any Referer or Origin.
+// Pin User-Agent for providers that sign it; otherwise forward the viewer's.
+// An empty referer means send neither Referer nor Origin.
 export function allowStreamHost(url: string | URL, referer?: string, userAgent?: string): void {
   let host: string;
   try {
@@ -49,9 +48,8 @@ export function streamUserAgent(url: URL): string | undefined {
   return isAllowedStreamHost(url) ? hosts.get(url.host)?.userAgent : undefined;
 }
 
-// Some CDNs sign a directory rather than a host (CloudFront policy cookies),
-// so the cookie is keyed by URL prefix and only sent to URLs beneath it. The
-// scope also allows its host, since nothing else hands those URLs out.
+// Scope signed cookies by URL prefix so they cannot escape their directory.
+// Register the scope's host too, since no other resolver supplies these URLs.
 const cookies = new Map<string, { expiresAt: number; cookie: string }>();
 
 export function allowStreamCookie(scope: string, cookie: string): void {

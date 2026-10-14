@@ -28,14 +28,7 @@ function tmdbBackdropLoader({ src, width }: ImageLoaderProps) {
 const LOGO_HEIGHT = { mobile: 112, desktop: 144 } as const; // h-28 / sm:h-36
 const LOGO_MAX_WIDTH = { mobile: 320, desktop: 512 } as const; // max-w-xs / sm:max-w-lg
 
-/**
- * The rendered width at each breakpoint, derived from the logo's own aspect
- * ratio. Two things need it: `sizes`, because without it next/image treats a
- * fixed-width image as full-bleed and requests the 1x/2x device widths (a
- * 1280px PNG for a box that is never wider than ~360px), and the element's own
- * width, because `w-auto` leaves the box indeterminate until the image decodes
- * and the hero column is bottom-anchored.
- */
+/** Set `sizes` to avoid oversized image downloads and reserve width to prevent layout shifts. */
 function heroLogoBox(width?: number, height?: number) {
   const ratio = width && height ? width / height : 2.5;
   const widthAt = (cap: keyof typeof LOGO_HEIGHT) =>
@@ -65,8 +58,7 @@ export default function Hero({ items }: HeroProps) {
   );
 
   useEffect(() => {
-    // A rotation the visitor cannot stop is exactly what the reduced-motion
-    // setting asks us to drop, and the control below covers everyone else.
+    // Disable automatic rotation for reduced motion; everyone else gets a pause control.
     if (safeItems.length <= 1 || paused || !rotates) return;
 
     const intervalId = window.setInterval(() => {
@@ -103,8 +95,7 @@ export default function Hero({ items }: HeroProps) {
           alt={activeItem.title}
           fill
           priority
-          // `priority` only emits the preload; without this the backdrop is
-          // fetched at Low priority and loses the race to the poster rows.
+          // `priority` emits a preload; `fetchPriority` keeps the backdrop ahead of poster requests.
           fetchPriority="high"
           className="object-cover object-top"
           sizes="100vw"
@@ -117,18 +108,11 @@ export default function Hero({ items }: HeroProps) {
       <div className="absolute inset-0 flex items-end">
         <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16 sm:pb-24">
           <div className="max-w-2xl space-y-4">
-            {/*
-              The hero content is bottom-anchored, so anything that resolves to
-              a different height after paint drags the whole column upwards.
-              Pinning the title slot keeps that height fixed whether the item
-              has a logo, has none, or has one that has not decoded yet.
-            */}
+            {/* Fix the title slot height so logo loading cannot shift the bottom-anchored content. */}
             <div className="flex min-h-28 items-end sm:min-h-36">
               {logo ? (
                 <>
-                  {/* The logo carries the title visually. The heading keeps it
-                      in the document outline, which is otherwise empty of an
-                      h1 on the whole home page. */}
+                  {/* Keep an h1 in the document when the logo replaces the visible title. */}
                   <h1 className="sr-only">{activeItem.title}</h1>
                   <Image
                     src={logo}
@@ -210,8 +194,7 @@ export default function Hero({ items }: HeroProps) {
                 <Info className="size-5" />
                 {t("Details")}
               </IntentPrefetchLink>
-              {/* Sits in the action row rather than over the hero's bottom
-                  edge, where the first rail overlaps it and hides "See all". */}
+              {/* Keep this in the action row so the overlapping first rail cannot hide it. */}
               {rotates && safeItems.length > 1 && (
                 <button
                   type="button"

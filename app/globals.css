@@ -40,11 +40,9 @@
 :root {
     --radius: 0.625rem;
     --accent-red: #e11d48;
-    /* Red for text only: #e11d48 is 4.34:1 on the background and under 4:1 on
-     * its own tinted fills. This holds 6.9:1 on red/15 and 7.6:1 on the page. */
+    /* Use this red for text contrast: 6.9:1 on red/15, 7.6:1 on the page; #e11d48 falls below 4.5:1. */
     --accent-red-text: #fb7185;
-    /* Star ratings: neutral amber so scores read on any poster and do not
-     * compete with the red action color. */
+    /* Amber keeps ratings readable on posters without competing with the red action color. */
     --rating: #fbbf24;
 }
 
@@ -79,12 +77,10 @@
     }
     html {
         @apply font-sans;
-        /* The palette below is dark-only, so the UA needs to match: without
-         * this, native scrollbars, form controls and pickers render light. */
+        /* Match native controls and scrollbars to the dark palette. */
         color-scheme: dark;
     }
-    /* Taps resolve immediately instead of waiting out the double-tap-zoom
-     * window, and the flash on tap is ours rather than the platform blue. */
+    /* Skip double-tap zoom delays and use the app's tap feedback. */
     a,
     button,
     [role="button"],
@@ -119,12 +115,7 @@
     scrollbar-width: none;
 }
 
-/*
- * tw-animate-css's `animate-in` drives its `enter` keyframe through filter and
- * scale variables as well as translate, and an animation that touches a
- * filter cannot be composited. The cookie banner only needs to rise and fade,
- * so it gets a keyframe that stays on the compositor.
- */
+/* Use a transform/opacity keyframe; tw-animate-css's filter animation cannot stay on the compositor. */
 @keyframes banner-enter {
     from {
         opacity: 0;
@@ -146,11 +137,8 @@
     }
 }
 
-/* Player.tsx sets --subtitle-lift while its controls cover the video's
-   bottom. Chromium and WebKit lay cues out against the video box, so only a
-   transform moves them, and it moves every cue: Player.tsx skips files that
-   place their own lines. Firefox exposes no cue container, so its cues stay
-   put. */
+/* Player.tsx sets --subtitle-lift and skips explicitly positioned cues because transforms move every cue.
+ * Chromium/WebKit support the cue container; Firefox leaves cues in place. */
 video::-webkit-media-text-track-container {
     transform: translateY(calc(-1 * var(--subtitle-lift, 0px)));
     transition: transform 200ms;

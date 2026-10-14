@@ -5,12 +5,9 @@ import type { StreamTech } from "@/lib/stream-probe";
 
 type Info = StreamTech & { height: number | null };
 
-// Nothing from @/components/Player is imported here on purpose: that module
-// pulls hls.js in, and it would land in the detail page bundle for three
-// decorative badges.
+// Importing Player here would add hls.js to the detail page bundle.
 
-// A value left by an older build, or a truncated one, would otherwise throw on
-// every mount and the badges would never come back for that title.
+// Ignore stale or truncated storage so badges can be fetched again.
 function readCachedInfo(cacheKey: string): Info | null {
   const cached = window.sessionStorage.getItem(cacheKey);
   if (!cached) return null;
@@ -52,8 +49,7 @@ export default function StreamTechBadges({
     const element = sentinelRef.current;
     if (!element) return;
 
-    // Safari has no requestIdleCallback, so fall back to a plain timer. Both
-    // handles are plain numbers; the flag records which one to cancel.
+    // Safari needs a timer fallback; both handle types are numbers, so track which to cancel.
     const idle = typeof window.requestIdleCallback === "function";
     let idleId: number | undefined;
     const observer = new IntersectionObserver(
@@ -107,7 +103,7 @@ export default function StreamTechBadges({
         window.sessionStorage.setItem(cacheKey, JSON.stringify(nextInfo));
         if (!cancelled) setInfo(nextInfo);
       } catch {
-        // Silent: badges simply don't render when the stream can't be probed.
+        // A failed probe leaves the optional badges hidden.
       }
     })();
 

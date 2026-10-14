@@ -36,8 +36,7 @@ export async function GET(request: NextRequest) {
       headers: { "cache-control": "public, max-age=21600" },
     });
   } catch {
-    // Badges are decorative, so a failed probe is a 200 with nothing in it.
-    // The short window keeps a broken title from re-probing on every view.
+    // Optional badges return empty 200 responses on failure; cache briefly to avoid repeated failed probes.
     return NextResponse.json(EMPTY, {
       headers: { "cache-control": "public, max-age=300" },
     });

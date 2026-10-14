@@ -26,8 +26,7 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
   );
 
   const [icon, feedback] = useAnimatedIcon();
-  // Tied to the click, not `added`: hydration flips saved titles false -> true,
-  // which would tick the check on every page load.
+  // Animate on clicks; saved-state hydration would otherwise trigger the animation on page load.
   const savedByClick = useRef(false);
   useEffect(() => {
     if (!added || !savedByClick.current) return;

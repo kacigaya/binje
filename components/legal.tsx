@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-/** Shared building blocks for the static legal pages (privacy, DMCA). */
 export function Section({
   title,
   children,

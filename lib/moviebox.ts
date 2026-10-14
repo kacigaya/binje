@@ -14,8 +14,7 @@ const HOSTS = [
   "https://api.inmoviebox.com",
 ];
 const BFF = "/wefeed-mobile-bff";
-// App secret shipped inside the APK and published by MovieBox-Tui. A rotation
-// upstream breaks this source until the constant is updated.
+// This app secret is published in the APK and MovieBox-Tui; upstream rotation requires an update.
 const SECRET = Buffer.from("76iRl07s0xSN9jqmEWAt79EBJZulIQIsV64FZr2O", "base64");
 const RETRY_STATUS = new Set([403, 406, 407, 429, 500, 502, 503, 504]);
 const REQUEST_TIMEOUT_MS = 8_000;
@@ -25,8 +24,7 @@ const SESSION_FALLBACK_TTL_MS = 6 * 60 * 60 * 1000;
 
 const VERSION_CODE = 50020119;
 const USER_AGENT = `com.community.oneroom/${VERSION_CODE} (Linux; U; Android 12; en_US; 2201117TY; Build/S1B.220414.015; Cronet/135.0.7012.3)`;
-// One device identity per process: the gateway rejects logins without a
-// device id and ties the visitor token to it.
+// Keep one device id per process; the gateway requires it and binds the visitor token to it.
 const CLIENT_INFO = JSON.stringify({
   package_name: "com.community.oneroom",
   version_name: "4.0.01.0813.03",
@@ -183,8 +181,7 @@ export function clearMovieboxSession() {
   pendingLogin = undefined;
 }
 
-// The gateway answers an expired token with 401/403, so one retry runs on a
-// fresh visitor session before the failure surfaces.
+// Retry expired tokens (401/403) once with a fresh visitor session.
 async function authedRequest(method: "GET" | "POST", path: string, body?: string): Promise<unknown> {
   try {
     return await request(method, path, body, await sessionToken());
@@ -196,10 +193,8 @@ async function authedRequest(method: "GET" | "POST", path: string, body?: string
   }
 }
 
-// Search rows are per upload: dubbed uploads carry a bracketed tag
-// ("Inception [Hindi]") and series rows a season marker ("Breaking Bad S5",
-// one row per season sharing the subject id). Tags and markers are removed for
-// matching, and a dub tag counts against the candidate.
+// Uploads carry dub tags like [Hindi] and season markers like S5; seasons share a subject id.
+// Strip tags and markers for title matching, but penalize dubbed uploads.
 const DUB_TAG = /\[[^\]]*\]/;
 
 function normalizeTitle(value: string) {
@@ -260,9 +255,8 @@ async function findSubject(params: { type: "movie" | "tv"; id: string; title: st
   });
 }
 
-// Playback is a signed DASH manifest. The stream's `url` is a shared
-// placeholder mp4; the real location is encoded in either a CloudFront policy
-// or the newer edge-cache cookie, which must accompany every segment request.
+// The advertised mp4 is a placeholder; find the DASH URL in the CloudFront policy or edge-cache cookie.
+// Send that cookie with every segment request.
 export function dashManifestFromSignCookie(signCookie: unknown): { url: string; cookie: string; scope: string } | undefined {
   if (typeof signCookie !== "string") return;
   const pairs = signCookie.split(";").map((pair) => pair.trim()).filter(Boolean);
@@ -310,9 +304,8 @@ export function resolveMovieboxStream(params: {
     const episodeQuery = type === "tv" ? `&se=${season}&ep=${episode}` : "";
     const playInfo = record(await authedRequest("GET", `${BFF}/subject-api/play-info/v2?subjectId=${subjectId}${episodeQuery}`));
     const streams = Array.isArray(playInfo?.streams) ? playInfo.streams : [];
-    // Subtitles are left out: MovieBox only serves SRT files (keyed by upload
-    // resource id via subject-api/resource + get-ext-captions), and <track>
-    // needs WebVTT. Add a converter in the proxy before wiring them up.
+    // MovieBox subtitles need an upload resource id via subject-api/resource and get-ext-captions.
+    // They return SRT; convert to WebVTT before exposing them to <track>.
     for (const item of streams) {
       const manifest = dashManifestFromSignCookie(record(item)?.signCookie);
       if (manifest) return { url: manifest.url, tracks: [], cookie: manifest.cookie, cookieScope: manifest.scope };

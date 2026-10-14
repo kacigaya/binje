@@ -4,10 +4,7 @@ import { useRouter } from "next/navigation";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-/**
- * One browse filter as a dropdown. Each option's value is the full href the
- * server built for it, so URL state stays owned by `browseQuery`.
- */
+/** Option values are server-built hrefs; `browseQuery` owns URL state. */
 export default function BrowseFilterSelect({
   label,
   value,
