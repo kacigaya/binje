@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Clock, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { haptic } from "@/lib/haptics";
 import { localizedHref } from "@/lib/i18n";
 import {
   getPlayHistory,
@@ -98,7 +99,10 @@ export default function SeasonEpisodes({
               key={s.season_number}
               type="button"
               aria-pressed={active}
-              onClick={() => setPicked(s.season_number)}
+              onClick={() => {
+                if (!active) haptic("selection");
+                setPicked(s.season_number);
+              }}
               className={cn(
                 "h-8 cursor-pointer rounded-full border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60",
                 active
