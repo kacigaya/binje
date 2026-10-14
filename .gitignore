@@ -41,10 +41,6 @@ next-env.d.ts
 /playwright-report/
 /test-results/
 
-# wrangler local cache/state
-worker/.wrangler/
-worker/README.md
-
 # Local agent notes
 AGENTS.md
 CLAUDE.md
