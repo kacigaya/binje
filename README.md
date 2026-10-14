@@ -64,9 +64,12 @@ through the Media Session API.
 | F | Fullscreen |
 | C | Subtitles on or off |
 
-The subtitles menu lists only files offered by the playing source. Sources without
-subtitles have no subtitles menu. The viewer's language is listed first, then English;
-repeated language names are numbered ("English 2"). The source's first track starts on.
+The subtitles menu lists the files offered by the playing source. When the source has
+none, which is the case for most sources at the top of the chain, the player asks
+`/api/subtitles` for the files other providers publish for the title (OpenSubtitles,
+Vidrock, VidZee) and lists those instead, off until the viewer picks one. The viewer's
+language is listed first, then English; repeated language names are numbered
+("English 2"). A source's own first track starts on.
 Google Cast receives the subtitle selected in the player. SRT files use `format=srt`
 so `/api/hls` converts them to WebVTT.
 
