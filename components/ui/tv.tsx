@@ -7,11 +7,7 @@ import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
-/**
- * Written by hand on the lucide-animated component shape because the registry
- * has no `tv` entry, and the nav row needs the real Lucide glyph rather than a
- * near-miss like `airplay` or `monitor-check`.
- */
+/** The animated-icon registry has no TV glyph; keep the same imperative interface here. */
 interface TvIconHandle {
   startAnimation: () => void;
   stopAnimation: () => void;
@@ -40,7 +36,6 @@ const ANTENNA_VARIANTS: Variants = {
 const TvIcon = forwardRef<TvIconHandle, TvIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const controls = useAnimation();
-    // The rest of the app honours prefers-reduced-motion; these icons must too.
     const reduced = useReducedMotion();
     const isControlledRef = useRef(false);
 

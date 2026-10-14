@@ -13,12 +13,8 @@ import {
 } from "@/lib/watchlist";
 import { useTranslations } from "@/lib/use-locale";
 
-/**
- * Compact watchlist toggle laid over a poster. It sits beside the card link
- * rather than inside it, since a button nested in a link is invalid and
- * breaks keyboard order. On hover-capable devices it stays out of the way
- * until the card is hovered or focused, unless the title is already saved.
- */
+/** Keep the button beside the card link; nesting interactive elements breaks keyboard navigation.
+ * On hover devices, reveal it on hover or focus unless the title is saved. */
 export default function CardWatchlistToggle({
   item,
   className,

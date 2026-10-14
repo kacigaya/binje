@@ -96,11 +96,7 @@ export default function TVPlayer({
     router.replace(episodeHref(s, e), { scroll: false });
   }
 
-  /**
-   * Swapping episodes only changes the player source, so it is handled here
-   * rather than by following the link. Modified clicks fall through untouched
-   * so an episode can still be opened in its own tab.
-   */
+  /** Switch episodes in place; leave modified clicks untouched so links can open in new tabs. */
   function selectEpisode(
     event: MouseEvent<HTMLAnchorElement>,
     episodeNumber: number,

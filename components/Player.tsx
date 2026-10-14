@@ -42,9 +42,7 @@ type StreamSource = { file: string; height: number };
 type ResolvedMedia = { url: string; sources: StreamSource[] };
 type PresentationVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
 
-// /api/sources lists, in playback order, only the sources whose stream loads
-// for the title; ids this build does not know are ignored. Viewers never pick:
-// a failure moves on to the next listed source.
+// /api/sources orders playable sources for automatic failover; ignore unknown ids.
 const KNOWN_SOURCES: Record<PlaybackSource, true> = {
   athena: true,
   helios: true,
@@ -65,16 +63,14 @@ const KNOWN_SOURCES: Record<PlaybackSource, true> = {
   videasy: true,
   vf: true,
 };
-// Tried before the availability list arrives, so playback does not wait on
-// it. Athena serves both movies and episodes.
+// Try Athena before the availability list arrives to avoid delaying movie and episode playback.
 const DEFAULT_SOURCE: PlaybackSource = "athena";
 
 function isKnownSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && Object.hasOwn(KNOWN_SOURCES, value);
 }
 
-// The TV page keeps this component mounted across episodes, so per-title
-// state carries the media key it belongs to and is ignored once that changes.
+// TV episodes reuse this component; key state by media so the previous episode's state is ignored.
 type Keyed<T> = { key: string; value: T };
 function forMedia<T>(state: Keyed<T> | null, key: string): T | undefined {
   return state?.key === key ? state.value : undefined;
@@ -179,7 +175,6 @@ export default function Player({
   type?: PlayerMediaType;
   season?: number;
   episode?: number;
-  /** Backdrop shown behind the loading state until playback starts. */
   poster?: string | null;
 }) {
   const { t, locale } = useTranslations();
@@ -208,14 +203,12 @@ export default function Player({
   const failedList = forMedia(failed, mediaKey) ?? [];
   const usable = (id: PlaybackSource | undefined) => (id && !failedList.includes(id) ? id : undefined);
   const playingSource = usable(forMedia(playing, mediaKey));
-  // Whatever already plays stays, else the first listed source that has not
-  // failed here. A failure moves on to the next one.
+  // Keep the playing source while availability settles; otherwise try the next source that has not failed.
   const source =
     playingSource ??
     (availableList ?? [DEFAULT_SOURCE]).find((id) => !failedList.includes(id)) ??
     null;
   const exhausted = source === null && availableList !== undefined;
-  // Waiting for the availability list after the default source failed.
   const awaitingSources = source === null && !exhausted;
 
   useEffect(() => {
@@ -249,8 +242,6 @@ export default function Player({
   const [loading, setLoading] = useState(true);
   const [resolvedMedia, setResolvedMedia] = useState<ResolvedMedia | null>(null);
   const [googleCasting, setGoogleCasting] = useState(false);
-  // Bumped by the retry control so the resolve below runs again without a
-  // full page reload.
   const [reloadKey, setReloadKey] = useState(0);
   const [videoAspectRatio, setVideoAspectRatio] = useState<Keyed<number> | null>(null);
   const aspectRatioKey = `${sourceUrl}:${reloadKey}`;
@@ -266,9 +257,7 @@ export default function Player({
   const [inPip, setInPip] = useState(false);
   const [paused, setPaused] = useState(true);
   const [buffering, setBuffering] = useState(false);
-  // Subtitles other providers publish for the title (/api/subtitles), asked
-  // for only once the playing source turns out to have none of its own. Most
-  // sources at the top of the chain carry no subtitles.
+  // Fetch title-wide subtitles only when the playing source has none.
   const [titleTracks, setTitleTracks] = useState<Keyed<Track[]> | null>(null);
   const titleList = forMedia(titleTracks, mediaKey);
   const needsTitleTracks = resolvedMedia !== null && tracks.length === 0;
@@ -276,15 +265,12 @@ export default function Player({
     () => (tracks.length ? tracks : needsTitleTracks ? (titleList ?? []) : []),
     [needsTitleTracks, titleList, tracks],
   );
-  // The source's files when it has any, else the title's; grouped by language
-  // and localized.
   const allTracks = useMemo<Track[]>(() => {
     const names = new Intl.DisplayNames([locale], { type: "language" });
     const rank = (lang?: string) => (lang === locale ? 0 : lang === "en" ? 1 : 2);
     const counts = new Map<string, number>();
     return shownTracks
       .map((track) => {
-        // Number repeated language names consistently within this source.
         const base = baseLabel(track.label);
         const lang = languageOf(track.label);
         if (!lang) return { ...track, label: base };
@@ -299,8 +285,7 @@ export default function Player({
         return { ...track, label: count > 1 ? `${label} ${count}` : label };
       });
   }, [locale, shownTracks]);
-  // One request per title: the source can resolve more than once while the
-  // availability list settles, and each answer is kept for the whole title.
+  // Cache subtitles per title because source resolution may repeat while availability settles.
   const titleRequestRef = useRef<string | null>(null);
   useEffect(() => {
     if (!needsTitleTracks || titleRequestRef.current === mediaKey) return;
@@ -317,17 +302,14 @@ export default function Player({
         if (titleRequestRef.current === key) titleRequestRef.current = null;
       });
   }, [mediaKey, mediaQuery, needsTitleTracks]);
-  // The pick is kept by file, so tracks arriving or changing later do not move
-  // it. Until the viewer picks, subtitles start on the source's first track.
+  // Track selection by file so arriving tracks cannot move it; default to the first track until chosen.
   const [subtitle, setSubtitle] = useState<{ file: string | null; on: boolean } | null>(null);
   const subtitleOn = subtitle ? subtitle.on : tracks.length > 0;
   const pickedFile = subtitle ? subtitle.file : tracks[0]?.file;
-  // A file missing from the list, such as the previous episode's on the TV
-  // page, falls back to the first track.
+  // Fall back to the first track if the selected file belongs to a previous episode or has disappeared.
   const activeSubtitle = !subtitleOn || !allTracks.length
     ? -1
     : Math.max(allTracks.findIndex((track) => track.file === pickedFile), 0);
-  // Cast receives the same subtitle selected for local playback.
   const castTracks = useMemo(
     () => (activeSubtitle >= 0 ? [allTracks[activeSubtitle]] : []),
     [activeSubtitle, allTracks],
@@ -346,8 +328,7 @@ export default function Player({
   const controlsHidden = idle && !paused && !exhausted;
   const playbackControls = !googleCasting && !exhausted;
 
-  // While playing, controls fade out after a short idle period. Hovering
-  // them, keyboard focus, or an open menu inside them keeps them up.
+  // Keep controls visible during hover, keyboard focus or an open menu.
   const revealControls = useCallback(() => {
     setIdle(false);
     window.clearTimeout(idleTimerRef.current);
@@ -400,10 +381,8 @@ export default function Player({
     return () => window.clearTimeout(idleTimerRef.current);
   }, [paused, revealControls]);
 
-  // The browser draws cues at the video's bottom edge, under the control bar.
-  // While the controls show, globals.css lifts them by the bar's overlap with
-  // the video, kept current as the layout resizes. The lift moves every cue,
-  // so files that place their own lines (a sign at the top) are left alone.
+  // Lift cues above the controls via globals.css, tracking overlap as the layout resizes.
+  // Leave files with explicit cue positions alone because the lift moves every cue.
   useEffect(() => {
     const video = videoRef.current;
     const row = bottomRowRef.current;
@@ -455,8 +434,7 @@ export default function Player({
     }
   }
 
-  // Reapplied whenever the browser changes a mode or adds a track: Chrome's
-  // automatic track selection can turn on a matching language by itself.
+  // Reapply after track changes because Chrome may enable a matching language automatically.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -504,8 +482,7 @@ export default function Player({
     });
   }
 
-  // A pending auto-sync is dropped when the viewer sets timing by hand, so its
-  // answer cannot overwrite the newer choice.
+  // Cancel pending auto-sync when manual timing changes so its answer cannot overwrite the new choice.
   const autoSyncRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => { autoSyncRef.current?.abort(); }, [activeSyncKey, sourceUrl]);
@@ -553,8 +530,7 @@ export default function Player({
     setSyncStatus((previous) => (previous?.key === key ? { key, status } : previous));
   }
 
-  // Delay and scale are applied to the shown track's cues, from their own
-  // times, whenever either changes or the file finishes loading.
+  // Recompute cue timing from the original times when settings change or the file loads.
   const { offset: syncOffset, scale: syncScale } = activeSync;
   useEffect(() => {
     const element = activeSubtitle >= 0 ? videoRef.current?.querySelectorAll("track")[activeSubtitle] : undefined;
@@ -631,11 +607,9 @@ export default function Player({
     if (!video || !container || !(target instanceof HTMLElement)) return;
     if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
     const inPlayer = container.contains(target);
-    // Outside the player, only page-level focus counts, such as the body or
-    // the main landmark; other controls keep their keys.
+    // Outside the player, handle shortcuts only on page-level focus; leave other controls' keys alone.
     if (!inPlayer && target.closest('a, button, input, textarea, select, [contenteditable], [role], [tabindex]:not([tabindex="-1"])')) return;
     revealControls();
-    // Text fields, sliders, and menus keep their own keys.
     if (target.closest("input, textarea, select, [contenteditable], [aria-haspopup], [role=option]")) return;
     const onControl = Boolean(target.closest("button, a"));
     switch (event.key) {
@@ -696,7 +670,6 @@ export default function Player({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // Lock screen, headset, and OS media keys.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !("mediaSession" in navigator)) return;
@@ -755,8 +728,7 @@ export default function Player({
       video.canPlayType("application/vnd.apple.mpegurl") &&
         "webkitShowPlaybackTargetPicker" in video,
     );
-    // hls.js (~600 KB) is its own chunk, loaded alongside the resolve.
-    // A failed load degrades to the native `canPlayType` path below.
+    // Load hls.js alongside resolution; if loading fails, fall back to native `canPlayType`.
     const hlsModulePromise = nativeHlsSupported
       ? null
       : import("hls.js")
@@ -791,10 +763,7 @@ export default function Player({
             enableWorker: true,
             capLevelOnFPSDrop: true,
             capLevelToPlayerSize: true,
-            // Subtitles come from <track> elements. hls.js's subtitle and
-            // caption controllers clear the cues of every text track on the
-            // video when a manifest loads or the player detaches, and a
-            // loaded <track> is never fetched again, so they are left out.
+            // Disable hls.js subtitle controllers: they clear cues on load/detach, and <track> files are not refetched.
             subtitleStreamController: undefined,
             subtitleTrackController: undefined,
             timelineController: undefined,
@@ -892,8 +861,7 @@ export default function Player({
     );
   }
 
-  // Resumes on every source that loads, including failovers. A stream already
-  // past its first second was positioned by the viewer and is left alone.
+  // Resume after failover too; a stream past its first second was already positioned by the viewer.
   function onLoadedMetadata() {
     updateAspectRatio();
     const video = videoRef.current;
@@ -984,16 +952,13 @@ export default function Player({
             />
           ))}
         </video>
-        {/* Pointer target for click and tap gestures; every action it offers
-            also has a button or shortcut. */}
+        {/* Every pointer gesture also has a button or keyboard shortcut. */}
         <div
           aria-hidden="true"
           className="absolute inset-0 touch-manipulation"
           onPointerDown={(event) => {
             event.stopPropagation();
-            // Keeps shortcuts such as ↑/↓ volume working after a click on the
-            // picture. Touch skips it: the focus event would reveal controls
-            // the tap is about to toggle.
+            // Focus mouse clicks for shortcuts; touch focus would reveal controls just before the tap toggles them.
             if (event.pointerType === "mouse") containerRef.current?.focus({ preventScroll: true });
           }}
           onPointerUp={onSurfacePointerUp}
@@ -1026,9 +991,7 @@ export default function Player({
           <div
             className={cn(
               "absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center text-sm text-white/80",
-              // A stall mid-playback only needs the spinner, not the dimmed frame.
               (loading || awaitingSources || exhausted) && "bg-black/60",
-              // The error state has a control of its own to click.
               !exhausted && "pointer-events-none",
             )}
           >
@@ -1055,8 +1018,7 @@ export default function Player({
           </div>
         )}
       </div>
-      {/* Mobile: toolbar on top, playback in the middle, seek bar at the
-          bottom. From sm up everything sits in one bar at the bottom. */}
+      {/* Mobile splits toolbar, playback and seeking into rows; `sm` and up use one bottom bar. */}
       <div
         ref={controlsRef}
         data-player-controls=""
@@ -1175,8 +1137,7 @@ export default function Player({
           </ControlGroup>
         </div>
         {playbackControls && !loading && !awaitingSources && (
-          // Centered on the whole player, outside the column flow: the toolbar
-          // above is taller than the seek row below.
+          // Center against the whole player because the toolbar and seek row have different heights.
           <div className="absolute inset-0 flex items-center justify-center gap-8 sm:hidden">
             <ControlButton aria-label={t("Back 10 seconds")} onClick={() => skip(false)} className={cn("bg-black/40", interactive)}>
               <SkipIcon />
@@ -1194,8 +1155,7 @@ export default function Player({
           </div>
         )}
         {playbackControls && (
-          // The top of the bottom controls on both layouts: the desktop
-          // toolbar sits below it.
+          // Align with the top of the bottom controls; the desktop toolbar sits below this point.
           <div ref={bottomRowRef} className={cn("relative px-1", interactive)}>
             <SeekBar videoRef={videoRef} visible={!controlsHidden} />
           </div>

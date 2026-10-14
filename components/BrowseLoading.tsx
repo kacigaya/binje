@@ -3,7 +3,6 @@ import PosterCardSkeleton from "@/components/PosterCardSkeleton";
 
 const SECTION_COUNT = 10;
 
-/** Shared skeleton for the /movies and /tv-shows browse pages. */
 export default function BrowseLoading({ titleWidth }: { titleWidth: "w-36" | "w-44" }) {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 pb-16 pt-24 sm:pt-28">

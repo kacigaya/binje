@@ -28,8 +28,7 @@ describe("i18n", () => {
     expect(pluralize("fr", 2, "Season", "Seasons")).toBe("Saisons");
   });
 
-  // An unknown key falls through to the English identity, so a missing French
-  // entry looks like working English rather than an error.
+  // Unknown keys fall back to English, so a missing French translation can look valid.
   test("translates consent and DMCA copy to French", () => {
     expect(translate("fr", "Refuse")).toBe("Refuser");
     expect(translate("fr", "DMCA Policy")).toBe("Politique DMCA");

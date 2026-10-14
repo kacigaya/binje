@@ -10,12 +10,8 @@ import {
 import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// Servers from atlantic.st's player. Athena answers with a plain URL; the
-// stream.hls.lol servers wrap theirs as `<prefix><hex nonce||AES-GCM>` under
-// keys that ship in Atlantic's bundle. The site's Turnstile check runs in its
-// page only. Not used: Shegu (disabled) and Aphrodite, whose cdn.hls.lol
-// answers requests without the client's obfuscated X-Az-* signature with a
-// one-minute "error code 4" decoy clip.
+// Athena returns plain URLs; stream.hls.lol uses prefixed hex nonce||AES-GCM with bundled keys.
+// Turnstile is page-only; skip disabled Shegu and Aphrodite, which serves decoys without X-Az-* signatures.
 const SITE = "https://atlantic.st/";
 const API = "https://stream.hls.lol";
 const ATHENA = "https://zcdn.bluevelvet.space";

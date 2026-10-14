@@ -11,9 +11,7 @@ import {
 } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// MoviesAPI's player API requires an x-player-key header. The key is a
-// constant in the player bundle, so it is read from there rather than copied
-// here, and re-read when the API starts refusing it.
+// Read x-player-key from the player bundle; refresh it when the API rejects it.
 const ORIGIN = "https://moviesapi.to";
 const cache = createTtlCache<ResolvedStream>(10 * 60 * 1000);
 const keyCache = createTtlCache<string>(60 * 60 * 1000, 1);

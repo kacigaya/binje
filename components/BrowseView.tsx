@@ -35,12 +35,8 @@ function decadeLabel(locale: Locale, decade: Decade) {
   return locale === "fr" ? `Années ${decade}` : `${decade}s`;
 }
 
-/**
- * Filters and results for /movies and /tv-shows. Without filters the page
- * keeps its curated rails (`rails`); any filter swaps them for a TMDB
- * discover grid. All state lives in the query string, so results are
- * shareable; the dropdowns navigate once hydrated.
- */
+/** Unfiltered pages show curated rails; filters switch to TMDB discover results.
+ * All filter state lives in the URL so results can be shared. */
 export default async function BrowseView({
   type,
   locale,
@@ -215,8 +211,7 @@ async function DiscoverResults({
 
   return (
     <section aria-label={t("Results")} className="space-y-8 px-4 sm:px-6">
-      {/* TMDB pages hold 20 titles: 2, 4 and 5 columns divide that evenly, so a
-          full page never ends on a short row (6 columns left 2 orphans). */}
+      {/* TMDB returns 20 titles per page; 2, 4 and 5 columns avoid incomplete rows. */}
       <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 lg:grid-cols-5">
         {results.map((item, i) => (
           <MediaCard
@@ -258,7 +253,6 @@ async function DiscoverResults({
   );
 }
 
-/** Suspense fallback while the query string and genre list resolve. */
 export function BrowseViewSkeleton() {
   return (
     <div className="flex flex-col gap-10" aria-hidden="true">

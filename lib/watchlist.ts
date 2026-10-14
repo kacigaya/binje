@@ -97,10 +97,7 @@ export function toggleWatchlist(input: WatchlistInput) {
   return true;
 }
 
-/**
- * Toggle from a control and confirm it. Without storage consent nothing is
- * written, so say so instead of confirming a save that did not happen.
- */
+/** Without storage consent, report that nothing was saved instead of confirming a write. */
 export function toggleWatchlistWithFeedback(
   input: WatchlistInput,
   added: boolean,

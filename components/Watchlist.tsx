@@ -95,8 +95,7 @@ export default function Watchlist() {
                 </span>
               </p>
             </IntentPrefetchLink>
-            {/* Always visible: removing is this page's main action, unlike
-                the hover-revealed add toggle on browse cards. */}
+            {/* Removal is the main action here, so keep it visible. */}
             <RemoveButton
               onClick={(event) => removeItem(event, item)}
               label={`${t("Remove from watchlist")}: ${item.title}`}

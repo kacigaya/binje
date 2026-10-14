@@ -235,8 +235,7 @@ export function intlLocale(locale: Locale): string {
   return INTL_LOCALES[locale];
 }
 
-// Constructing a formatter is the expensive part, and these are rendered once
-// per card, so each locale keeps one.
+// Reuse a formatter per locale; constructing one per card is expensive.
 const ratingFormatters = new Map<Locale, Intl.NumberFormat>();
 
 /** A one-decimal score in the locale's own notation: French wants a comma. */
@@ -255,7 +254,6 @@ export function formatRating(locale: Locale, value: number): string | null {
 
 const pluralRules = new Map<Locale, Intl.PluralRules>();
 
-/** Picks the singular or plural translation the locale's rules call for. */
 export function pluralize(
   locale: Locale,
   count: number,

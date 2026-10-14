@@ -18,7 +18,6 @@ interface RotateCCWIconProps extends HTMLAttributes<HTMLDivElement> {
 const RotateCCWIcon = forwardRef<RotateCCWIconHandle, RotateCCWIconProps>(
   ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
     const controls = useAnimation();
-    // The rest of the app honours prefers-reduced-motion; these icons must too.
     const reduced = useReducedMotion();
     const isControlledRef = useRef(false);
 

@@ -50,10 +50,7 @@ const NAV_LINKS: readonly {
   { href: "/watchlist", label: "Watchlist", icon: BookmarkIcon },
 ];
 
-/**
- * A nav entry whose icon animates from the link's hover: the link is far wider
- * than the glyph, so the icon's own hover would miss most of the target.
- */
+/** Animate from the whole link's hover target, which is wider than the icon. */
 function NavLink({
   href,
   icon: Icon,
@@ -289,8 +286,7 @@ export default function Navbar() {
                       type="search"
                       name="q"
                       autoComplete="off"
-                      // A title is not a word the dictionary knows, and the
-                      // red underline reads as an error on a search field.
+                      // Movie titles trigger misleading spelling errors.
                       spellCheck={false}
                       enterKeyHint="search"
                       required
@@ -348,11 +344,7 @@ export default function Navbar() {
 
                           return (
                             <li key={`${suggestion.media_type}-${suggestion.id}`}>
-                            {/* Suggestions are destinations, so they stay links:
-                                Cmd-click and middle-click keep working, Tab
-                                reaches them, and arrows/Enter are an enhancement.
-                                `role="option"` would strip the link semantics,
-                                so the list stays a plain list instead. */}
+                            {/* Keep link semantics for modified clicks and Tab navigation; `role="option"` would remove them. */}
                             <IntentPrefetchLink
                               href={localizedHref(locale, suggestionHref(suggestion))}
                               onMouseEnter={() => setActiveSuggestionIndex(index)}

@@ -78,8 +78,7 @@ function SearchContent() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [clearIcon, clearFeedback] = useAnimatedIcon();
   const [results, setResults] = useState<SearchResult[]>([]);
-  // A query in the URL means a search is about to run, so the first paint
-  // shows its loading state rather than the "start typing" prompt.
+  // A URL query starts a search immediately; show loading on the first paint.
   const [loading, setLoading] = useState(initialQuery.trim() !== "");
   const [searched, setSearched] = useState(initialQuery.trim() !== "");
   const [filter, setFilter] = useState<FilterType>(initialType);
@@ -104,8 +103,7 @@ function SearchContent() {
       const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&lang=${locale}`, {
         signal: controller.signal,
       });
-      // A 400 is a query the API refuses (too long), which really has no
-      // matches. Anything else failing must not read as "no matches".
+      // Treat rejected queries (400) as no matches; show other failures as errors.
       if (res.status === 400) {
         if (!controller.signal.aborted) setResults([]);
         return;
@@ -141,8 +139,7 @@ function SearchContent() {
     if (initialQuery) {
       doSearch(initialQuery);
     }
-    // Autofocus only where a keyboard is already out: on a phone it throws up
-    // the on-screen keyboard and scrolls the results out of view on arrival.
+    // Skip mobile autofocus to avoid opening the keyboard and scrolling results out of view.
     if (window.matchMedia("(pointer: fine)").matches) {
       inputRef.current?.focus();
     }
@@ -154,8 +151,7 @@ function SearchContent() {
 
   return (
     <div className="pt-24 pb-16 px-4 sm:px-6 max-w-7xl mx-auto w-full">
-      {/* The field itself is the page title visually; the heading gives the
-          document an outline and a landmark to jump to. */}
+      {/* Keep a document heading even though the search field serves as the visible title. */}
       <h1 className="sr-only">{t("Search")}</h1>
       <div className="relative max-w-2xl mx-auto mb-8">
         <Search

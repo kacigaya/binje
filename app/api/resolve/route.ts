@@ -14,8 +14,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await resolvePlaybackSource(source, params);
-    // Private and short: the URLs are signed and single-viewer, but a reload or
-    // a detail-page-to-watch-page hop should not pay for the chain twice.
+    // Cache privately and briefly: signed URLs are per viewer, but reloads should reuse the resolve.
     return NextResponse.json({ url: result.url, tracks: result.tracks, sources: result.sources }, {
       headers: { "cache-control": "private, max-age=300" },
     });

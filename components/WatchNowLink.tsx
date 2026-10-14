@@ -17,15 +17,8 @@ import { useTranslations } from "@/lib/use-locale";
 
 const EMPTY_HISTORY: PlayHistoryItem[] = [];
 
-/**
- * The primary "watch" call to action. It is a client component so the play
- * glyph can react to the link, which the detail pages render from the server.
- *
- * Given `media`, it turns into a resume control once local play history has
- * an entry for that title: movies name the position, shows name the episode.
- * The server render and first paint keep the plain label, since history only
- * exists in the browser.
- */
+/** Keep the initial label until browser history loads; then show the movie position or TV episode.
+ * The client boundary also lets the play icon respond to the whole link. */
 export default function WatchNowLink({
   href,
   label,

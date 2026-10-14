@@ -55,8 +55,8 @@ export default function CookiesBanner() {
   }
 
   return (
-    // No backdrop-filter: the panel is near-opaque, so blur costs GPU for nothing.
-    // A landmark, not a dialog: focus never moves into it.
+    // The near-opaque panel gains nothing from backdrop blur.
+    // Use a landmark because the banner does not take focus.
     <div
       role="region"
       aria-label={t("Cookie consent")}

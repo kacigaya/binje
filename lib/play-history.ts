@@ -141,11 +141,7 @@ export function removePlayHistoryItem(
   savePlayHistory(nextItems);
 }
 
-/**
- * Fraction watched, or null when there is nothing worth showing: entries saved
- * before playback started carry no progress, and a finished title has none
- * left to resume.
- */
+/** Watched fraction, or null for entries never started or already finished. */
 export function getPlaybackProgress(
   item: Pick<PlayHistoryItem, "progress"> | undefined,
 ): number | null {
@@ -158,10 +154,7 @@ export function getPlaybackProgress(
     : null;
 }
 
-/**
- * Saved position to resume `media` from, when history holds an unfinished
- * entry for that exact movie or episode.
- */
+/** Resume only unfinished history for this exact movie or episode. */
 export function getResumePosition(
   history: PlayHistoryItem[],
   media: Pick<PlayHistoryItem, "type" | "id" | "season" | "episode">,

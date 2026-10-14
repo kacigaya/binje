@@ -260,8 +260,7 @@ test("fetches SRT whole and stops reading past the size limit", async () => {
 
   // No content-length: the limit applies while reading.
   const chunk = new Uint8Array(1024 * 1024);
-  // Extensionless and octet-stream, like OpenSubtitles links, so the DASH
-  // sniffing must not buffer it first.
+  // Extensionless octet-stream subtitles must reach the read limit before DASH sniffing buffers them.
   globalThis.fetch = mock(async () => new Response(new ReadableStream({
     pull(controller) {
       controller.enqueue(chunk);

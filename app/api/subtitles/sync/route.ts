@@ -9,12 +9,8 @@ import { createTtlCache } from "@/lib/ttl-cache";
 
 export const maxDuration = 120;
 
-// Lines a subtitle file up with the stream's own audio: two windows of sound,
-// the opening and the middle, are decoded by ffmpeg and matched against the
-// file's lines. Openings are often music; the middle carries dialogue and
-// shows a frame-rate drift as a different offset. Each run pulls minutes of
-// the stream, so results are cached, runs are capped, and
-// /api/subtitles/sync has its own small rate-limit bucket.
+// Compare opening and middle audio to subtitle activity; the middle helps detect drift beyond opening music.
+// Decoding minutes of audio requires cached results, concurrency caps and a dedicated rate limit.
 const WINDOW_SECONDS = 150;
 const MIDDLE = 0.45;
 const SAMPLE_RATE = 8000;
@@ -32,9 +28,8 @@ class SyncError extends Error {
   }
 }
 
-// Playlists and segments are read through this server's /api/hls, so the host
-// allowlist, private-network checks and provider headers all still apply.
-// Forward the viewer’s User-Agent too: unpinned CDNs see it during playback.
+// Use /api/hls to retain the allowlist, private-network checks and provider headers.
+// Forward the viewer's User-Agent to match playback on unpinned CDNs.
 function internalOrigin() {
   return process.env.INTERNAL_ORIGIN ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`;
 }
@@ -56,7 +51,6 @@ async function fetchOk(url: string, userAgent: string | null, range?: Part["rang
       if (response.ok) return response;
       await response.body?.cancel();
     } catch {
-      // Retried below.
     }
     if (attempt > 0) throw new SyncError(502, "Upstream request failed.");
   }
@@ -88,9 +82,7 @@ async function readPlaylist(url: string, userAgent: string | null) {
   return text;
 }
 
-// ffmpeg only decodes: this server fetches the playlist and segments through
-// its own proxy and pipes the bytes in, so ffmpeg itself opens no URLs. (Its
-// HLS reader resolved proxied segment URLs back to the upstream host.)
+// Pipe proxied bytes into ffmpeg; never let it open URLs, since its HLS reader bypasses our proxy.
 async function decodeAudio(parts: Part[], userAgent: string | null): Promise<Int16Array> {
   const ffmpeg = spawn(
     "ffmpeg",
@@ -170,8 +162,7 @@ async function sync(stream: string, file: string, format: string | null, userAge
   }
 }
 
-// Takes the stream URL the player resolved and a subtitle file it lists; both
-// must already be registered with the proxy, so only real playback is synced.
+// Require both stream and subtitle URLs to be registered with the proxy before syncing.
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
   const stream = getTargetUrl(query.get("stream"));

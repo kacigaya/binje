@@ -1,8 +1,5 @@
-// Translates a static MPEG-DASH manifest into HLS playlists so fMP4 DASH
-// sources play through the existing HLS pipeline (hls.js, native Safari,
-// expo-video, Cast). Supports the shapes seen in the wild for MovieBox: one
-// Period, SegmentTemplate with SegmentTimeline or a fixed duration, and
-// BaseURL at any level. Anything else throws and the proxy answers 502.
+// Convert static DASH for the HLS players: one Period, SegmentTemplate with timeline or fixed duration.
+// BaseURL works at any level; unsupported shapes throw and the proxy returns 502.
 
 type Element = { name: string; attrs: Record<string, string>; children: Element[]; text: string };
 

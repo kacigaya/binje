@@ -11,9 +11,8 @@ import {
 } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// vidsrc.buzz and videm.xyz run the same player: the page embeds a signed
-// token and a server list, and api.php mints a stream for one server. The
-// minted URL only answers the User-Agent that minted it, so it is pinned.
+// vidsrc.buzz and videm.xyz embed a signed token and server list; api.php mints stream URLs.
+// Pin the User-Agent because each URL is bound to the agent that minted it.
 const MAX_SERVERS = 4;
 
 type Server = { ref: string; lang: string | null };

@@ -1,7 +1,4 @@
-/**
- * Clock-style playback time: `6:51` under an hour, `1:50:28` past it.
- * Minutes and seconds are zero-padded, the leading unit is not.
- */
+/** Clock time: `6:51` under an hour, `1:50:28` above it; pad all but the leading unit. */
 export function formatPlaybackTime(totalSeconds: number): string {
   const safeSeconds = Math.max(0, Math.floor(totalSeconds));
   const hours = Math.floor(safeSeconds / 3600);

@@ -89,8 +89,7 @@ export default async function RootLayout({
           <Suspense fallback={null}>
             <LocaleValidation params={params} />
           </Suspense>
-          {/* First tab stop on every page: the fixed nav and the carousels
-              below it are a long way to travel one link at a time. */}
+          {/* Make the skip link the first tab stop to bypass navigation and carousel links. */}
           <a
             href="#main"
             className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-full focus-visible:bg-accent-red focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-semibold focus-visible:text-white"

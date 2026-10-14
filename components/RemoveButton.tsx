@@ -4,11 +4,7 @@ import type { MouseEvent } from "react";
 import { XIcon } from "@/components/ui/x";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 
-/**
- * The remove control repeated over card grids. It exists so each card owns its
- * own icon handle: the animation is driven from the button, which is several
- * times the size of the cross inside it.
- */
+/** Each card needs its own icon handle, animated from the whole button's hover target. */
 export default function RemoveButton({
   onClick,
   label,

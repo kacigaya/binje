@@ -4,17 +4,13 @@ import { isIP } from "node:net";
 import { Agent } from "undici";
 import { allowStreamHost, streamCookie, streamUserAgent } from "@/lib/hls-hosts";
 
-// Server-side fetches of provider-supplied URLs (the HLS proxy and resolver
-// playability checks) must not reach private networks, including through a
-// redirect or a DNS answer that changes between the check and the connection.
+// Provider URLs must never reach private networks, including through redirects or DNS rebinding.
 const MAX_REDIRECTS = 4;
-// Viewers pull hundreds of segments a minute; one short-lived lookup shared by
-// the check and the dispatcher keeps them from disagreeing.
+// Share short-lived DNS lookups between checks and connections to keep segment bursts consistent.
 const DNS_TTL_MS = 60_000;
 const MAX_DNS_ENTRIES = 200;
 
-// The pending lookup is what gets cached, not its result: a cold cache under a
-// segment burst would otherwise fire one resolution per in-flight request.
+// Cache pending lookups so concurrent cold-cache requests share one DNS resolution.
 type DnsEntry = { addresses: Promise<LookupAddress[]>; expiresAt: number };
 const dnsCache = new Map<string, DnsEntry>();
 
@@ -86,8 +82,7 @@ function isBlockedIP(ip: string) {
   );
 }
 
-// WHATWG URL keeps the brackets on IPv6 literals; isIP and dns.lookup reject
-// them, so strip them before either sees the host.
+// Strip WHATWG URL's IPv6 brackets before passing the host to isIP or dns.lookup.
 function bareHostname(url: URL) {
   return url.hostname.replace(/^\[|\]$/g, "");
 }
@@ -105,8 +100,7 @@ export async function isSafeHost(url: URL) {
   }
 }
 
-// Validates the addresses the socket actually connects to, so a DNS-rebinding
-// answer cannot pass the pre-flight check and then hit a private IP.
+// Validate socket addresses too; DNS rebinding can bypass a pre-flight check.
 const dispatcher = new Agent({
   connect: {
     lookup(hostname, options, callback) {
@@ -128,9 +122,8 @@ const dispatcher = new Agent({
   },
 });
 
-// The proxy trusts every hop for later segments and rescopes signed cookies to
-// it. Resolver page requests only need the private-network checks, so they
-// pass trustRedirects: false and leave the proxy's allowlist untouched.
+// Proxy redirects register hosts and rescope cookies for later segments.
+// Resolvers use trustRedirects: false to keep network checks without changing the proxy allowlist.
 export async function safeFetch(start: URL, init: RequestInit, { trustRedirects = true } = {}) {
   let current = start;
 
@@ -160,8 +153,7 @@ export async function safeFetch(start: URL, init: RequestInit, { trustRedirects 
   throw new Error("Too many redirects.");
 }
 
-// For URLs a provider supplied: refuses private targets up front, then follows
-// redirects through the same checks.
+// Apply private-network checks to provider URLs and every redirect.
 export async function fetchPublic(url: string | URL, init: RequestInit): Promise<Response> {
   const target = getTargetUrl(String(url));
   if (!target || !(await isSafeHost(target))) throw new Error("Blocked target.");

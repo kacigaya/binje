@@ -3,15 +3,8 @@ import type { ReactNode } from "react";
 import type { TMDBImageAsset } from "@/types/tmdb";
 import { logoUrl } from "@/lib/tmdb";
 
-/**
- * Backdrop, poster and title block shared by the movie and TV detail pages.
- *
- * On phones the poster shrinks to a thumbnail beside the title so the play
- * action lands in the first screen; from `sm` up it is the tall column the
- * rest of the details sit beside. The backdrop's minimum heights keep the
- * negative offset from pulling content under the fixed navbar on short
- * viewports.
- */
+/** The mobile thumbnail keeps the play action above the fold.
+ * Backdrop minimum heights prevent the negative offset from hiding content under the navbar. */
 export default function DetailHero({
   title,
   backdrop,
@@ -64,8 +57,7 @@ export default function DetailHero({
           <div className="min-w-0 space-y-2 sm:pt-28">
             {logo && logoSrc ? (
               <>
-                {/* The logo replaces the title visually; the heading keeps
-                    the page from rendering without an h1. */}
+                {/* Keep an h1 in the document when the logo replaces the visible title. */}
                 <h1 className="sr-only">{title}</h1>
                 <Image
                   src={logoSrc}

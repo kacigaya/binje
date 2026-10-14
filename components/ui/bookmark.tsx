@@ -31,7 +31,6 @@ const BOOKMARK_VARIANTS: Variants = {
 const BookmarkIcon = forwardRef<BookmarkIconHandle, BookmarkIconProps>(
   ({ className, size = 28, onMouseEnter, onMouseLeave, ...props }, ref) => {
     const controls = useAnimation();
-    // The rest of the app honours prefers-reduced-motion; these icons must too.
     const reduced = useReducedMotion();
     const isControlledRef = useRef(false);
 

@@ -21,10 +21,7 @@ import { colors, fonts, spacing } from "../theme";
 
 void SplashScreen.preventAutoHideAsync();
 
-/**
- * Root error boundary. Rendered outside AppProviders, so it resolves its own
- * locale instead of using the LocaleProvider context.
- */
+/** This boundary renders outside AppProviders, so it must resolve its own locale. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   const locale = localeFromTags(
     getLocales().map((item) => item.languageTag ?? item.languageCode),

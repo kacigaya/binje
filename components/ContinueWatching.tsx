@@ -81,8 +81,7 @@ export default function ContinueWatching() {
               typeof item.durationSeconds === "number"
                 ? Math.max(1, Math.ceil((item.durationSeconds - item.positionSeconds) / 60))
                 : null;
-            // Entries saved before playback started, or before these fields
-            // existed, carry no timings and get no badge.
+            // Older entries and titles never played have no timings to display.
             const timings =
               typeof item.positionSeconds === "number" &&
               Number.isFinite(item.positionSeconds) &&

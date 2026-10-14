@@ -20,11 +20,7 @@ export function formatDelay(seconds: number) {
 const smallButtonClass =
   "inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold text-white outline-none transition hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-3.5";
 
-/**
- * The subtitles panel: the track list plus, for the shown track, a delay to
- * nudge by hand and an audio-based auto-sync. Rendered inside the player so
- * it stays visible in container fullscreen.
- */
+/** Render inside the player so the menu remains visible in container fullscreen. */
 export default function SubtitleMenu({
   container,
   labels,

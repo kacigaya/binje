@@ -6,8 +6,7 @@ const LIMITS: [prefix: string, max: number][] = [
   ["/api/resolve", 20],
   // Each call resolves every provider for one title, so it is the costliest route.
   ["/api/sources", 20],
-  // Each run decodes minutes of a stream's audio. Listed before
-  // /api/subtitles, which it would otherwise match.
+  // Audio sync decodes minutes of audio; match it before the broader /api/subtitles rule.
   ["/api/subtitles/sync", 3],
   // Each uncached title asks several providers for their subtitle lists.
   ["/api/subtitles", 20],
@@ -29,9 +28,8 @@ export function retryAfterSeconds(ip: string, pathname: string): number {
   return Math.max(0, Math.ceil((entry.resetAt - Date.now()) / 1000));
 }
 
-// Only the right-most x-forwarded-for entry is trustworthy: it is the one the
-// reverse proxy in front of this app appended. Everything to its left, and any
-// other client-supplied IP header, is spoofable.
+// Trust only the rightmost x-forwarded-for entry appended by our reverse proxy.
+// Earlier entries and other client-supplied IP headers are spoofable.
 export function clientIp(headers: Headers): string {
   const forwarded = headers.get("x-forwarded-for")?.split(",") ?? [];
   return forwarded[forwarded.length - 1]?.trim() || "unknown";

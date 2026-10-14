@@ -1,8 +1,4 @@
-/**
- * URL state for the /movies and /tv-shows filters. Query values come straight
- * from the address bar, so every field is checked against an allowlist and
- * anything unexpected falls back to the default instead of reaching TMDB.
- */
+/** Allowlist URL filter values; invalid input falls back to defaults before reaching TMDB. */
 
 export type BrowseType = "movie" | "tv";
 export const SORT_KEYS = ["popular", "rating", "newest"] as const;
@@ -62,10 +58,7 @@ export function isFiltered(filters: BrowseFilters): boolean {
   );
 }
 
-/**
- * Query string for `filters` with `patch` applied. Changing any filter other
- * than the page sends the viewer back to page one.
- */
+/** Apply a filter patch to the query string; changes other than pagination reset to page one. */
 export function browseQuery(
   filters: BrowseFilters,
   patch: Partial<BrowseFilters>,
@@ -82,7 +75,6 @@ export function browseQuery(
   return query ? `?${query}` : "";
 }
 
-/** TMDB `/discover/{type}` path and query for `filters`. */
 export function discoverEndpoint(
   type: BrowseType,
   filters: BrowseFilters,

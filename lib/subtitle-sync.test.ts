@@ -21,8 +21,7 @@ function lines(seed: number, total: number): [number, number][] {
   return cues;
 }
 
-// Speech where the lines say it is, after the file is moved to video time,
-// with some lines unspoken and some sounds without lines.
+// Shift lines to video time, leaving some lines unspoken and adding sounds without lines.
 function speechFor(cues: [number, number][], from: number, seconds: number, map: (t: number) => number) {
   const next = random(7);
   const speech = new Float32Array(Math.round(seconds / STEP));
@@ -62,8 +61,7 @@ test("gives up when speech has nothing to do with the file", () => {
 
 test("gives up on a file timed for another cut, whose windows disagree", () => {
   const cues = lines(5, 900);
-  // The middle is clear, so the summed score peaks there; the opening, a
-  // noisier but still clear witness, places the file elsewhere.
+  // Both windows have clear peaks at different offsets; their sum favors the middle window.
   const opening = speechFor(cues, 0, 150, (t) => t + 2);
   const next = random(13);
   opening.speech = opening.speech.map((value) => (next() < 0.25 ? 1 - value : value));

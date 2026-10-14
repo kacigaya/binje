@@ -3,9 +3,8 @@ import type { ResolveParams } from "@/lib/resolve-cache";
 import { fetchText, firstInOrder, httpUrl, isPlayableManifest, isRecord, type ResolvedStream } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// 2Embed's default server is a StreamHG file: the title page names the file,
-// streamsrcs.2embed.cc's swish.js names the current StreamHG host, and the
-// host's packed player script lists the HLS variants.
+// The title page supplies a StreamHG file id; swish.js supplies the current host.
+// Read HLS variants from that host's packed player script.
 const SITE = "https://www.2embed.cc";
 const STREAMSRCS = "https://streamsrcs.2embed.cc/";
 const FALLBACK_PLAYER = "https://2vcdn.skin/e/";

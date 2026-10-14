@@ -7,8 +7,7 @@ import { HomeIcon } from "@/components/ui/home";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import "./globals.css";
 
-// Lives at the app root, not under [locale]: Next resolves notFound() and
-// unmatched URLs to the root boundary, so a [locale] copy never renders.
+// Next resolves unmatched URLs to the root boundary; a [locale] copy never renders.
 // The proxy redirects "/" to the visitor's preferred locale.
 export default function NotFound() {
   const [homeIcon, homeFeedback] = useAnimatedIcon();

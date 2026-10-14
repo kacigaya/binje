@@ -11,11 +11,8 @@ import {
 } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// player.videasy.ws (https://videasy.ws/docs.html) wraps a vidsrc.sh player in
-// two iframe pages. Each page mints a short-lived token for the next: the
-// wrapper's vs_src.php gives the player host URL, whose page carries a
-// single-use api_token for data.vidsrc.sh. The player's Turnstile gate runs
-// in that page only; the stream API does not check it.
+// player.videasy.ws chains vs_src.php and a vidsrc.sh page to mint a single-use data.vidsrc.sh api_token.
+// Tokens are short-lived; Turnstile applies only to the player page (https://videasy.ws/docs.html).
 const EMBED = "https://player.videasy.ws";
 const MAX_WASM_BYTES = 1024 * 1024;
 const NONCE_BYTES = 12;

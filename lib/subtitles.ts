@@ -12,10 +12,8 @@ const cache = createTtlCache<SubtitleTrack[]>(10 * 60 * 1000);
 // OpenSubtitles' legacy REST API asks clients to name themselves.
 const OPENSUBTITLES_AGENT = "binje";
 
-// Every file is kept: several per language, each timed to some release, give
-// viewers others to try when one drifts. Labels arrive as "English",
-// "English2" or "English hi" (hearing impaired) and are reduced to the
-// language; the player numbers repeats.
+// Keep alternate release timings per language so viewers can try another file when one drifts.
+// Normalize labels such as English2 and English hi to a language; the player numbers repeats.
 export function pickSubtitleTracks(tracks: SubtitleTrack[]): SubtitleTrack[] {
   const seenFiles = new Set<string>();
   return tracks.flatMap((track) => {
@@ -26,8 +24,7 @@ export function pickSubtitleTracks(tracks: SubtitleTrack[]): SubtitleTrack[] {
   });
 }
 
-// Vidrock's subtitle service, which Atlantic's player also reads: WebVTT by
-// TMDB id.
+// Vidrock's WebVTT-by-TMDB-id service, also used by Atlantic.
 async function graniteSubtitles({ type, id, season, episode }: ResolveParams): Promise<SubtitleTrack[]> {
   const path = type === "tv" ? `tv/${id}/${season}/${episode}` : `movie/${id}`;
   const body = await fetchJson(`https://sub.vdrk.site/v1/${path}`);
@@ -62,9 +59,7 @@ async function openSubtitles({ type, imdbId, season, episode }: ResolveParams): 
   return openSubtitlesTracks(body);
 }
 
-// Subtitle lists that providers publish per title, independent of which
-// source plays it; the player offers them next to the source's own. WebVTT
-// lists come first, then OpenSubtitles.
+// Offer title-wide subtitles alongside the playing source's tracks; WebVTT precedes OpenSubtitles SRT.
 export async function titleSubtitles(params: ResolveParams): Promise<SubtitleTrack[]> {
   const key = params.type === "tv" ? `tv:${params.id}:${params.season}:${params.episode}` : `movie:${params.id}`;
   const tracks = await cache.get(key, async () => {
@@ -79,8 +74,7 @@ export async function titleSubtitles(params: ResolveParams): Promise<SubtitleTra
     if (lists.every((list) => list.status === "rejected")) throw new Error("No subtitle provider answered.");
     return pickSubtitleTracks(lists.flatMap((list) => (list.status === "fulfilled" ? list.value : [])));
   });
-  // The player loads them through /api/hls, which serves allowlisted hosts
-  // only. Registered on every call: allowlist entries expire on their own.
+  // Re-register file hosts on every call because the proxy allowlist expires independently.
   allowStreamHosts(tracks.map((track) => track.file));
   return tracks;
 }

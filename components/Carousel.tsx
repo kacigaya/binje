@@ -50,8 +50,7 @@ export default function Carousel({
           scroll={scroll}
         />
 
-        {/* Focusable so the row can be scrolled with the arrow keys: the
-            arrow buttons are the only other non-pointer affordance. */}
+        {/* Focusable so keyboard users can scroll the row with arrow keys. */}
         <div
           ref={scrollRef}
           tabIndex={0}

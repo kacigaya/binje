@@ -1,11 +1,7 @@
 import { DEFAULT_LOCALE, LOCALES } from "@/lib/i18n";
 import { SITE_URL } from "@/lib/site";
 
-/**
- * https://llmstxt.org — a Markdown map of the site for agents and crawlers.
- * Generated rather than shipped as a static file so it cannot drift from the
- * locales and canonical origin the sitemap and metadata already use.
- */
+/** Generate the https://llmstxt.org map from shared locale and origin settings to prevent drift. */
 const SECTIONS: { path: string; name: string; description: string }[] = [
   { path: "", name: "Home", description: "Trending movies and TV shows." },
   { path: "/movies", name: "Movies", description: "Browse and discover movies." },

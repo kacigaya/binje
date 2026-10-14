@@ -1,23 +1,17 @@
 import { SCALES, type SubtitleSync } from "@/lib/subtitle-timing";
 
-// Audio sync in the spirit of ffsubsync: mark where speech is, mark where the
-// file shows lines, and slide one over the other until they agree most.
+// Align subtitle activity with detected speech, as in ffsubsync.
 export const STEP = 0.1; // seconds per frame
 export const MAX_SHIFT = 60; // seconds either way
-// Speech sits in the telephone band; a frame counts as speech when that band
-// is this much louder than the sound around it, so music beds and room tone
-// that stay level are ignored.
+// Count speech when telephone-band energy exceeds surrounding sound; ignore steady music and room tone.
 const SPEECH_LOW_HZ = 300;
 const SPEECH_HIGH_HZ = 3000;
 const BACKGROUND_SECONDS = 3;
 const SPEECH_RISE_DB = 9;
-// The best shift must stand this far, as a share of its score, above any
-// shift more than PEAK_WIDTH away; tuned on real episodes, where wrong
-// scales and noise came out under 0.1 and right answers over 0.3.
+// Require a peak above shifts farther than PEAK_WIDTH; episode samples put noise below 0.1, matches above 0.3.
 const MIN_PROMINENCE = 0.15;
 const PEAK_WIDTH = 3;
-// And agree with the speech at all: right answers on real episodes averaged
-// about 0.27 per window, chance lands near 0.03.
+// Require overall agreement too; episode samples averaged 0.27 for matches versus 0.03 by chance.
 const MIN_CORRELATION = 0.12;
 
 function biquad(samples: Float32Array, rate: number, kind: "highpass" | "lowpass", frequency: number) {
@@ -61,11 +55,8 @@ export function speechActivity(pcm: Int16Array, sampleRate: number): Float32Arra
 
 export type SpeechWindow = { start: number; speech: Float32Array };
 
-/**
- * Pearson correlation between a window's speech and the file's lines, for
- * every shift in ±MAX_SHIFT. A line at file time t lands at video time
- * t * scale + shift.
- */
+/** Pearson correlation of speech and subtitle activity for shifts within ±MAX_SHIFT.
+ * A subtitle at t maps to video time t * scale + shift. */
 function correlations(window: SpeechWindow, cues: [number, number][], scale: number): Float32Array {
   const frames = window.speech.length;
   const pad = Math.round(MAX_SHIFT / STEP);
@@ -98,13 +89,9 @@ function correlations(window: SpeechWindow, cues: [number, number][], scale: num
   return result;
 }
 
-/**
- * The offset and frame-rate scale that best line the file's cues up with the
- * speech in every window together, or null when no shift stands out.
- */
+/** Best offset and frame-rate scale across all windows, or null when no shift stands out. */
 export function alignCues(windows: SpeechWindow[], cues: [number, number][]): (SubtitleSync & { confidence: number }) | null {
-  // A silent opening contributes no timing evidence and must not dilute the
-  // dialogue window's score. Constant activity cannot identify a shift either.
+  // Exclude silent or constant windows; they provide no shift evidence and dilute dialogue scores.
   windows = windows.filter(({ speech }) => speech.some((value) => value !== speech[0]));
   if (!windows.length || !cues.length) return null;
   const pad = Math.round(MAX_SHIFT / STEP);
@@ -122,9 +109,8 @@ export function alignCues(windows: SpeechWindow[], cues: [number, number][]): (S
   const { shift, scale, scores } = best;
   const confidence = prominence(scores, shift + pad, width);
   if (confidence < MIN_PROMINENCE) return null;
-  // The summed score can peak where no window does: a file timed for another
-  // cut sits at a different offset in each window. A window whose own clear
-  // peak lies elsewhere vetoes the answer; windows without one abstain.
+  // Different cuts can produce a summed peak no window supports.
+  // A window with a clear conflicting peak vetoes the result; inconclusive windows abstain.
   for (const window of windows) {
     const own = correlations(window, cues, scale);
     const peak = own.indexOf(Math.max(...own));
@@ -143,10 +129,7 @@ function prominence(scores: Float32Array, at: number, width: number) {
   return (scores[at] - rival) / scores[at];
 }
 
-// The cheapest playlist that carries the sound the player plays: the
-// lowest-bandwidth variant, or the default rendition of that variant's audio
-// group when the audio is separate (other renditions may be commentary or
-// another language).
+// Use the lowest-bandwidth variant's default audio; other renditions may be commentary or another language.
 export function audioPlaylist(master: string, base: string): string {
   if (!master.includes("#EXT-X-STREAM-INF")) return base;
   const lines = master.split("\n").map((line) => line.trim());
@@ -181,11 +164,8 @@ function byteRange(value: string, url: string, ends: Map<string, number>) {
 
 export type Segment = Part & { start: number; duration: number; init?: Part };
 
-/**
- * Every segment of a media playlist with its start time, byte range and the
- * init section in effect for it (a playlist may switch maps at a
- * discontinuity). Encrypted playlists are reported rather than decoded.
- */
+/** Track each segment's time, byte range and current init section, including map changes.
+ * Report encrypted playlists without decoding them. */
 export function mediaSegments(playlist: string, base: string) {
   const segments: Segment[] = [];
   const ends = new Map<string, number>();

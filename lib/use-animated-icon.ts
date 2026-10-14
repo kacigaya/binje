@@ -8,15 +8,8 @@ export type AnimatedIconHandle = {
   stopAnimation: () => void;
 };
 
-/**
- * Drives an animated icon from its control rather than from the glyph itself.
- * Buttons and links are usually far wider than the icon inside them, so the
- * icon's own hover would miss most of the target; focus is wired alongside so
- * keyboard users get the same feedback.
- *
- *     const [icon, feedback] = useAnimatedIcon();
- *     <button {...feedback}><PlayIcon ref={icon} size={20} /></button>
- */
+/** Drive hover and focus from the whole control so keyboard users and wide targets get feedback.
+ * Usage: const [icon, feedback] = useAnimatedIcon(); <button {...feedback}><PlayIcon ref={icon} /></button> */
 export function useAnimatedIcon() {
   const ref = useRef<AnimatedIconHandle>(null);
 

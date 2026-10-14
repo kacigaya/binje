@@ -45,10 +45,8 @@ export function WatchTVPlayerLoading() {
       data-testid="watch-tv-player-frame"
     >
         <div className="space-y-4">
-          {/* Sources are picked inside the player, so the frame is the whole slot. */}
           <Skeleton className="w-full aspect-video rounded-xl" />
 
-          {/* Mirrors TVPlayer's controls: season picker, now playing, prev/next. */}
           <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">
             <div className="flex items-center justify-between gap-3 sm:justify-start">
               <Skeleton className="h-5 w-14" />

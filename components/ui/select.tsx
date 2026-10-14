@@ -63,10 +63,7 @@ function Select<T extends string | number>({
         )}
       </BaseSelect.Trigger>
       <BaseSelect.Portal>
-        {/* Fixed, not absolute: the first frame sits at the trigger's x before
-            collision shifts it, and an absolute popup near the right edge
-            overflows the page. Mobile Chrome then widens the layout viewport
-            for good, stretching the fixed navbar off-screen. */}
+        {/* Absolute positioning can overflow before collision adjustment and widen Mobile Chrome's viewport. */}
         <BaseSelect.Positioner
           positionMethod="fixed"
           sideOffset={6}

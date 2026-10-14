@@ -234,7 +234,6 @@ test("desktop controls play, seek, and mute", async ({ page }) => {
   await page.getByRole("button", { name: "Mute", exact: true }).click();
   await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.muted)).toBe(true);
 
-  // A click on the picture toggles playback; keyboard shortcuts work from the page.
   await video.click({ force: true });
   await expect.poll(isPaused).toBe(true);
   await page.locator("body").press("k");
@@ -300,7 +299,6 @@ test("a source without subtitles offers the title's, off by default", async ({ p
   await resolved;
   const modes = () => page.locator("video track").evaluateAll((tracks: HTMLTrackElement[]) =>
     tracks.map((track) => `${track.label}:${track.track.mode}`));
-  // The viewer's language first; nothing shows until the viewer picks.
   await expect.poll(modes).toEqual(["Français:disabled", "Anglais:disabled"]);
   await page.getByRole("button", { name: "Sous-titres", exact: true }).click();
   await page.getByText("Français", { exact: true }).click();
@@ -465,8 +463,7 @@ test("subtitles lift above the controls only while they show", async ({ page }) 
 test("a lifted cue renders above the seek row", async ({ page }) => {
   await playerWithSubtitle(page, "WEBVTT\n\n00:00.000 --> 01:00.000\nOne\n");
   await playLocalStream(page, 640, 360);
-  // Paused on its first frame, the video can still show the poster; the check
-  // below needs the solid frame behind the strip.
+  // Play past the poster so the pixel check sees the solid video frame.
   await page.locator("video").evaluate((video: HTMLVideoElement) => {
     video.pause();
     video.removeAttribute("poster");
@@ -474,9 +471,7 @@ test("a lifted cue renders above the seek row", async ({ page }) => {
   await expect.poll(() => cueStarts(page)).toEqual([0]);
   const row = (await page.locator("[data-player-controls] > div:has(input[aria-label='Seek'])").boundingBox())!;
   const video = (await page.locator("video").boundingBox())!;
-  // The strip just above the seek row shows the blue frame under the controls'
-  // dark gradient; only the cue's text, dimmed to gray by that gradient, has
-  // pixels whose every channel is bright.
+  // Above the seek row, only subtitle text has bright pixels in every channel over the dimmed blue frame.
   const strip = { x: video.x, y: row.y - 30, width: video.width, height: 30 };
   const cuePixels = async () => page.evaluate(async (png) => {
     const image = new Image();

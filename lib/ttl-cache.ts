@@ -1,6 +1,5 @@
-// Small in-process cache with single-flight: concurrent callers for one key
-// share a single upstream request instead of stampeding the provider.
-// ponytail: per-instance and lost on restart, same trade-off as lib/hls-hosts.ts.
+// Concurrent callers for a key share one upstream request.
+// Cache state is per instance and lost on restart.
 type Entry<T> = { value: Promise<T>; expiresAt: number };
 
 type TtlCache<T> = {

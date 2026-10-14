@@ -25,8 +25,7 @@ import {
 import NativeCastControls from "./CastControls";
 import type { MobileMediaType, StreamResponse } from "../../types/api";
 
-// Episode changes keep this screen mounted, so per-episode source state
-// carries the media key it belongs to and is ignored once that changes.
+// Episodes reuse this screen; key source state by media so the previous episode's state is ignored.
 type Keyed<T> = { key: string; value: T };
 function forMedia<T>(state: Keyed<T> | null, key: string): T | undefined {
   return state?.key === key ? state.value : undefined;
@@ -86,8 +85,7 @@ export function PlayerScreen({
   const failedList = forMedia(failed, mediaKey) ?? [];
   const usable = (source: PlaybackSource | undefined) => (source && !failedList.includes(source) ? source : undefined);
   const playingSource = usable(forMedia(playing, mediaKey));
-  // Whatever already plays stays, else the first listed source that has not
-  // failed here. A failure moves on to the next one.
+  // Keep the playing source while availability settles; otherwise try the next source that has not failed.
   const source =
     playingSource ??
     (availableList ?? [DEFAULT_SOURCE]).find((item) => !failedList.includes(item)) ??

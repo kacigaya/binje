@@ -5,10 +5,7 @@ import { ChevronRightIcon } from "@/components/ui/chevron-right";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { useTranslations } from "@/lib/use-locale";
 
-/**
- * Edge fade + chevron button pair for a `useHorizontalScroll` row.
- * The parent must carry the `group/scroll` class for the hover reveal to work.
- */
+/** The parent needs `group/scroll` for the hover reveal. */
 export default function ScrollArrows({
   canScrollLeft,
   canScrollRight,
