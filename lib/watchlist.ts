@@ -2,7 +2,6 @@
 
 import { toast } from "sonner";
 import { hasStorageConsent } from "@/lib/consent";
-import { haptic } from "@/lib/haptics";
 import type { TranslationKey } from "@/lib/i18n";
 import { createLocalArrayStore } from "@/lib/local-array-store";
 
@@ -108,11 +107,9 @@ export function toggleWatchlistWithFeedback(
   t: (text: TranslationKey) => string,
 ) {
   if (!hasStorageConsent()) {
-    haptic("error");
     toast.error(t("Allow local storage to save titles."));
     return;
   }
-  haptic(added ? "light" : "success");
   toggleWatchlist(input);
   toast.success(t(added ? "Removed from watchlist" : "Added to watchlist"), {
     description: input.title,

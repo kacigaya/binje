@@ -2,7 +2,6 @@
 
 import type { MouseEvent } from "react";
 import { XIcon } from "@/components/ui/x";
-import { haptic } from "@/lib/haptics";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 
 /**
@@ -26,10 +25,7 @@ export default function RemoveButton({
   return (
     <button
       type="button"
-      onClick={(event) => {
-        haptic("medium");
-        onClick(event);
-      }}
+      onClick={onClick}
       {...feedback}
       aria-label={label}
       className={className}
