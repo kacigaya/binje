@@ -46,13 +46,16 @@ type PresentationVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void
 // for the title; ids this build does not know are ignored. Viewers never pick:
 // a failure moves on to the next listed source.
 const KNOWN_SOURCES: Record<PlaybackSource, true> = {
-  cine4k: true,
+  aphrodite: true,
   athena: true,
   helios: true,
-  planets: true,
+  pandora: true,
+  saturn: true,
+  neptune: true,
+  moscow: true,
+  cine4k: true,
   moviesapi: true,
   videasyws: true,
-  moscow: true,
   vidzee: true,
   moviebox: true,
   vidnest: true,
@@ -64,8 +67,8 @@ const KNOWN_SOURCES: Record<PlaybackSource, true> = {
   vf: true,
 };
 // Tried before the availability list arrives, so playback does not wait on
-// it. Cine4K has no episodes, so TV starts on Athena.
-const DEFAULT_SOURCE: Record<"movie" | "tv", PlaybackSource> = { movie: "cine4k", tv: "athena" };
+// it. Aphrodite serves both movies and episodes.
+const DEFAULT_SOURCE: PlaybackSource = "aphrodite";
 
 function isKnownSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && Object.hasOwn(KNOWN_SOURCES, value);
@@ -203,7 +206,7 @@ export default function Player({
   // failed here. A failure moves on to the next one.
   const source =
     playingSource ??
-    (availableList ?? [DEFAULT_SOURCE[type]]).find((id) => !failedList.includes(id)) ??
+    (availableList ?? [DEFAULT_SOURCE]).find((id) => !failedList.includes(id)) ??
     null;
   const exhausted = source === null && availableList !== undefined;
   // Waiting for the availability list after the default source failed.

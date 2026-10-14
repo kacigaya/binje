@@ -18,17 +18,21 @@ import { resolveVideasyWsStream } from "@/lib/videasyws";
 export type { PlaybackSource };
 
 // Playback order: players start with the first available source and move
-// down the list on failure; viewers never pick. 4K first, then 1080p. VF is
-// out of the chain for now (its resolver stays reachable through RESOLVERS
-// for /api/resolve-vf), and the remaining sources are silent last resorts.
+// down the list on failure; viewers never pick. Atlantic's servers come
+// first, in its own order, then the remaining sources as silent last resorts.
+// VF is out of the chain for now (its resolver stays reachable through
+// RESOLVERS for /api/resolve-vf).
 export const PLAYBACK_SOURCES = [
-  "cine4k",
+  "aphrodite",
   "athena",
   "helios",
-  "planets",
+  "pandora",
+  "saturn",
+  "neptune",
+  "moscow",
+  "cine4k",
   "moviesapi",
   "videasyws",
-  "moscow",
   "vidzee",
   "moviebox",
   "vidnest",
@@ -42,10 +46,13 @@ export const PLAYBACK_SOURCES = [
 const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<ResolvedStream>> = {
   videasyws: resolveVideasyWsStream,
   cine4k: resolveCine4kStream,
+  aphrodite: resolveAtlanticStream("aphrodite"),
   athena: resolveAtlanticStream("athena"),
   helios: resolveAtlanticStream("helios"),
+  pandora: resolveAtlanticStream("pandora"),
+  saturn: resolveAtlanticStream("saturn"),
+  neptune: resolveAtlanticStream("neptune"),
   moscow: resolveAtlanticStream("moscow"),
-  planets: resolveAtlanticStream("planets"),
   vidzee: resolveVidzeeStream,
   moviebox: resolveMovieboxStream,
   vidnest: resolveVidnestStream,

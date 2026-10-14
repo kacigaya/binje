@@ -1,5 +1,22 @@
 # Playback provider validation
 
+## Atlantic order (2026-10-14)
+
+Playback now follows Atlantic's own server order: Aphrodite, Athena, Helios,
+Pandora, Saturn, Neptune, Moscow, then Cine4K, MoviesAPI, Videasy.ws and the
+other sources as last resorts. Both players start on Aphrodite.
+
+- Aphrodite: `cdn.hls.lol/content/{movie/id|tv/id/s/e}` answers `{ found, url }`
+  without the signed `X-Az-*` headers Atlantic's obfuscated client sends.
+  1080p HLS on totallyacdn.org with Atlantic as Referer. It had Beyblade Metal
+  (37807), which no other source served.
+- Pandora: `stream.hls.lol/pandora` matches the English title and year, so the
+  resolver reads them from TMDB (cached a day). Its `pd_` payload decrypts to an
+  unencrypted DASH manifest, HEVC 1080p/720p/480p, translated by `/api/hls`.
+  Devices without HEVC decoding fall through to the next source.
+- Saturn and Neptune, formerly one "Planets" source, are separate entries that
+  share one `/planets` answer.
+
 ## Automatic playback order (2026-10-12)
 
 Viewers no longer choose a source: the web and mobile source pickers are gone

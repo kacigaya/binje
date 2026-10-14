@@ -7,13 +7,16 @@ export type { PlaybackSource };
 // are ignored so a newer server cannot break an older app. Viewers never
 // pick: a failure moves on to the next listed source.
 const KNOWN_SOURCES: Record<PlaybackSource, true> = {
-  cine4k: true,
+  aphrodite: true,
   athena: true,
   helios: true,
-  planets: true,
+  pandora: true,
+  saturn: true,
+  neptune: true,
+  moscow: true,
+  cine4k: true,
   moviesapi: true,
   videasyws: true,
-  moscow: true,
   vidzee: true,
   moviebox: true,
   vidnest: true,
@@ -25,8 +28,8 @@ const KNOWN_SOURCES: Record<PlaybackSource, true> = {
   vf: true,
 };
 // Tried before the availability list arrives, so playback does not wait on
-// it. Cine4K has no episodes, so TV starts on Athena.
-export const DEFAULT_SOURCE: Record<"movie" | "tv", PlaybackSource> = { movie: "cine4k", tv: "athena" };
+// it. Aphrodite serves both movies and episodes.
+export const DEFAULT_SOURCE: PlaybackSource = "aphrodite";
 // The server resolves every provider before answering.
 const SOURCES_TIMEOUT_MS = 25_000;
 

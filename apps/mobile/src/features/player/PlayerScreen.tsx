@@ -90,7 +90,7 @@ export function PlayerScreen({
   // failed here. A failure moves on to the next one.
   const source =
     playingSource ??
-    (availableList ?? [DEFAULT_SOURCE[type]]).find((item) => !failedList.includes(item)) ??
+    (availableList ?? [DEFAULT_SOURCE]).find((item) => !failedList.includes(item)) ??
     null;
   const exhausted = source === null && availableList !== undefined;
   const streamError = exhausted ? t("streamUnavailable") : null;
