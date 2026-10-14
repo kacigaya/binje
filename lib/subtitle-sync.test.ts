@@ -60,6 +60,19 @@ test("gives up when speech has nothing to do with the file", () => {
   expect(alignCues([{ start: 0, speech: noise() }, { start: 600, speech: noise() }], lines(4, 900))).toBeNull();
 });
 
+test("gives up on a file timed for another cut, whose windows disagree", () => {
+  const cues = lines(5, 900);
+  // The middle is clear, so the summed score peaks there; the opening, a
+  // noisier but still clear witness, places the file elsewhere.
+  const opening = speechFor(cues, 0, 150, (t) => t + 2);
+  const next = random(13);
+  opening.speech = opening.speech.map((value) => (next() < 0.25 ? 1 - value : value));
+  const middle = speechFor(cues, 600, 150, (t) => t + 25);
+  expect(alignCues([opening], cues)?.offset).toBeCloseTo(2, 1);
+  expect(alignCues([middle], cues)?.offset).toBeCloseTo(25, 1);
+  expect(alignCues([opening, middle], cues)).toBeNull();
+});
+
 test("a silent opening does not dilute a usable dialogue window", () => {
   const cues = lines(1, 900);
   const middle = speechFor(cues, 600, 150, (t) => t + 3.2);

@@ -119,14 +119,28 @@ export function alignCues(windows: SpeechWindow[], cues: [number, number][]): (S
     if (!best || score > best.score) best = { score, shift: scores.indexOf(score) - pad, scale, scores };
   }
   if (!best || best.score / windows.length < MIN_CORRELATION) return null;
-  const { shift, scores } = best;
+  const { shift, scale, scores } = best;
+  const confidence = prominence(scores, shift + pad, width);
+  if (confidence < MIN_PROMINENCE) return null;
+  // The summed score can peak where no window does: a file timed for another
+  // cut sits at a different offset in each window. A window whose own clear
+  // peak lies elsewhere vetoes the answer; windows without one abstain.
+  for (const window of windows) {
+    const own = correlations(window, cues, scale);
+    const peak = own.indexOf(Math.max(...own));
+    const clear = own[peak] >= MIN_CORRELATION && prominence(own, peak, width) >= MIN_PROMINENCE;
+    if (clear && Math.abs(peak - pad - shift) > width) return null;
+  }
+  return { offset: Math.round(shift * STEP * 100) / 100, scale, confidence };
+}
+
+/** How far a peak stands above the best score more than `width` away, as a share of it. */
+function prominence(scores: Float32Array, at: number, width: number) {
   let rival = -Infinity;
   scores.forEach((value, i) => {
-    if (Math.abs(i - pad - shift) > width) rival = Math.max(rival, value);
+    if (Math.abs(i - at) > width) rival = Math.max(rival, value);
   });
-  const confidence = (best.score - rival) / best.score;
-  if (confidence < MIN_PROMINENCE) return null;
-  return { offset: Math.round(shift * STEP * 100) / 100, scale: best.scale, confidence };
+  return (scores[at] - rival) / scores[at];
 }
 
 // The cheapest playlist that carries the sound the player plays: the

@@ -83,7 +83,9 @@ Subtitle files are timed to different releases, so the subtitles panel can fix t
   happen at once, and the route allows 3 requests a minute per IP. It needs `ffmpeg` on
   the server (installed in the Docker image) and reaches `/api/hls` at `INTERNAL_ORIGIN`,
   by default `http://127.0.0.1:$PORT`. When no shift clearly matches, it reports that
-  instead of guessing; adjust the delay or try another file. Silent windows are ignored.
+  instead of guessing; adjust the delay or try another file. It also gives up when the two
+  windows clearly place the file at different offsets, as a file timed for another cut
+  does: no single offset and scale fixes those. Silent windows are ignored.
   Encrypted streams and direct video files do not support auto-sync; the panel reports
   these separately from an audio mismatch or server failure.
 
