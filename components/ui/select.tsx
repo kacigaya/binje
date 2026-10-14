@@ -2,7 +2,7 @@
 
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { Check } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { ChevronDownIcon } from "@/components/ui/chevron-down";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ function Select<T extends string | number>({
   alignItemWithTrigger = true,
   icon,
   className,
+  container,
 }: {
   value: T;
   onValueChange: (value: T) => void;
@@ -30,6 +31,8 @@ function Select<T extends string | number>({
   /** Icon-only trigger: the icon replaces the visible value and chevron. */
   icon?: ReactNode;
   className?: string;
+  /** Keep the popup inside a fullscreen element when provided. */
+  container?: RefObject<HTMLElement | null>;
 }) {
   const [chevronIcon, chevronFeedback] = useAnimatedIcon();
 
@@ -62,7 +65,7 @@ function Select<T extends string | number>({
           </BaseSelect.Icon>
         )}
       </BaseSelect.Trigger>
-      <BaseSelect.Portal>
+      <BaseSelect.Portal container={container}>
         {/* Absolute positioning can overflow before collision adjustment and widen Mobile Chrome's viewport. */}
         <BaseSelect.Positioner
           positionMethod="fixed"

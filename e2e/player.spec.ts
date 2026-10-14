@@ -119,6 +119,61 @@ test("crop keeps already widescreen video intact and resets when emptied", async
   await expectRatio(page, 16 / 9);
 });
 
+for (const viewport of [{ width: 390, height: 844 }, { width: 844, height: 390 }, { width: 1440, height: 900 }]) {
+  test(`quality and subtitles stay clickable in fullscreen at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.unroute("**/api/resolve?*");
+    await page.route("**/api/resolve?*", (route) => route.fulfill({ json: {
+      url: "https://cdn.test/master.m3u8",
+      tracks: [{ file: "https://subs.test/en.vtt", label: "English" }],
+    } }));
+    await page.route("**/api/hls?*", (route) => {
+      const url = new URL(route.request().url()).searchParams.get("url");
+      if (url === "https://cdn.test/master.m3u8") {
+        return route.fulfill({ contentType: "application/vnd.apple.mpegurl", body: [
+          "#EXTM3U",
+          "#EXT-X-STREAM-INF:BANDWIDTH=1000000,RESOLUTION=1280x720",
+          "/api/hls?url=https%3A%2F%2Fcdn.test%2F720.m3u8",
+          "#EXT-X-STREAM-INF:BANDWIDTH=2000000,RESOLUTION=1920x1080",
+          "/api/hls?url=https%3A%2F%2Fcdn.test%2F1080.m3u8",
+        ].join("\n") });
+      }
+      if (url === "https://subs.test/en.vtt") {
+        return route.fulfill({ contentType: "text/vtt", body: "WEBVTT\n\n00:10.000 --> 00:12.000\nOne\n" });
+      }
+      // Hold media playlists so network failures cannot trigger source failover.
+    });
+    await page.reload();
+    const quality = page.getByRole("combobox", { name: "Quality" });
+    await expect(quality).toBeVisible();
+    await page.getByRole("button", { name: "Enter fullscreen" }).click();
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement !== null)).toBe(true);
+
+    await quality.click();
+    const rendition = page.getByRole("option", { name: "720p", exact: true });
+    await expect(rendition).toBeInViewport();
+    await rendition.click();
+    await expect(quality).toHaveText("720p");
+
+    const subtitles = page.getByRole("button", { name: "Subtitles", exact: true });
+    await subtitles.click();
+    await page.getByRole("button", { name: "Subtitles later" }).click();
+    await expect(page.locator("output")).toHaveText("+0.5 s");
+    await page.getByText("Off", { exact: true }).click();
+    await expect(page.getByRole("radio", { name: "Off", exact: true })).toBeChecked();
+    await expect.poll(() => page.locator("video track").evaluate((track: HTMLTrackElement) => track.track.mode)).toBe("disabled");
+    await subtitles.click();
+
+    await quality.click();
+    await page.keyboard.press("Escape");
+    await expect(quality).toBeFocused();
+    await page.getByRole("button", { name: "Exit fullscreen" }).click();
+    await quality.click();
+    await page.getByRole("option", { name: "Auto", exact: true }).click();
+    await expect(quality).toHaveText("Auto");
+  });
+}
+
 test("fullscreen failure leaves the cropped player usable", async ({ page }) => {
   await playLocalStream(page, 960, 540, true);
   await page.getByRole("button", { name: "Crop black bars" }).click();

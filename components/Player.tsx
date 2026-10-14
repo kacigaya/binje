@@ -1113,6 +1113,7 @@ export default function Player({
             {qualities.length > 0 && (
               <Select
                 ariaLabel={t("Quality")}
+                container={containerRef}
                 value={quality}
                 onValueChange={changeQuality}
                 items={[
