@@ -10,14 +10,14 @@ import {
 import { getMovieDetails, getTVDetails } from "@/lib/tmdb";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// Servers from atlantic.st's player. Aphrodite and Athena answer with a plain
-// URL; the stream.hls.lol servers wrap theirs as `<prefix><hex nonce||AES-GCM>`
-// under keys that ship in Atlantic's bundle. The site's Turnstile check runs
-// in its page only, and Aphrodite answers without the signed X-Az-* headers
-// Atlantic's client adds. Its Shegu server (disabled) is not used.
+// Servers from atlantic.st's player. Athena answers with a plain URL; the
+// stream.hls.lol servers wrap theirs as `<prefix><hex nonce||AES-GCM>` under
+// keys that ship in Atlantic's bundle. The site's Turnstile check runs in its
+// page only. Not used: Shegu (disabled) and Aphrodite, whose cdn.hls.lol
+// answers requests without the client's obfuscated X-Az-* signature with a
+// one-minute "error code 4" decoy clip.
 const SITE = "https://atlantic.st/";
 const API = "https://stream.hls.lol";
-const APHRODITE = "https://cdn.hls.lol";
 const ATHENA = "https://zcdn.bluevelvet.space";
 const cache = createTtlCache<ResolvedStream>(10 * 60 * 1000);
 // Saturn and Neptune come from one /planets answer.
@@ -25,7 +25,7 @@ const planets = createTtlCache<unknown>(60 * 1000);
 // Pandora matches titles in English, which binje's own params are not.
 const englishTitles = createTtlCache<{ title: string; year: string }>(24 * 60 * 60 * 1000);
 
-export type AtlanticServer = "aphrodite" | "athena" | "helios" | "pandora" | "saturn" | "neptune" | "moscow";
+export type AtlanticServer = "athena" | "helios" | "pandora" | "saturn" | "neptune" | "moscow";
 
 const WRAPPED = {
   helios: { path: "helios", prefix: "hl_", key: "117c358bcfcaf8fe2cfca57c9d2238a300e1c4de2efb83a5012ba84d8a31f1dd", name: "Moscow" },
@@ -68,16 +68,6 @@ export function atlanticQuery(server: "athena" | "wrapped", { type, id, season, 
   return query;
 }
 
-export function aphroditePath({ type, id, season, episode }: ResolveParams) {
-  return type === "tv" ? `/content/tv/${id}/${season}/${episode}` : `/content/movie/${id}`;
-}
-
-// `{ found, type, url }`, or `hls` when the entry carries both.
-export function aphroditeUrl(body: unknown): string | undefined {
-  if (!isRecord(body) || body.found !== true) return;
-  return httpUrl(body.hls) ?? (body.type === "hls" ? httpUrl(body.url) : undefined);
-}
-
 function englishTitle({ type, id }: ResolveParams) {
   return englishTitles.get(`${type}:${id}`, async () => {
     if (type === "tv") {
@@ -90,10 +80,6 @@ function englishTitle({ type, id }: ResolveParams) {
 }
 
 async function candidates(server: AtlanticServer, params: ResolveParams): Promise<string[]> {
-  if (server === "aphrodite") {
-    const url = aphroditeUrl(await fetchJson(`${APHRODITE}${aphroditePath(params)}`, { referer: SITE }));
-    return url ? [url] : [];
-  }
   if (server === "athena") {
     const body = await fetchJson(`${ATHENA}/cdn?${atlanticQuery("athena", params)}`, { referer: SITE });
     const url = isRecord(body) && body.ready === true ? httpUrl(body.url) : undefined;

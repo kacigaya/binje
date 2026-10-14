@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { isPlaybackSource, parseResolveParams, PLAYBACK_SOURCES } from "./sources";
 
 test("plays Atlantic's servers first, in its order, without VF", () => {
-  expect(PLAYBACK_SOURCES.slice(0, 7)).toEqual(["aphrodite", "athena", "helios", "pandora", "saturn", "neptune", "moscow"]);
+  expect(PLAYBACK_SOURCES.slice(0, 6)).toEqual(["athena", "helios", "pandora", "saturn", "neptune", "moscow"]);
   expect(PLAYBACK_SOURCES).not.toContain("vf");
 });
 

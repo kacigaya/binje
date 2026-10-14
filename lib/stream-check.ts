@@ -8,6 +8,9 @@ const CHECK_TIMEOUT_MS = 6000;
 // body is not a manifest, and provider pages are a few hundred KB at most.
 const MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
 const MAX_PAGE_BYTES = 4 * 1024 * 1024;
+// A finished stream this short is a provider's decoy clip (Aphrodite's
+// "error code 4" screen, ViDZY's /troll/ playlist), not a movie or episode.
+const MIN_STREAM_SECONDS = 120;
 
 // Reads at most maxBytes so a provider answering with a video file cannot make
 // the server buffer all of it.
@@ -46,9 +49,23 @@ export function httpUrl(value: unknown, base?: string | URL): string | undefined
   } catch { /* Invalid provider URLs are discarded. */ }
 }
 
-// A signed URL can still be dead: a 403, an HTML error page, or a CDN that
-// refuses this server. Only a manifest that loads counts as available. The
-// URL comes from a third party, so it gets the proxy's private-network guard.
+// Length of a finished stream: an ENDLIST media playlist or a static MPD.
+// Live, master or unreadable manifests give undefined.
+export function finishedStreamSeconds(manifest: string): number | undefined {
+  if (manifest.includes("<MPD")) {
+    if (/type="dynamic"/.test(manifest)) return;
+    const duration = /mediaPresentationDuration="PT(?:([\d.]+)H)?(?:([\d.]+)M)?(?:([\d.]+)S)?"/.exec(manifest);
+    return duration ? Number(duration[1] ?? 0) * 3600 + Number(duration[2] ?? 0) * 60 + Number(duration[3] ?? 0) : undefined;
+  }
+  if (!manifest.includes("#EXT-X-ENDLIST")) return;
+  return [...manifest.matchAll(/#EXTINF:([\d.]+)/g)].reduce((total, match) => total + Number(match[1]), 0);
+}
+
+// A signed URL can still be dead: a 403, an HTML error page, a CDN that
+// refuses this server, or a short decoy clip in place of the title. Only a
+// manifest that loads counts as available; a master is judged by its first
+// variant, and one that does not load is given the benefit of the doubt. The
+// URLs come from a third party, so they get the proxy's private-network guard.
 export async function isPlayableManifest(url: string, upstream: Upstream & { cookie?: string } = {}) {
   const headers = new Headers({ accept: "*/*", "user-agent": upstream.userAgent ?? BROWSER_USER_AGENT });
   if (upstream.referer) {
@@ -56,18 +73,32 @@ export async function isPlayableManifest(url: string, upstream: Upstream & { coo
     headers.set("origin", new URL(upstream.referer).origin);
   }
   if (upstream.cookie) headers.set("cookie", upstream.cookie);
-  try {
-    const response = await fetchPublic(url, {
+  const load = async (target: string) => {
+    const response = await fetchPublic(target, {
       cache: "no-store",
       headers,
       signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
     });
     if (!response.ok) {
       await response.body?.cancel();
-      return false;
+      return undefined;
     }
-    const text = (await readCapped(response, MAX_MANIFEST_BYTES)).replace(/^\uFEFF/, "").trimStart();
-    return text.startsWith("#EXTM3U") || text.includes("<MPD");
+    return {
+      text: (await readCapped(response, MAX_MANIFEST_BYTES)).replace(/^\uFEFF/, "").trimStart(),
+      url: response.url || target,
+    };
+  };
+  try {
+    const manifest = await load(url);
+    if (!manifest || !(manifest.text.startsWith("#EXTM3U") || manifest.text.includes("<MPD"))) return false;
+    let playlist = manifest.text;
+    if (playlist.includes("#EXT-X-STREAM-INF")) {
+      const variant = playlist.split("\n").map((line) => line.trim()).find((line) => line && !line.startsWith("#"));
+      const target = variant ? httpUrl(variant, manifest.url) : undefined;
+      playlist = (target && (await load(target).catch(() => undefined))?.text) || "";
+    }
+    const seconds = finishedStreamSeconds(playlist);
+    return seconds === undefined || seconds >= MIN_STREAM_SECONDS;
   } catch {
     return false;
   }

@@ -46,7 +46,6 @@ type PresentationVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void
 // for the title; ids this build does not know are ignored. Viewers never pick:
 // a failure moves on to the next listed source.
 const KNOWN_SOURCES: Record<PlaybackSource, true> = {
-  aphrodite: true,
   athena: true,
   helios: true,
   pandora: true,
@@ -67,8 +66,8 @@ const KNOWN_SOURCES: Record<PlaybackSource, true> = {
   vf: true,
 };
 // Tried before the availability list arrives, so playback does not wait on
-// it. Aphrodite serves both movies and episodes.
-const DEFAULT_SOURCE: PlaybackSource = "aphrodite";
+// it. Athena serves both movies and episodes.
+const DEFAULT_SOURCE: PlaybackSource = "athena";
 
 function isKnownSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && Object.hasOwn(KNOWN_SOURCES, value);

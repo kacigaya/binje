@@ -42,19 +42,41 @@ test("keeps only credential-free http URLs, resolved against a base", () => {
 
 test("counts only manifests that load, with the provider's headers", async () => {
   const seen: Headers[] = [];
-  globalThis.fetch = mock(async (_input: unknown, init?: RequestInit) => {
+  globalThis.fetch = mock(async (input: unknown, init?: RequestInit) => {
     seen.push(new Headers(init?.headers));
-    return seen.length === 1
+    return String(input).endsWith("/master.m3u8") && seen.length === 1
       ? new Response("\uFEFF#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nv.m3u8\n")
       : new Response("<html>blocked</html>", { headers: { "content-type": "text/html" } });
   }) as unknown as typeof fetch;
+  // The variant answering HTML proves nothing either way, so the master counts.
   expect(await isPlayableManifest("https://203.0.113.40/master.m3u8", { referer: "https://player.test/e/1", userAgent: "Pinned" })).toBe(true);
   expect(seen[0].get("referer")).toBe("https://player.test/e/1");
   expect(seen[0].get("origin")).toBe("https://player.test");
   expect(seen[0].get("user-agent")).toBe("Pinned");
+  expect(seen[1].get("referer")).toBe("https://player.test/e/1");
   expect(await isPlayableManifest("https://203.0.113.40/master.m3u8")).toBe(false);
   expect(await isPlayableManifest("http://127.0.0.1/master.m3u8")).toBe(false);
-  expect(seen).toHaveLength(2);
+  expect(seen).toHaveLength(3);
+});
+
+test("rejects short decoy clips but not real or unfinished streams", async () => {
+  const media = (seconds: number[], end = true) =>
+    `#EXTM3U\n${seconds.map((s, i) => `#EXTINF:${s},\nseg${i}.ts`).join("\n")}\n${end ? "#EXT-X-ENDLIST\n" : ""}`;
+  const bodies: Record<string, string> = {
+    "/decoy/master.m3u8": "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nindex.m3u8\n",
+    "/decoy/index.m3u8": media([6, 6, 6]),
+    "/film/master.m3u8": "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nhttps://203.0.113.45/v/index.m3u8\n",
+    "/v/index.m3u8": media(Array(30).fill(6)),
+    "/live.m3u8": media([6, 6], false),
+    "/short.mpd": '<MPD type="static" mediaPresentationDuration="PT1M4S"></MPD>',
+    "/long.mpd": '<MPD type="static" mediaPresentationDuration="PT2H28M8.5S"></MPD>',
+  };
+  globalThis.fetch = mock(async (input: unknown) => new Response(bodies[new URL(String(input)).pathname] ?? "")) as unknown as typeof fetch;
+  expect(await isPlayableManifest("https://203.0.113.44/decoy/master.m3u8")).toBe(false);
+  expect(await isPlayableManifest("https://203.0.113.44/film/master.m3u8")).toBe(true);
+  expect(await isPlayableManifest("https://203.0.113.44/live.m3u8")).toBe(true);
+  expect(await isPlayableManifest("https://203.0.113.44/short.mpd")).toBe(false);
+  expect(await isPlayableManifest("https://203.0.113.44/long.mpd")).toBe(true);
 });
 
 test("provider requests refuse private targets and leave the proxy allowlist alone", async () => {

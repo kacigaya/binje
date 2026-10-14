@@ -4,7 +4,6 @@ export type MobileMediaType = "movie" | "tv";
 export type PlaybackSource =
   | "videasyws"
   | "cine4k"
-  | "aphrodite"
   | "athena"
   | "helios"
   | "pandora"

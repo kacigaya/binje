@@ -7,7 +7,6 @@ export type { PlaybackSource };
 // are ignored so a newer server cannot break an older app. Viewers never
 // pick: a failure moves on to the next listed source.
 const KNOWN_SOURCES: Record<PlaybackSource, true> = {
-  aphrodite: true,
   athena: true,
   helios: true,
   pandora: true,
@@ -28,8 +27,8 @@ const KNOWN_SOURCES: Record<PlaybackSource, true> = {
   vf: true,
 };
 // Tried before the availability list arrives, so playback does not wait on
-// it. Aphrodite serves both movies and episodes.
-export const DEFAULT_SOURCE: PlaybackSource = "aphrodite";
+// it. Athena serves both movies and episodes.
+export const DEFAULT_SOURCE: PlaybackSource = "athena";
 // The server resolves every provider before answering.
 const SOURCES_TIMEOUT_MS = 25_000;
 

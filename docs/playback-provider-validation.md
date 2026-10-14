@@ -2,14 +2,18 @@
 
 ## Atlantic order (2026-10-14)
 
-Playback now follows Atlantic's own server order: Aphrodite, Athena, Helios,
-Pandora, Saturn, Neptune, Moscow, then Cine4K, MoviesAPI, Videasy.ws and the
-other sources as last resorts. Both players start on Aphrodite.
+Playback now follows Atlantic's own server order: Athena, Helios, Pandora,
+Saturn, Neptune, Moscow, then Cine4K, MoviesAPI, Videasy.ws and the other
+sources as last resorts. Both players start on Athena.
 
-- Aphrodite: `cdn.hls.lol/content/{movie/id|tv/id/s/e}` answers `{ found, url }`
-  without the signed `X-Az-*` headers Atlantic's obfuscated client sends.
-  1080p HLS on totallyacdn.org with Atlantic as Referer. It had Beyblade Metal
-  (37807), which no other source served.
+- Aphrodite was added, then removed the same day. `cdn.hls.lol/content/...`
+  answers without the signed `X-Az-*` headers Atlantic's obfuscated client
+  sends, but the stream it gives such requests is a one-minute "error code 4"
+  clip (its playlists carry `# Brand: <requesting IP>`). Headless checks had
+  confirmed playback, not the picture; a viewer's screenshot caught it.
+- `isPlayableManifest` now rejects finished streams under two minutes (first
+  variant of a master, or a static MPD's duration), so decoy clips like this
+  one or ViDZY's `/troll/` playlist fail over instead of playing.
 - Pandora: `stream.hls.lol/pandora` matches the English title and year, so the
   resolver reads them from TMDB (cached a day). Its `pd_` payload decrypts to an
   unencrypted DASH manifest, HEVC 1080p/720p/480p, translated by `/api/hls`.

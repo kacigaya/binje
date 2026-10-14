@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { aphroditePath, aphroditeUrl, atlanticQuery, atlanticSourceValues, unwrapAtlanticUrl } from "@/lib/atlantic";
+import { atlanticQuery, atlanticSourceValues, unwrapAtlanticUrl } from "@/lib/atlantic";
 
 const KEY = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
 const hex = (bytes: Uint8Array) => Buffer.from(bytes).toString("hex");
@@ -43,16 +43,4 @@ test("uses each server's parameter names", () => {
   expect(atlanticQuery("athena", episode).toString()).toBe("tmdb=1399&type=tv&season=2&episode=3");
   expect(atlanticQuery("wrapped", episode).toString()).toBe("tmdbId=1399&type=tv&seasonId=2&episodeId=3");
   expect(atlanticQuery("wrapped", { ...episode, type: "movie" }).toString()).toBe("tmdbId=1399&type=movie");
-  expect(aphroditePath(episode)).toBe("/content/tv/1399/2/3");
-  expect(aphroditePath({ ...episode, type: "movie" })).toBe("/content/movie/1399");
-});
-
-test("reads Aphrodite's stream only when the title is found", () => {
-  expect(aphroditeUrl({ found: true, type: "hls", url: "https://cdn.test/m.m3u8" })).toBe("https://cdn.test/m.m3u8");
-  expect(aphroditeUrl({ found: true, type: "mp4", url: "https://cdn.test/a.mp4", hls: "https://cdn.test/h.m3u8" })).toBe(
-    "https://cdn.test/h.m3u8",
-  );
-  expect(aphroditeUrl({ found: true, type: "mp4", url: "https://cdn.test/a.mp4" })).toBeUndefined();
-  expect(aphroditeUrl({ found: false, type: "hls", url: "https://cdn.test/m.m3u8" })).toBeUndefined();
-  expect(aphroditeUrl({ found: true, type: "hls", url: "javascript:alert(1)" })).toBeUndefined();
 });
