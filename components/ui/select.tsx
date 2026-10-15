@@ -19,6 +19,7 @@ function Select<T extends string | number>({
   icon,
   className,
   container,
+  modal = true,
 }: {
   value: T;
   onValueChange: (value: T) => void;
@@ -33,11 +34,13 @@ function Select<T extends string | number>({
   className?: string;
   /** Keep the popup inside a fullscreen element when provided. */
   container?: RefObject<HTMLElement | null>;
+  modal?: boolean;
 }) {
   const [chevronIcon, chevronFeedback] = useAnimatedIcon();
 
   return (
     <BaseSelect.Root
+      modal={modal}
       value={value}
       onValueChange={(next) => {
         if (next !== null) onValueChange(next);

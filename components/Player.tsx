@@ -1114,6 +1114,8 @@ export default function Player({
               <Select
                 ariaLabel={t("Quality")}
                 container={containerRef}
+                alignItemWithTrigger={false}
+                modal={false}
                 value={quality}
                 onValueChange={changeQuality}
                 items={[
