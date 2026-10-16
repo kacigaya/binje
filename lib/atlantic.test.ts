@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { atlanticQuery, atlanticSourceValues, unwrapAtlanticUrl } from "@/lib/atlantic";
+import { atlanticQuery, atlanticSourceValues, isAtlanticDecoy, unwrapAtlanticUrl } from "@/lib/atlantic";
 
 const KEY = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
 const hex = (bytes: Uint8Array) => Buffer.from(bytes).toString("hex");
@@ -43,4 +43,17 @@ test("uses each server's parameter names", () => {
   expect(atlanticQuery("athena", episode).toString()).toBe("tmdb=1399&type=tv&season=2&episode=3");
   expect(atlanticQuery("wrapped", episode).toString()).toBe("tmdbId=1399&type=tv&seasonId=2&episodeId=3");
   expect(atlanticQuery("wrapped", { ...episode, type: "movie" }).toString()).toBe("tmdbId=1399&type=movie");
+});
+
+test("isAtlanticDecoy flags HD ladders that never reach real bitrates", () => {
+  const variant = (bandwidth: number, resolution: string) =>
+    `#EXT-X-STREAM-INF:BANDWIDTH=${bandwidth},RESOLUTION=${resolution},CODECS="avc1.42c033,mp4a.40.2"\nv.m3u8\n`;
+  const master = (...variants: string[]) => `#EXTM3U\n${variants.join("")}`;
+  expect(isAtlanticDecoy(master(variant(352459, "3840x2160"), variant(276952, "1920x1080")))).toBe(true);
+  expect(isAtlanticDecoy(master(variant(276952, "1920x1080")))).toBe(true);
+  // A low HD rung is fine when the ladder also carries a real top rung.
+  expect(isAtlanticDecoy(master(variant(800_000, "1920x1080"), variant(5_000_000, "1920x1080")))).toBe(false);
+  expect(isAtlanticDecoy(master(variant(5_200_000, "1920x1080")))).toBe(false);
+  expect(isAtlanticDecoy(master(variant(400_000, "640x360")))).toBe(false);
+  expect(isAtlanticDecoy("#EXTM3U\n#EXTINF:6,\nseg.ts\n")).toBe(false);
 });

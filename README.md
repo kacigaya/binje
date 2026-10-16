@@ -143,6 +143,11 @@ Without `OMDB_API_KEY`, detail pages continue showing TMDB ratings only. OMDb co
 licensed for non-commercial use; commercial deployments should use a licensed ratings
 provider.
 
+Atlantic serves decoy streams to datacenter IPs. Set `STREAM_PROXY_URL` (for example
+`http://user:pass@10.89.0.13:8888`, Gluetun's HTTP proxy) to send Atlantic requests through a
+VPN; other providers stay direct. The proxy must refuse private-network DNS answers. Without
+it, Atlantic decoys are detected and playback falls through to the next provider.
+
 ### Installation
 
 ```bash

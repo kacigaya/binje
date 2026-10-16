@@ -1,6 +1,7 @@
 import type { ResolveParams } from "@/lib/resolve-cache";
 import {
   fetchJson,
+  fetchText,
   firstInOrder,
   httpUrl,
   isPlayableManifest,
@@ -75,11 +76,25 @@ function englishTitle({ type, id }: ResolveParams) {
   });
 }
 
+// Untrusted callers get a "disable Cloudflare Warp" card padded to the episode's length,
+// so it passes the duration check. It claims HD, yet its whole ladder stays under 1 Mbps.
+export function isAtlanticDecoy(manifest: string) {
+  const variants = [...manifest.matchAll(/#EXT-X-STREAM-INF:([^\n]*)/g)].map(([, attrs]) => ({
+    height: Number(attrs.match(/RESOLUTION=\d+x(\d+)/)?.[1]),
+    bandwidth: Number(attrs.match(/(?:^|,)BANDWIDTH=(\d+)/)?.[1]),
+  }));
+  return (
+    variants.some(({ height }) => height >= 1080) &&
+    variants.every(({ bandwidth }) => bandwidth < 1_000_000)
+  );
+}
+
 async function candidates(server: AtlanticServer, params: ResolveParams): Promise<string[]> {
   if (server === "athena") {
     const body = await fetchJson(`${ATHENA}/cdn?${atlanticQuery("athena", params)}`, { referer: SITE });
     const url = isRecord(body) && body.ready === true ? httpUrl(body.url) : undefined;
-    return url ? [url] : [];
+    // Athena answers every title with the same short promo when it distrusts the caller.
+    return url && !new URL(url).pathname.startsWith("/promo/") ? [url] : [];
   }
   if (server === "pandora") {
     const { title, year } = await englishTitle(params);
@@ -107,6 +122,7 @@ export function resolveAtlanticStream(server: AtlanticServer) {
     return cache.get(key, async () => {
       const url = await firstInOrder(
         (await candidates(server, params)).map(async (url) => {
+          if (isAtlanticDecoy(await fetchText(url, { referer: SITE }))) throw new Error("Decoy stream.");
           if (!(await isPlayableManifest(url, { referer: SITE }))) throw new Error("Unplayable stream.");
           return url;
         }),
