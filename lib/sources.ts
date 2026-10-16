@@ -5,7 +5,7 @@ import { allowStreamCookie, allowStreamHost, allowStreamHosts } from "@/lib/hls-
 import { resolveMovieboxStream } from "@/lib/moviebox";
 import { resolveMoviesapiStream } from "@/lib/moviesapi";
 import { cachedResolveVideasyStream, type ResolveParams } from "@/lib/resolve-cache";
-import { isPlayableManifest, type ResolvedStream } from "@/lib/stream-check";
+import { probeManifest, type ResolvedStream } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 import type { PlaybackSource } from "@/types/mobile-api";
 import { resolveTwoEmbedStream } from "@/lib/twoembed";
@@ -17,7 +17,8 @@ import { resolveVideasyWsStream } from "@/lib/videasyws";
 
 export type { PlaybackSource };
 
-// Automatic failover follows Atlantic's server order, excluding Aphrodite, then other providers.
+// Automatic failover tries the tallest advertised rendition first. Equal heights follow
+// Atlantic's server order, excluding Aphrodite, then other providers.
 // VF stays outside the chain but remains available through RESOLVERS and /api/resolve-vf.
 export const PLAYBACK_SOURCES = [
   "athena",
@@ -85,24 +86,28 @@ function withDeadline<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
-async function isAvailable(source: PlaybackSource, params: ResolveParams) {
+// Height of the source's best rendition, 0 when unknown, or undefined when unplayable.
+async function availableHeight(source: PlaybackSource, params: ResolveParams) {
   const result = await resolvePlaybackSource(source, params);
   const cookie = result.cookieScope && result.url.startsWith(result.cookieScope) ? result.cookie : undefined;
-  return isPlayableManifest(result.url, { referer: result.referer, userAgent: result.userAgent, cookie });
+  const probe = await probeManifest(result.url, { referer: result.referer, userAgent: result.userAgent, cookie });
+  return probe && Math.max(probe.height, ...(result.sources ?? []).map((item) => item.height || 0));
 }
 
-// Resolve sources in parallel and list only those with loadable manifests.
+// Resolve sources in parallel and list only those with loadable manifests, tallest rendition first.
 // Resolver caches let playback reuse the result without resolving again.
 export function availablePlaybackSources(params: ResolveParams): Promise<PlaybackSource[]> {
   const key = params.type === "tv" ? `tv:${params.id}:${params.season}:${params.episode}` : `movie:${params.id}`;
   return availabilityCache.get(key, async () => {
     const checks = await Promise.allSettled(
-      PLAYBACK_SOURCES.map((source) => withDeadline(isAvailable(source, params), PROBE_DEADLINE_MS)),
+      PLAYBACK_SOURCES.map((source) => withDeadline(availableHeight(source, params), PROBE_DEADLINE_MS)),
     );
-    return PLAYBACK_SOURCES.filter((_, index) => {
+    const playable = PLAYBACK_SOURCES.flatMap((source, index) => {
       const check = checks[index];
-      return check.status === "fulfilled" && check.value;
+      return check.status === "fulfilled" && check.value !== undefined ? [{ source, height: check.value }] : [];
     });
+    // Array#sort is stable, so equal heights keep PLAYBACK_SOURCES order.
+    return playable.sort((a, b) => b.height - a.height).map((item) => item.source);
   });
 }
 

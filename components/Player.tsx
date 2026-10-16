@@ -203,11 +203,10 @@ export default function Player({
   const failedList = forMedia(failed, mediaKey) ?? [];
   const usable = (id: PlaybackSource | undefined) => (id && !failedList.includes(id) ? id : undefined);
   const playingSource = usable(forMedia(playing, mediaKey));
-  // Keep the playing source while availability settles; otherwise try the next source that has not failed.
-  const source =
-    playingSource ??
-    (availableList ?? [DEFAULT_SOURCE]).find((id) => !failedList.includes(id)) ??
-    null;
+  // /api/sources ranks by quality, so once it settles, move to its best source that has not failed.
+  // Keep the playing source while probing, or when the probe missed it.
+  const best = (availableList ?? [DEFAULT_SOURCE]).find((id) => !failedList.includes(id));
+  const source = (playingSource && !availableList?.includes(playingSource) ? playingSource : best) ?? null;
   const exhausted = source === null && availableList !== undefined;
   const awaitingSources = source === null && !exhausted;
 
@@ -761,8 +760,6 @@ export default function Player({
         } else if (hlsSupported && HlsModule) {
           hls = new HlsModule({
             enableWorker: true,
-            capLevelOnFPSDrop: true,
-            capLevelToPlayerSize: true,
             // Disable hls.js subtitle controllers: they clear cues on load/detach, and <track> files are not refetched.
             subtitleStreamController: undefined,
             subtitleTrackController: undefined,
@@ -784,7 +781,13 @@ export default function Player({
                 });
               }
             });
-            setQualities([...byLabel.values()].sort((a, b) => b.label - a.label));
+            const sorted = [...byLabel.values()].sort((a, b) => b.label - a.label);
+            setQualities(sorted);
+            // Lock the best rendition instead of starting from a bandwidth guess; Auto stays selectable.
+            if (sorted.length && hls) {
+              hls.currentLevel = sorted[0].index;
+              setQuality(sorted[0].index);
+            }
           });
           hls.loadSource(src);
           hls.attachMedia(video);

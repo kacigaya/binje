@@ -24,7 +24,7 @@
 - Dedicated `/movies` and `/tv-shows` browse pages with shareable genre, sort, and decade filters
 - Detailed movie and TV show pages (ratings, cast, per-season episode list, similar, recommendations)
 - Search with fuzzy matching, year-aware ranking, and live navbar suggestions
-- Watch pages with automatic source selection and failover, subtitles from the playing source and other providers, manual HLS quality selection, and a crop toggle for encoded black bars
+- Watch pages with automatic source selection (highest quality first) and failover, subtitles from the playing source and other providers, manual HLS quality selection, and a crop toggle for encoded black bars
 - Google Cast on web, Android, and iOS, plus AirPlay on supported Apple devices
 - TV episode scroller with edge fade and arrow controls, episode overlay preview cards
 - "Continue Watching" row backed by local play history; Resume/Continue buttons and the player pick up at the saved position

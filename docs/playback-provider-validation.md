@@ -1,5 +1,15 @@
 # Playback provider validation
 
+## Quality first (2026-10-16)
+
+`/api/sources` now ranks playable sources by the tallest rendition their
+manifest advertises (master `RESOLUTION`, MPD `height`, or the resolver's
+quality list); equal heights keep the order below, and unknown heights rank
+last. Both players still start on Athena so playback begins at once, then move
+to the top-ranked source when the probe answers. The web player also locks
+hls.js to the top rendition instead of starting from a bandwidth guess, and no
+longer caps it to the player size or on dropped frames; viewers can pick Auto.
+
 ## Atlantic order (2026-10-14)
 
 Playback now follows Atlantic's own server order: Athena, Helios, Pandora,

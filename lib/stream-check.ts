@@ -57,9 +57,20 @@ export function finishedStreamSeconds(manifest: string): number | undefined {
   return [...manifest.matchAll(/#EXTINF:([\d.]+)/g)].reduce((total, match) => total + Number(match[1]), 0);
 }
 
+// Tallest rendition a master or MPD advertises; 0 when it lists none, as media playlists do.
+export function manifestHeight(manifest: string): number {
+  const heights = [...manifest.matchAll(/RESOLUTION=\d+x(\d+)|<Representation\b[^>]*\bheight="(\d+)"/g)].map(
+    (match) => Number(match[1] ?? match[2]),
+  );
+  return Math.max(0, ...heights);
+}
+
 // Reject failed manifests and short decoys; probe a master's first variant but tolerate an unreadable variant.
-// Apply private-network checks to every third-party URL.
-export async function isPlayableManifest(url: string, upstream: Upstream & { cookie?: string } = {}) {
+// Resolve to the advertised height when playable. Apply private-network checks to every third-party URL.
+export async function probeManifest(
+  url: string,
+  upstream: Upstream & { cookie?: string } = {},
+): Promise<{ height: number } | undefined> {
   const headers = new Headers({ accept: "*/*", "user-agent": upstream.userAgent ?? BROWSER_USER_AGENT });
   if (upstream.referer) {
     headers.set("referer", upstream.referer);
@@ -83,7 +94,7 @@ export async function isPlayableManifest(url: string, upstream: Upstream & { coo
   };
   try {
     const manifest = await load(url);
-    if (!manifest || !(manifest.text.startsWith("#EXTM3U") || manifest.text.includes("<MPD"))) return false;
+    if (!manifest || !(manifest.text.startsWith("#EXTM3U") || manifest.text.includes("<MPD"))) return;
     let playlist = manifest.text;
     if (playlist.includes("#EXT-X-STREAM-INF")) {
       const variant = playlist.split("\n").map((line) => line.trim()).find((line) => line && !line.startsWith("#"));
@@ -91,10 +102,12 @@ export async function isPlayableManifest(url: string, upstream: Upstream & { coo
       playlist = (target && (await load(target).catch(() => undefined))?.text) || "";
     }
     const seconds = finishedStreamSeconds(playlist);
-    return seconds === undefined || seconds >= MIN_STREAM_SECONDS;
-  } catch {
-    return false;
-  }
+    if (seconds === undefined || seconds >= MIN_STREAM_SECONDS) return { height: manifestHeight(manifest.text) };
+  } catch { /* Unreachable manifests are unplayable. */ }
+}
+
+export async function isPlayableManifest(url: string, upstream: Upstream & { cookie?: string } = {}) {
+  return (await probeManifest(url, upstream)) !== undefined;
 }
 
 // Probe concurrently, but honor order: a result wins only after all earlier tasks fail.

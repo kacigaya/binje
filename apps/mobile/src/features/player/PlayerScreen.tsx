@@ -85,11 +85,10 @@ export function PlayerScreen({
   const failedList = forMedia(failed, mediaKey) ?? [];
   const usable = (source: PlaybackSource | undefined) => (source && !failedList.includes(source) ? source : undefined);
   const playingSource = usable(forMedia(playing, mediaKey));
-  // Keep the playing source while availability settles; otherwise try the next source that has not failed.
-  const source =
-    playingSource ??
-    (availableList ?? [DEFAULT_SOURCE]).find((item) => !failedList.includes(item)) ??
-    null;
+  // /api/sources ranks by quality, so once it settles, move to its best source that has not failed.
+  // Keep the playing source while probing, or when the probe missed it.
+  const best = (availableList ?? [DEFAULT_SOURCE]).find((item) => !failedList.includes(item));
+  const source = (playingSource && !availableList?.includes(playingSource) ? playingSource : best) ?? null;
   const exhausted = source === null && availableList !== undefined;
   const streamError = exhausted ? t("streamUnavailable") : null;
 

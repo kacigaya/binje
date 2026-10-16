@@ -1,6 +1,6 @@
 import { afterEach, expect, mock, test } from "bun:test";
 import { isAllowedStreamHost } from "./hls-hosts";
-import { fetchText, firstInOrder, httpUrl, isPlayableManifest } from "./stream-check";
+import { fetchText, firstInOrder, httpUrl, isPlayableManifest, manifestHeight, probeManifest } from "./stream-check";
 
 const originalFetch = globalThis.fetch;
 afterEach(() => {
@@ -77,6 +77,14 @@ test("rejects short decoy clips but not real or unfinished streams", async () =>
   expect(await isPlayableManifest("https://203.0.113.44/live.m3u8")).toBe(true);
   expect(await isPlayableManifest("https://203.0.113.44/short.mpd")).toBe(false);
   expect(await isPlayableManifest("https://203.0.113.44/long.mpd")).toBe(true);
+});
+
+test("reads the tallest advertised rendition", async () => {
+  expect(manifestHeight("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1,RESOLUTION=1920x1080\na.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=2,RESOLUTION=3840x2160\nb.m3u8\n")).toBe(2160);
+  expect(manifestHeight('<MPD><Representation id="1" width="1280" height="720"/><Representation id="2" height="1080"/></MPD>')).toBe(1080);
+  expect(manifestHeight("#EXTM3U\n#EXTINF:6,\nseg.ts\n")).toBe(0);
+  globalThis.fetch = mock(async () => new Response("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1,RESOLUTION=1280x720\nlive.m3u8\n")) as unknown as typeof fetch;
+  expect(await probeManifest("https://203.0.113.46/master.m3u8")).toEqual({ height: 720 });
 });
 
 test("provider requests refuse private targets and leave the proxy allowlist alone", async () => {
