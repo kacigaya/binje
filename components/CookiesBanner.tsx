@@ -5,23 +5,20 @@ import { Cookie } from "lucide-react";
 import { XIcon } from "@/components/ui/x";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { Button } from "@/components/ui/button";
-import { setConsent, CONSENT_STORAGE_KEY } from "@/lib/consent";
+import { getConsent, setConsent, CONSENT_STORAGE_KEY } from "@/lib/consent";
 import { useTranslations } from "@/lib/use-locale";
 
 function subscribeToConsent(callback: () => void) {
   const onStorage = (event: StorageEvent) => {
-    if (event.key === CONSENT_STORAGE_KEY) callback();
+    if (event.key === CONSENT_STORAGE_KEY || event.key === null) callback();
   };
   window.addEventListener("storage", onStorage);
   return () => window.removeEventListener("storage", onStorage);
 }
 
-function getConsentSnapshot(): string | null {
-  return window.localStorage.getItem(CONSENT_STORAGE_KEY);
-}
-
-function getServerSnapshot(): string | null {
-  return null;
+// Unknown during SSR and hydration; only show the banner after checking storage.
+function getServerSnapshot(): undefined {
+  return undefined;
 }
 
 export default function CookiesBanner() {
@@ -29,7 +26,7 @@ export default function CookiesBanner() {
   const [dismissIcon, dismissFeedback] = useAnimatedIcon();
   const storedConsent = useSyncExternalStore(
     subscribeToConsent,
-    getConsentSnapshot,
+    getConsent,
     getServerSnapshot,
   );
 
@@ -37,19 +34,19 @@ export default function CookiesBanner() {
 
   function accept() {
     setConsent("accepted");
-    notifyChange();
+    notifyChange("accepted");
   }
 
   function dismiss() {
     setConsent("dismissed");
-    notifyChange();
+    notifyChange("dismissed");
   }
 
-  function notifyChange() {
+  function notifyChange(value: "accepted" | "dismissed") {
     window.dispatchEvent(
       new StorageEvent("storage", {
         key: CONSENT_STORAGE_KEY,
-        newValue: window.localStorage.getItem(CONSENT_STORAGE_KEY),
+        newValue: value,
       }),
     );
   }
