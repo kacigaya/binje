@@ -1,6 +1,8 @@
 "use client";
 
-import { Pause, Play, RotateCcw, RotateCw, Volume1, Volume2, VolumeX } from "lucide-react";
+import { RotateCcw, RotateCw } from "lucide-react";
+import { Pause, Play, Volume1, Volume2, VolumeX } from "lucide";
+import { MorphIcon } from "morphicons/react";
 import type { ComponentProps, CSSProperties, ReactNode, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -56,8 +58,7 @@ export function SkipIcon({ forward }: { forward?: boolean }) {
 }
 
 export function PlayIcon({ paused, className }: { paused: boolean; className?: string }) {
-  const Icon = paused ? Play : Pause;
-  return <Icon aria-hidden="true" fill="currentColor" strokeWidth={0} className={className} />;
+  return <MorphIcon icon={paused ? Play : Pause} fill="currentColor" strokeWidth={0} reducedMotion="user" className={className} />;
 }
 
 /** Keep per-frame progress state here to avoid re-rendering the whole player. */
@@ -222,7 +223,7 @@ export function VolumeControl({ videoRef }: { videoRef: RefObject<HTMLVideoEleme
   }, [videoRef]);
 
   const silent = muted || volume === 0;
-  const Icon = silent ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+  const icon = silent ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   function toggleMute() {
     const video = videoRef.current;
@@ -234,7 +235,7 @@ export function VolumeControl({ videoRef }: { videoRef: RefObject<HTMLVideoEleme
   return (
     <div className="flex items-center">
       <ControlButton aria-label={silent ? t("Unmute") : t("Mute")} title={silent ? t("Unmute") : t("Mute")} onClick={toggleMute}>
-        <Icon aria-hidden="true" />
+        <MorphIcon icon={icon} reducedMotion="user" />
       </ControlButton>
       <div className="relative hidden h-11 w-20 items-center pr-3 pl-1 lg:flex">
         <div className="h-1 w-full overflow-hidden rounded-full bg-white/20">

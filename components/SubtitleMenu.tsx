@@ -1,7 +1,9 @@
 "use client";
 
 import { Popover } from "@base-ui/react/popover";
-import { Captions, CaptionsOff, Check, LoaderCircle, Minus, Plus, RotateCcw, Wand2 } from "lucide-react";
+import { Check, LoaderCircle, Minus, Plus, RotateCcw, Wand2 } from "lucide-react";
+import { Captions, CaptionsOff } from "lucide";
+import { MorphIcon } from "morphicons/react";
 import type { RefObject } from "react";
 import { useId } from "react";
 import { controlButtonClass } from "@/components/PlayerControls";
@@ -60,7 +62,7 @@ export default function SubtitleMenu({
   return (
     <Popover.Root>
       <Popover.Trigger aria-label={t("Subtitles")} title={t("Subtitles")} className={controlButtonClass}>
-        {on ? <Captions aria-hidden="true" /> : <CaptionsOff aria-hidden="true" className="text-white/60" />}
+        <MorphIcon icon={on ? Captions : CaptionsOff} reducedMotion="user" className={cn("transition-colors", !on && "text-white/60")} />
       </Popover.Trigger>
       <Popover.Portal container={container}>
         <Popover.Positioner positionMethod="fixed" sideOffset={8} collisionPadding={8} className="z-50 outline-none">

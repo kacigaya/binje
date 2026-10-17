@@ -1,7 +1,9 @@
 "use client";
 
 import type Hls from "hls.js";
-import { Crop, Maximize, Minimize, PictureInPicture2, RotateCcw } from "lucide-react";
+import { Crop, PictureInPicture2, RotateCcw } from "lucide-react";
+import { Maximize, Minimize } from "lucide";
+import { MorphIcon } from "morphicons/react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -1108,9 +1110,7 @@ export default function Player({
                 disabled={googleCasting && !isFullscreen}
                 onClick={toggleFullscreen}
               >
-                {isFullscreen
-                  ? <Minimize aria-hidden="true" />
-                  : <Maximize aria-hidden="true" />}
+                <MorphIcon icon={isFullscreen ? Minimize : Maximize} reducedMotion="user" />
               </ControlButton>
             )}
             {qualities.length > 0 && (
