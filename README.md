@@ -4,10 +4,7 @@
 
 <h1 align="center">b!nje</h1>
 
-<p align="center">
-   <strong>A movie and TV discovery app for web, Android, and iOS.</strong><br>
-   <em>Powered by TMDB API with optional Rotten Tomatoes scores via OMDb.</em>
-</p>
+<p align="center">A movie and TV discovery app for web, Android, and iOS.</p>
 
 <p align="center">
   <a href="https://nextjs.org"><img alt="Next.js 16.3.2" src="https://shieldcn.dev/badge/Next.js-16.3.2-171717.svg?variant=secondary&amp;logo=nextdotjs"></a>
@@ -19,78 +16,11 @@
 
 ## Features
 
-- Browse trending and popular movies & TV shows
-- English and French interfaces at `/en` and `/fr`, with localized TMDB metadata
-- Dedicated `/movies` and `/tv-shows` browse pages with shareable genre, sort, and decade filters
-- Detailed movie and TV show pages (ratings, cast, per-season episode list, similar, recommendations)
-- Search with fuzzy matching, year-aware ranking, and live navbar suggestions
-- Watch pages with automatic source selection (highest quality first) and failover, subtitles from the playing source and other providers, manual HLS quality selection, and a crop toggle for encoded black bars
-- Google Cast on web, Android, and iOS, plus AirPlay on supported Apple devices
-- TV episode scroller with edge fade and arrow controls, episode overlay preview cards
-- "Continue Watching" row backed by local play history; Resume/Continue buttons and the player pick up at the saved position
-- Hero with auto-rotating featured titles, two-line expandable overview, and TMDB/Rotten Tomatoes ratings
-- Lazy-loaded carousels and loading skeletons
-- Cookie consent banner that gates play-history writes, with a `/privacy` policy page
-- Per-page SEO metadata via `generateMetadata`
-- Image optimization (AVIF/WebP, TMDB-aligned responsive sizes, 30-day cache TTL)
-- TMDB logos on watch pages
-- Responsive dark theme (Tailwind v4, shadcn tokens, red accent)
-- Expo SDK 57 mobile client with native navigation, local watchlist/history, and HLS playback
-
-The web player's crop button zooms to 2.39:1 for widescreen movies stored with black bars.
-Click again to restore the full frame. Use the player's fullscreen button to keep the crop
-and controls available; this requires support for fullscreen on a container element.
-On iPhone, fullscreen hands off to the system player. Cropping is local to the player
-and does not change Cast or AirPlay playback.
-
-The web player uses its own controls: play, 10-second skips, seek, volume (remembered
-between visits), subtitles, picture-in-picture, fullscreen, and quality. While playing,
-controls hide after 2.5 seconds of inactivity. Move the pointer, tap, or press a key to
-show them again; keyboard focus and open menus keep them up. While the controls show,
-subtitles move up to clear them (Chromium and Safari; Firefox gives pages no way to move
-its subtitles). Files that position their own lines, such as a sign at the top, stay
-where they are. Click the picture to play
-or pause and double-click for fullscreen. On touch screens, tap toggles the controls and
-double-tapping the left or right side skips 10 seconds. Lock screen and media keys work
-through the Media Session API.
-
-| Key | Action |
-| --- | --- |
-| Space, K | Play or pause |
-| ← / → | Back or forward 5 seconds |
-| J / L | Back or forward 10 seconds |
-| ↑ / ↓ | Volume (while the player has focus or is fullscreen) |
-| M | Mute |
-| F | Fullscreen |
-| C | Subtitles on or off |
-
-The subtitles menu lists the files offered by the playing source. When the source has
-none, which is the case for most sources at the top of the chain, the player asks
-`/api/subtitles` for the files other providers publish for the title (OpenSubtitles,
-Vidrock, VidZee) and lists those instead, off until the viewer picks one. The viewer's
-language is listed first, then English; repeated language names are numbered
-("English 2"). A source's own first track starts on.
-Google Cast receives the subtitle selected in the player. SRT files use `format=srt`
-so `/api/hls` converts them to WebVTT.
-
-Subtitle files are timed to different releases, so the subtitles panel can fix timing:
-
-- **Delay:** − and + move the shown file by 0.5 s; G and H by 0.1 s. Delays are saved per
-  file and streaming source in the browser, and Reset clears them. Older corrections
-  saved without a source are ignored to avoid applying them to a different release.
-- **Auto-sync:** matches the file's lines against speech in the stream's own audio, two
-  150-second windows from the opening and the middle, and applies the best offset and
-  frame-rate scale. `/api/subtitles/sync` fetches the lowest-quality variant's segments
-  through `/api/hls` and pipes them into ffmpeg, which only decodes. A run downloads a few
-  minutes of video and takes 10–40 seconds; successful results are cached for a day, two runs at most
-  happen at once, and the route allows 3 requests a minute per IP. It needs `ffmpeg` on
-  the server (installed in the Docker image) and reaches `/api/hls` at `INTERNAL_ORIGIN`,
-  by default `http://127.0.0.1:$PORT`. When no shift clearly matches, it reports that
-  instead of guessing; adjust the delay or try another file. It also gives up when the two
-  windows clearly place the file at different offsets, as a file timed for another cut
-  does: no single offset and scale fixes those. Silent windows are ignored.
-  Encrypted streams and direct video files do not support auto-sync; the panel reports
-  these separately from an audio mismatch or server failure.
+- Browse, search, and filter movies and TV shows (data from TMDB).
+- Watch in a custom HLS player with subtitles, quality select, and auto-sync.
+- Cast with Google Cast and AirPlay.
+- English and French interfaces.
+- Expo mobile app for Android and iOS.
 
 ## Screenshots
 
@@ -120,115 +50,40 @@ Search: fuzzy, year-aware results with All / Movies / TV Shows filters.
 
 Posters, backdrops, and logos in these screenshots come from TMDB.
 
-## Tech stack
+## Setup
 
-- Framework: Next.js 16 (Turbopack, App Router)
-- UI: React 19, Tailwind CSS 4, shadcn tokens, Lucide icons
-- Styling: clsx, tailwind-merge
-- Data: TMDB (movies/TV), OMDb (optional Rotten Tomatoes scores)
-- Player: hls.js fed by server-side resolvers, `/api/sources` availability probing, and `/api/hls` (which also serves MovieBox DASH manifests as HLS and unwraps segments disguised as images)
-- Language: TypeScript
-- Testing: Bun test
-- Mobile: Expo Router, React Native, expo-video, TanStack Query, AsyncStorage
+1. Install [Bun](https://bun.sh).
+2. Create `.env.local`:
 
-## Getting started
+   ```bash
+   TMDB_API_KEY=your_key
+   OMDB_API_KEY=your_key        # optional: Rotten Tomatoes scores
+   STREAM_PROXY_URL=http://...  # optional: VPN proxy for Atlantic streams
+   ```
 
-### Prerequisites
+3. Install and run:
 
-- Bun
-- A TMDB API key (set in `.env.local`)
-- An optional OMDb API key (`OMDB_API_KEY`) for Rotten Tomatoes scores
+   ```bash
+   bun install
+   bun dev
+   ```
 
-Without `OMDB_API_KEY`, detail pages continue showing TMDB ratings only. OMDb content is
-licensed for non-commercial use; commercial deployments should use a licensed ratings
-provider.
+4. Open <http://localhost:3000>.
 
-Atlantic serves decoy streams to datacenter IPs. Set `STREAM_PROXY_URL` (for example
-`http://user:pass@10.89.0.13:8888`, Gluetun's HTTP proxy) to send Atlantic requests through a
-VPN; other providers stay direct. The proxy must refuse private-network DNS answers. Without
-it, Atlantic decoys are detected and playback falls through to the next provider.
+Subtitle auto-sync needs `ffmpeg` on the server. The Docker image includes it.
 
-### Installation
-
-```bash
-bun install
-```
-
-### Development
-
-```bash
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to view the app.
-Unprefixed URLs redirect to `/en` or `/fr` from the browser language; use the
-navbar language switch to change locale while keeping the current page.
-
-Stream resolution uses the same-origin `/api/resolve` backend in development and production.
-
-### Mobile development
+## Mobile
 
 ```bash
 cp apps/mobile/.env.example apps/mobile/.env
 bun run mobile:start
 ```
 
-The Expo application uses the Next.js deployment as its backend. See
-[`apps/mobile/README.md`](./apps/mobile/README.md) for development-build and EAS instructions.
-
-### Casting
-
-The web player uses Google Cast Web Sender and keeps AirPlay available in Safari.
-The Android and iOS apps use the native Google Cast SDK through
-`react-native-google-cast`. Mobile casting requires a development or release build;
-it does not run in Expo Go because the Cast SDK contains native code.
-
-Both senders use Google's Default Media Receiver. The backend issues a short-lived
-Cast token and places it on HLS proxy URLs so receivers can fetch playlists,
-segments, and subtitle tracks.
-
-### Project structure
-
-```
-app/            # Next.js App Router pages and layouts
-  [locale]/     # English/French pages
-  api/          # Server routes (search, stream resolution, HLS, episodes)
-  movie/[id]/   # Movie detail page
-  movies/       # Browse all movies
-  search/       # Search results
-  tv/[id]/      # TV show detail page
-  tv-shows/     # Browse all TV shows
-  watch/[id]/   # Movie watch page
-  watch/tv/[id] # TV episode watch page
-  privacy/      # Privacy policy
-components/     # Reusable web UI components (Hero, Carousel, Player, etc.)
-apps/mobile/    # Expo Router application for Android and iOS
-lib/            # Utilities and TMDB API client
-types/          # TypeScript type definitions
-public/         # Static assets
-tests/          # Playwright tests
-```
-
-## Security notes
-
-- `/api/hls` is not a general URL proxy. It only fetches hosts that `/api/resolve`,
-  `/api/resolve-vf`, or a rewritten playlist handed out (6 hour in-memory TTL), so a
-  segment request always has to follow a resolve on the same instance.
-- The allowlist is per-instance and lost on restart; playback then needs a new resolve.
-- Rate limiting keys on the right-most `X-Forwarded-For` entry, i.e. the one the reverse
-  proxy in front of the app appends. Per-client limits therefore require that proxy to
-  append the real client IP and to drop client-supplied forwarding headers.
-- The CSP is enforced (not report-only); `unsafe-eval` is only added in development,
-  where the Next dev runtime needs it.
-- `/api/cast` accepts same-origin web senders and originless native senders. Requests
-  carrying cross-site browser metadata are rejected. Issued tokens expire after six
-  hours and only authorize receiver CORS access to already-allowed HLS targets.
+See [`apps/mobile/README.md`](./apps/mobile/README.md).
 
 ## Privacy
 
-b!nje uses your browser's `localStorage` to remember your watch history. No tracking, no
-analytics, no third-party cookies. You can re-open the consent banner at any time from
-the "Cookies" link in the footer. See [`/privacy`](./app/privacy/page.tsx) for details.
+Watch history stays in your browser's `localStorage`. No tracking and no analytics.
 
 ## License
 
