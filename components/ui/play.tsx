@@ -1,7 +1,8 @@
 "use client";
 
 import type { Variants } from "motion/react";
-import { motion, useAnimation, useReducedMotion } from "motion/react";
+import * as m from "motion/react-m";
+import { useAnimation, useReducedMotion } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
@@ -79,7 +80,7 @@ const PlayIcon = forwardRef<PlayIconHandle, PlayIconProps>(
         onMouseLeave={handleMouseLeave}
         {...props}
       >
-        <motion.svg
+        <m.svg
           fill="none"
           height={size}
           stroke="currentColor"
@@ -90,13 +91,13 @@ const PlayIcon = forwardRef<PlayIconHandle, PlayIconProps>(
           width={size}
           xmlns="http://www.w3.org/2000/svg"
         >
-          <motion.polygon
+          <m.polygon
             fill="currentColor"
             animate={controls}
             points="6 3 20 12 6 21 6 3"
             variants={PATH_VARIANTS}
           />
-        </motion.svg>
+        </m.svg>
       </div>
     );
   }

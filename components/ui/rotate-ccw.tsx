@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useAnimation, useReducedMotion } from "motion/react";
+import * as m from "motion/react-m";
+import { useAnimation, useReducedMotion } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
@@ -55,7 +56,7 @@ const RotateCCWIcon = forwardRef<RotateCCWIconHandle, RotateCCWIconProps>(
         onMouseLeave={handleMouseLeave}
         {...props}
       >
-        <motion.svg
+        <m.svg
           animate={controls}
           fill="none"
           height={size}
@@ -74,7 +75,7 @@ const RotateCCWIcon = forwardRef<RotateCCWIconHandle, RotateCCWIconProps>(
         >
           <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
           <path d="M3 3v5h5" />
-        </motion.svg>
+        </m.svg>
       </div>
     );
   }

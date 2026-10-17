@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Compass } from "lucide-react";
 import { buttonClassName } from "@/components/ui/button";
+import MotionProvider from "@/components/MotionProvider";
 import { HomeIcon } from "@/components/ui/home";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import "./globals.css";
@@ -32,7 +33,9 @@ export default function NotFound() {
           className: "gap-2 rounded-full h-11 px-6 cursor-pointer",
         })}
       >
-        <HomeIcon ref={homeIcon} size={16} />
+        <MotionProvider>
+          <HomeIcon ref={homeIcon} size={16} />
+        </MotionProvider>
         Back to home
       </Link>
     </div>

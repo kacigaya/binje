@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useAnimation, useReducedMotion } from "motion/react";
+import * as m from "motion/react-m";
+import { useAnimation, useReducedMotion } from "motion/react";
 import type { HTMLAttributes } from "react";
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 
@@ -62,7 +63,7 @@ const PlusIcon = forwardRef<PlusIconHandle, PlusIconProps>(
         onMouseLeave={handleMouseLeave}
         {...props}
       >
-        <motion.svg
+        <m.svg
           animate={controls}
           fill="none"
           height={size}
@@ -85,7 +86,7 @@ const PlusIcon = forwardRef<PlusIconHandle, PlusIconProps>(
         >
           <path d="M5 12h14" />
           <path d="M12 5v14" />
-        </motion.svg>
+        </m.svg>
       </div>
     );
   }

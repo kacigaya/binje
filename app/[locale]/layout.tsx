@@ -7,6 +7,7 @@ import "../globals.css";
 import Navbar from "@/components/Navbar";
 import CommandMenuLoader from "@/components/CommandMenuLoader";
 import LazyToaster from "@/components/LazyToaster";
+import MotionProvider from "@/components/MotionProvider";
 import Footer from "@/components/Footer";
 import CookiesBanner from "@/components/CookiesBanner";
 import { isLocale, translate } from "@/lib/i18n";
@@ -86,26 +87,28 @@ export default async function RootLayout({
       </head>
       <body className="min-h-dvh flex flex-col bg-background text-foreground antialiased">
         <LocaleProvider locale={locale}>
-          <Suspense fallback={null}>
-            <LocaleValidation params={params} />
-          </Suspense>
-          {/* Make the skip link the first tab stop to bypass navigation and carousel links. */}
-          <a
-            href="#main"
-            className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-full focus-visible:bg-accent-red focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-semibold focus-visible:text-white"
-          >
-            {translate(locale, "Skip to content")}
-          </a>
-          <Navbar />
-          <CommandMenuLoader />
-          <main id="main" tabIndex={-1} className="flex-1 outline-none">
-            {children}
-          </main>
-          <Suspense fallback={null}>
-            <Footer />
-          </Suspense>
-          <CookiesBanner />
-          <LazyToaster />
+          <MotionProvider>
+            <Suspense fallback={null}>
+              <LocaleValidation params={params} />
+            </Suspense>
+            {/* Make the skip link the first tab stop to bypass navigation and carousel links. */}
+            <a
+              href="#main"
+              className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-50 focus-visible:rounded-full focus-visible:bg-accent-red focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-semibold focus-visible:text-white"
+            >
+              {translate(locale, "Skip to content")}
+            </a>
+            <Navbar />
+            <CommandMenuLoader />
+            <main id="main" tabIndex={-1} className="flex-1 outline-none">
+              {children}
+            </main>
+            <Suspense fallback={null}>
+              <Footer />
+            </Suspense>
+            <CookiesBanner />
+            <LazyToaster />
+          </MotionProvider>
         </LocaleProvider>
       </body>
     </html>
