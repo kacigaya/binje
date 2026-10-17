@@ -4,7 +4,7 @@
 
 <h1 align="center">b!nje</h1>
 
-<p align="center">A movie and TV discovery app for web, Android, and iOS.</p>
+<p align="center">A movie and TV streaming app for web, Android, and iOS.</p>
 
 <p align="center">
   <a href="https://nextjs.org"><img alt="Next.js 16.3.2" src="https://shieldcn.dev/badge/Next.js-16.3.2-171717.svg?variant=secondary&amp;logo=nextdotjs"></a>
