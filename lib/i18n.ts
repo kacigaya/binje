@@ -154,6 +154,9 @@ const FRENCH = {
     "Ce fichier de sous-titres contient trop peu de lignes utilisables. Essayez un autre fichier.",
   "Sync is busy. Try again shortly.": "Synchronisation occupée. Réessayez dans un instant.",
   "Cast to a device": "Diffuser sur un appareil",
+  "No cast device found": "Aucun appareil de diffusion trouvé",
+  "Use Chrome or Safari on the same network as your device.":
+    "Utilisez Chrome ou Safari sur le même réseau que votre appareil.",
   "Stop casting": "Arrêter la diffusion",
   "Connecting to device…": "Connexion à l’appareil…",
   "Play on device": "Lire sur l’appareil",

@@ -163,7 +163,7 @@ export default function CastControls({
         };
       })
       .catch(() => {
-        // Cast is optional. A blocked or offline SDK leaves its control hidden.
+        // Cast is optional. A blocked or offline SDK leaves the control in its no-device state.
       });
 
     return () => {
@@ -287,10 +287,13 @@ export default function CastControls({
   const googleConnected = googleStatus === "connected";
   const googleSelected = googleConnected || (!airPlayConnected && googleAvailable);
   const available = googleSelected || airPlayConnected || airPlayAvailable;
-  if (!available) return null;
 
   async function handleCast() {
     setError(null);
+    if (!available) {
+      toast.info(t("No cast device found"), { description: t("Use Chrome or Safari on the same network as your device.") });
+      return;
+    }
     if (googleSelected) {
       const api = apiRef.current;
       if (!api) return;
@@ -326,7 +329,9 @@ export default function CastControls({
     ? t("Stop casting")
     : connecting
       ? t("Connecting to device…")
-      : t("Cast to a device");
+      : available
+        ? t("Cast to a device")
+        : t("No cast device found");
 
   return (
     <>
@@ -343,7 +348,7 @@ export default function CastControls({
       <button
         type="button"
         onClick={() => void handleCast()}
-        disabled={!source || connecting}
+        disabled={connecting || (available && !source)}
         aria-label={castLabel}
         aria-pressed={connected}
         aria-describedby={error ? noticeId : undefined}
@@ -351,6 +356,7 @@ export default function CastControls({
         className={cn(
           controlButtonClass,
           "disabled:cursor-wait",
+          !available && "text-white/50",
           connected && "bg-accent-red hover:bg-accent-red aria-pressed:bg-accent-red",
         )}
       >
