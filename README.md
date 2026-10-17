@@ -42,11 +42,19 @@ TV detail: season and episode counts alongside the same ratings, certification, 
 
 Search: fuzzy, year-aware results with All / Movies / TV Shows filters.
 
+![Player paused on Fight Club with controls shown](public/screenshots/player-desktop.jpg)
+
+Player: custom controls with seek, 10-second skips, volume, crop, picture-in-picture, fullscreen, and quality.
+
+![Player with the subtitles panel open](public/screenshots/player-subtitles-desktop.jpg)
+
+Subtitles: pick a track, change the delay, or auto-sync the file to the audio.
+
 ### Mobile web
 
-| Home | Movie | TV | Search |
-| --- | --- | --- | --- |
-| <img src="public/screenshots/home-mobile.jpg" alt="Home page on a phone viewport" width="180"> | <img src="public/screenshots/movie-mobile.jpg" alt="Movie detail page on a phone viewport" width="180"> | <img src="public/screenshots/tv-mobile.jpg" alt="TV show detail page on a phone viewport" width="180"> | <img src="public/screenshots/search-mobile.jpg" alt="Search results on a phone viewport" width="180"> |
+| Home | Movie | TV | Search | Player |
+| --- | --- | --- | --- | --- |
+| <img src="public/screenshots/home-mobile.jpg" alt="Home page on a phone viewport" width="180"> | <img src="public/screenshots/movie-mobile.jpg" alt="Movie detail page on a phone viewport" width="180"> | <img src="public/screenshots/tv-mobile.jpg" alt="TV show detail page on a phone viewport" width="180"> | <img src="public/screenshots/search-mobile.jpg" alt="Search results on a phone viewport" width="180"> | <img src="public/screenshots/player-mobile.jpg" alt="Player on a phone viewport" width="180"> |
 
 Posters, backdrops, and logos in these screenshots come from TMDB.
 
