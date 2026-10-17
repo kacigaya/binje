@@ -913,13 +913,14 @@ export default function Player({
       onFocus={revealControls}
       tabIndex={-1}
       className={cn(
-        "relative w-full overflow-hidden rounded-xl bg-black outline-none select-none",
+        "@container relative w-full overflow-hidden rounded-xl bg-black outline-none select-none",
         isFullscreen && "flex h-dvh items-center justify-center rounded-none",
         controlsHidden && "cursor-none",
       )}
     >
+      {/* Phones stack controls in three rows, so wide video gets a 16:9 minimum frame with bars. */}
       <div
-        className="relative w-full overflow-hidden"
+        className={cn("relative flex w-full items-center overflow-hidden", !isFullscreen && "max-sm:min-h-[56.25cqw]")}
         style={{
           aspectRatio: displayAspectRatio,
           width: isFullscreen ? `min(100%, calc(100dvh * ${displayAspectRatio}))` : undefined,
@@ -943,7 +944,8 @@ export default function Player({
             setCrop(null);
           }}
           onTimeUpdate={onTimeUpdate}
-          className={cn("absolute inset-0 h-full w-full bg-black", cropEnabled ? "object-cover" : "object-contain")}
+          style={{ aspectRatio: displayAspectRatio }}
+          className={cn("w-full bg-black", cropEnabled ? "object-cover" : "object-contain")}
           crossOrigin="anonymous"
           poster={poster ?? undefined}
         >

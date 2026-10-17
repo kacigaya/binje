@@ -431,6 +431,24 @@ test("mobile playback buttons sit at the player's center", async ({ page }) => {
   expect(Math.abs(button.y + button.height / 2 - (player.y + player.height / 2))).toBeLessThan(1);
 });
 
+test("mobile controls do not overlap on wide video", async ({ page }) => {
+  await page.unroute("**/api/resolve?*");
+  await page.route("**/api/resolve?*", (route) => route.fulfill({
+    json: { url: "https://cdn.test/master.m3u8", tracks: [] },
+  }));
+  await page.route("**/api/hls?*", () => {});
+  await page.reload();
+  await playLocalStream(page, 960, 400);
+  await expectRatio(page, 2.4);
+  await page.locator("video").evaluate((video: HTMLVideoElement) => video.pause());
+  const controls = page.locator("[data-player-controls]");
+  const toolbar = (await controls.getByRole("button", { name: "Crop black bars" }).boundingBox())!;
+  const play = (await controls.getByRole("button", { name: "Play" }).last().boundingBox())!;
+  const seek = (await controls.getByRole("slider", { name: "Seek" }).boundingBox())!;
+  expect(toolbar.y + toolbar.height).toBeLessThanOrEqual(play.y);
+  expect(play.y + play.height).toBeLessThanOrEqual(seek.y);
+});
+
 async function playerWithSubtitle(page: Page, vtt: string, tracks = [{ file: "https://subs.test/en.vtt", label: "English" }]) {
   await page.unroute("**/api/resolve?*");
   await page.route("**/api/resolve?*", (route) => route.fulfill({
