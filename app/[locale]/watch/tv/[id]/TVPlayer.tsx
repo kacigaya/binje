@@ -281,7 +281,7 @@ export default function TVPlayer({
                       alt={ep.name}
                       fill
                       loading="lazy"
-                      className="object-cover transition-transform duration-200 group-hover:scale-105"
+                      className="object-cover transition duration-200 group-hover:scale-105 group-hover:blur-sm motion-reduce:transition-none"
                       sizes="(max-width: 640px) 288px, 320px"
                     />
                   ) : (
