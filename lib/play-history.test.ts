@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  getEpisodeLabel,
   getPlaybackProgress,
   getResumePosition,
   type PlayHistoryItem,
@@ -49,5 +50,25 @@ describe("getResumePosition", () => {
   test("ignores finished and unknown titles", () => {
     expect(getResumePosition(history, { type: "movie", id: 3 })).toBeNull();
     expect(getResumePosition(history, { type: "movie", id: 99 })).toBeNull();
+  });
+});
+
+describe("getEpisodeLabel", () => {
+  test("joins the episode code and name for TV entries", () => {
+    expect(
+      getEpisodeLabel({ type: "tv", season: 1, episode: 2, episodeName: " Beerus " }),
+    ).toBe("S1E2 · Beerus");
+  });
+
+  test("falls back to the code when the name is missing or malformed", () => {
+    expect(getEpisodeLabel({ type: "tv", season: 1, episode: 2 })).toBe("S1E2");
+    expect(
+      getEpisodeLabel({ type: "tv", season: 1, episode: 2, episodeName: 5 as unknown as string }),
+    ).toBe("S1E2");
+  });
+
+  test("returns null for movies and entries without an episode", () => {
+    expect(getEpisodeLabel({ type: "movie" })).toBeNull();
+    expect(getEpisodeLabel({ type: "tv" })).toBeNull();
   });
 });

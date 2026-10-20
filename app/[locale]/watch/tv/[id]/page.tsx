@@ -238,6 +238,9 @@ async function WatchTVPlayer({
           vote_average: show.vote_average,
           season,
           episode,
+          episodeName: initialEpisodes.find(
+            (item) => item.episode_number === episode,
+          )?.name,
         }}
       />
       <div

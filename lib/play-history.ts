@@ -18,6 +18,7 @@ export interface PlayHistoryItem {
   watchedAt: number;
   season?: number;
   episode?: number;
+  episodeName?: string;
   progress?: number;
   positionSeconds?: number;
   durationSeconds?: number;
@@ -177,3 +178,15 @@ export function getPlayHistoryHref(item: PlayHistoryItem) {
 }
 
 export const subscribeToPlayHistory = playHistoryStore.subscribe;
+
+/** Label a TV entry as "S1E2 · Name". Entries saved before names were stored show only the number. */
+export function getEpisodeLabel(
+  item: Pick<PlayHistoryItem, "type" | "season" | "episode" | "episodeName">,
+) {
+  if (item.type !== "tv" || !item.season || !item.episode) return null;
+  const code = `S${item.season}E${item.episode}`;
+  // Stored data comes from localStorage, so do not trust the field type.
+  const name =
+    typeof item.episodeName === "string" ? item.episodeName.trim() : "";
+  return name ? `${code} · ${name}` : code;
+}

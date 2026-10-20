@@ -5,6 +5,7 @@ import type { MouseEvent } from "react";
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import {
+  getEpisodeLabel,
   getPlaybackProgress,
   getPlayHistory,
   getPlayHistoryHref,
@@ -91,6 +92,8 @@ export default function ContinueWatching() {
                 ? `${formatPlaybackTime(item.positionSeconds)} / ${formatPlaybackTime(item.durationSeconds)}`
                 : null;
 
+            const episodeLabel = getEpisodeLabel(item);
+
             return (
               <div
                 key={`${item.type}-${item.id}`}
@@ -118,12 +121,6 @@ export default function ContinueWatching() {
                     />
                   )}
 
-                  {item.type === "tv" && item.season && item.episode && (
-                    <div className="absolute top-1.5 left-1.5 rounded-full bg-black/75 px-2 py-0.5 text-[11px] font-semibold text-white">
-                      S{item.season}E{item.episode}
-                    </div>
-                  )}
-
                   {timings && (
                     <div className="absolute bottom-2 right-1.5 rounded-md bg-black/75 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-white">
                       {timings}
@@ -142,6 +139,11 @@ export default function ContinueWatching() {
                 <p className="mt-2 text-sm font-semibold text-foreground leading-tight truncate">
                   {item.title}
                 </p>
+                {episodeLabel && (
+                  <p className="mt-1 text-xs text-foreground/80 leading-tight truncate">
+                    {episodeLabel}
+                  </p>
+                )}
                 {minutesLeft !== null && (
                   <p className="mt-1 text-xs text-muted-foreground tabular-nums">
                     {minutesLeft} {t("min left")}
