@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Star } from "lucide-react";
 import RemoveButton from "@/components/RemoveButton";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import type { MouseEvent } from "react";
@@ -90,13 +90,7 @@ export default function Watchlist() {
                 {year && <span>{year}</span>}
                 <span aria-hidden="true">·</span>
                 <span className="flex items-center gap-1">
-                  <Image
-                    src="/tmdb.svg"
-                    alt="TMDB"
-                    width={28}
-                    height={12}
-                    className="h-3 w-auto shrink-0"
-                  />
+                  <Star aria-hidden="true" className="size-3 fill-muted-foreground text-muted-foreground" />
                   {rating}
                 </span>
               </p>
