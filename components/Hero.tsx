@@ -87,7 +87,7 @@ export default function Hero({ items }: HeroProps) {
   const rating = formatRating(locale, activeItem.vote_average) ?? t("N/A");
 
   return (
-    <section className="relative w-full h-[70vh] sm:h-[80vh] overflow-hidden">
+    <section className="relative flex min-h-[70svh] w-full items-end overflow-hidden sm:min-h-[80svh]">
       {backdrop && (
         <Image
           src={backdrop}
@@ -105,116 +105,115 @@ export default function Hero({ items }: HeroProps) {
       <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
       <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
 
-      <div className="absolute inset-0 flex items-end">
-        <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 pb-16 sm:pb-24">
-          <div className="max-w-2xl space-y-4">
-            {/* Fix the title slot height so logo loading cannot shift the bottom-anchored content. */}
-            <div className="flex min-h-28 items-end sm:min-h-36">
-              {logo ? (
-                <>
-                  {/* Keep an h1 in the document when the logo replaces the visible title. */}
-                  <h1 className="sr-only">{activeItem.title}</h1>
-                  <Image
-                    src={logo}
-                    alt=""
-                    aria-hidden="true"
-                    width={activeItem.logo_width ?? 500}
-                    height={activeItem.logo_height ?? 200}
-                    priority
-                    sizes={logoBox.sizes}
-                    style={logoBox.style}
-                    className="h-28 w-(--logo-width) object-contain object-left-bottom sm:h-36 sm:w-(--logo-width-sm)"
-                  />
-                </>
-              ) : (
-                <h1
-                  className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-balance"
-                  style={{ fontFamily: "var(--font-heading)" }}
-                >
-                  {activeItem.title}
-                </h1>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              {activeItem.media_type === "tv" && (
-                <Badge className="border-white/20 bg-white/10 text-xs text-foreground hover:bg-white/10">
-                  {t("TV Series")}
-                </Badge>
-              )}
-              <div className="flex items-center gap-1.5 font-semibold">
+      {/* Content stays in flow so the hero grows instead of clipping it on short screens. */}
+      <div className="relative mx-auto w-full max-w-7xl px-4 pt-28 pb-16 sm:px-6 sm:pb-24 short:pt-24 short:pb-16">
+        <div className="max-w-2xl space-y-4">
+          {/* Fix the title slot height so logo loading cannot shift the bottom-anchored content. */}
+          <div className="flex min-h-28 items-end sm:min-h-36 short:min-h-20">
+            {logo ? (
+              <>
+                {/* Keep an h1 in the document when the logo replaces the visible title. */}
+                <h1 className="sr-only">{activeItem.title}</h1>
                 <Image
-                  src="/tmdb.svg"
+                  src={logo}
                   alt=""
-                  width={37}
-                  height={16}
                   aria-hidden="true"
-                  className="h-4 w-auto shrink-0"
+                  width={activeItem.logo_width ?? 500}
+                  height={activeItem.logo_height ?? 200}
+                  priority
+                  sizes={logoBox.sizes}
+                  style={logoBox.style}
+                  className="h-28 w-(--logo-width) object-contain object-left-bottom sm:h-36 sm:w-(--logo-width-sm) short:h-20"
                 />
-                <span className="text-sm tabular-nums">{rating}</span>
-              </div>
-              <RottenTomatoesRating imdbId={activeItem.imdbId} />
-              {activeItem.contentRating && (
-                <span className="rounded border border-white/25 px-1.5 text-xs font-semibold text-foreground/80">
-                  {activeItem.contentRating}
-                </span>
-              )}
-              {activeItem.date && (
-                <span className="text-sm text-muted-foreground">
-                  {new Date(activeItem.date).getFullYear()}
-                </span>
-              )}
-            </div>
-
-            <ExpandableOverview
-              key={activeItem.id}
-              text={activeItem.overview}
-              className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-xl"
-            />
-
-            <div className="flex items-center gap-3 pt-2">
-              <WatchNowLink
-                href={localizedHref(locale, watchHref)}
-                label={t("Watch Now")}
-                className={buttonClassName({
-                  size: "lg",
-                  className:
-                    "rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-6 sm:px-8 h-12 text-base cursor-pointer",
-                })}
-              />
-              <IntentPrefetchLink
-                href={localizedHref(locale, detailHref)}
-                className={buttonClassName({
-                  size: "lg",
-                  variant: "outline",
-                  className:
-                    "rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-6 sm:px-8 h-12 text-base cursor-pointer",
-                })}
+              </>
+            ) : (
+              <h1
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-balance"
+                style={{ fontFamily: "var(--font-heading)" }}
               >
-                <Info className="size-5" />
-                {t("Details")}
-              </IntentPrefetchLink>
-              {/* Keep this in the action row so the overlapping first rail cannot hide it. */}
-              {rotates && safeItems.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setPaused((previous) => !previous)}
-                  aria-pressed={paused}
-                  aria-label={
-                    paused
-                      ? t("Resume featured titles")
-                      : t("Pause featured titles")
-                  }
-                  className="ml-auto flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 sm:ml-2"
-                >
-                  {paused ? (
-                    <Play aria-hidden="true" className="size-4" />
-                  ) : (
-                    <Pause aria-hidden="true" className="size-4" />
-                  )}
-                </button>
-              )}
+                {activeItem.title}
+              </h1>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {activeItem.media_type === "tv" && (
+              <Badge className="border-white/20 bg-white/10 text-xs text-foreground hover:bg-white/10">
+                {t("TV Series")}
+              </Badge>
+            )}
+            <div className="flex items-center gap-1.5 font-semibold">
+              <Image
+                src="/tmdb.svg"
+                alt=""
+                width={37}
+                height={16}
+                aria-hidden="true"
+                className="h-4 w-auto shrink-0"
+              />
+              <span className="text-sm tabular-nums">{rating}</span>
             </div>
+            <RottenTomatoesRating imdbId={activeItem.imdbId} />
+            {activeItem.contentRating && (
+              <span className="rounded border border-white/25 px-1.5 text-xs font-semibold text-foreground/80">
+                {activeItem.contentRating}
+              </span>
+            )}
+            {activeItem.date && (
+              <span className="text-sm text-muted-foreground">
+                {new Date(activeItem.date).getFullYear()}
+              </span>
+            )}
+          </div>
+
+          <ExpandableOverview
+            key={activeItem.id}
+            text={activeItem.overview}
+            className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-xl"
+          />
+
+          <div className="flex items-center gap-3 pt-2">
+            <WatchNowLink
+              href={localizedHref(locale, watchHref)}
+              label={t("Watch Now")}
+              className={buttonClassName({
+                size: "lg",
+                className:
+                  "rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-6 sm:px-8 h-12 text-base cursor-pointer",
+              })}
+            />
+            <IntentPrefetchLink
+              href={localizedHref(locale, detailHref)}
+              className={buttonClassName({
+                size: "lg",
+                variant: "outline",
+                className:
+                  "rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-6 sm:px-8 h-12 text-base cursor-pointer",
+              })}
+            >
+              <Info className="size-5" />
+              {t("Details")}
+            </IntentPrefetchLink>
+            {/* Keep this in the action row so the overlapping first rail cannot hide it. */}
+            {rotates && safeItems.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setPaused((previous) => !previous)}
+                aria-pressed={paused}
+                aria-label={
+                  paused
+                    ? t("Resume featured titles")
+                    : t("Pause featured titles")
+                }
+                className="ml-auto flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 sm:ml-2"
+              >
+                {paused ? (
+                  <Play aria-hidden="true" className="size-4" />
+                ) : (
+                  <Pause aria-hidden="true" className="size-4" />
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
