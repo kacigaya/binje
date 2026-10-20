@@ -169,10 +169,14 @@ export async function getMovieImages(id: number, locale: Locale = DEFAULT_LOCALE
   return tmdbFetch<MovieImagesResponse>(`/movie/${id}/images?include_image_language=${locale},en,null`, 86400, locale);
 }
 
+/** Skip SVG logos: the Next image optimizer and React Native Image cannot render them. */
 export function pickLogo(
-  logos: TMDBImageAsset[],
+  allLogos: TMDBImageAsset[],
   locale: Locale = DEFAULT_LOCALE,
 ): TMDBImageAsset | null {
+  const logos = allLogos.filter(
+    (logo) => !logo.file_path.toLowerCase().endsWith(".svg"),
+  );
   return (
     logos.find((logo) => logo.iso_639_1 === locale) ??
     logos.find((logo) => logo.iso_639_1 === "en") ??

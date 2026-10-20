@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { getMovieContentRating, getTVContentRating, normalizeForMatch } from "@/lib/tmdb";
-import type { MovieDetails, TVShowDetails } from "@/types/tmdb";
+import { getMovieContentRating, getTVContentRating, normalizeForMatch, pickLogo } from "@/lib/tmdb";
+import type { MovieDetails, TMDBImageAsset, TVShowDetails } from "@/types/tmdb";
 
 test("normalizes French accents for search matching", () => {
   expect(normalizeForMatch("Amélie Poulain")).toBe("ameliepoulain");
@@ -26,4 +26,13 @@ test("reads and formats French content ratings", () => {
   expect(getTVContentRating(show)).toBe("Tous publics");
   expect(getTVContentRating(numericShow)).toBe("+16");
   expect(getTVContentRating(missing)).toBeNull();
+});
+
+test("picks a raster logo and skips SVG files", () => {
+  const logo = (file_path: string, iso_639_1: string | null): TMDBImageAsset => ({
+    file_path, iso_639_1, aspect_ratio: 4, width: 400, height: 100, vote_average: 0, vote_count: 0,
+  });
+  expect(pickLogo([logo("/a.svg", "fr"), logo("/b.png", "en")], "fr")?.file_path).toBe("/b.png");
+  expect(pickLogo([logo("/a.png", "en"), logo("/b.png", "fr")], "fr")?.file_path).toBe("/b.png");
+  expect(pickLogo([logo("/a.SVG", "en")], "en")).toBeNull();
 });
