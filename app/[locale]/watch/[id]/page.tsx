@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { locale as getRootLocale } from "next/root-params";
 import { cache, Suspense } from "react";
@@ -7,8 +8,8 @@ import { Calendar, Clock, Info } from "lucide-react";
 import StreamTechBadges from "@/components/StreamTechBadges";
 import Player from "@/components/Player";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
-import { getMovieDetails } from "@/lib/cached-tmdb";
-import { backdropUrl, parseTmdbId } from "@/lib/tmdb";
+import { getMovieDetails, getMovieImages } from "@/lib/cached-tmdb";
+import { backdropUrl, logoUrl, parseTmdbId, pickLogo } from "@/lib/tmdb";
 import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
 import { WatchInfoLoading, WatchPlayerLoading } from "./loading";
 
@@ -79,7 +80,12 @@ async function WatchMovieInfo({
   const { locale, id } = await params;
   const movieId = parseTmdbId(id);
   if (movieId === null) notFound();
-  const movie = await getCachedMovieDetails(movieId, locale);
+  const [movie, images] = await Promise.all([
+    getCachedMovieDetails(movieId, locale),
+    getMovieImages(movieId, locale).catch(() => null),
+  ]);
+  const logo = pickLogo(images?.logos ?? [], locale);
+  const movieLogoUrl = logoUrl(logo?.file_path ?? null);
 
   return (
     <>
@@ -96,12 +102,27 @@ async function WatchMovieInfo({
       />
 
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-3">
-        <h1
-          className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
-          style={{ fontFamily: "var(--font-heading)" }}
-        >
-          {movie.title}
-        </h1>
+        {logo && movieLogoUrl ? (
+          <>
+            {/* Keep an h1 in the document when the logo replaces the visible title. */}
+            <h1 className="sr-only">{movie.title}</h1>
+            <Image
+              src={movieLogoUrl}
+              alt=""
+              aria-hidden="true"
+              width={logo.width}
+              height={logo.height}
+              className="h-auto max-h-14 w-auto max-w-60 object-contain object-left sm:max-h-16 sm:max-w-xs"
+            />
+          </>
+        ) : (
+          <h1
+            className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {movie.title}
+          </h1>
+        )}
 
         <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
           {movie.release_date && (

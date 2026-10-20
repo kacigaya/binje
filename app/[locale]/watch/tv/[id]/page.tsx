@@ -5,8 +5,8 @@ import { locale as getRootLocale } from "next/root-params";
 import { connection } from "next/server";
 import { cache, Suspense } from "react";
 import { Calendar, ChevronLeft, Clock } from "lucide-react";
-import { getTVDetails, getSeasonEpisodes } from "@/lib/cached-tmdb";
-import { backdropUrl, parseTmdbId } from "@/lib/tmdb";
+import { getTVDetails, getTVImages, getSeasonEpisodes } from "@/lib/cached-tmdb";
+import { backdropUrl, logoUrl, parseTmdbId, pickLogo } from "@/lib/tmdb";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
 import ExpandableOverview from "@/components/ExpandableOverview";
 import TVPlayer from "./TVPlayer";
@@ -107,10 +107,13 @@ async function WatchTVInfo({
   if (showId === null) notFound();
 
   const { season, episode } = parseEpisodeParams(s, e);
-  const [show, episodes] = await Promise.all([
+  const [show, episodes, images] = await Promise.all([
     getCachedTVDetails(showId, locale),
     getSeasonEpisodes(showId, season, locale).catch(() => []),
+    getTVImages(showId, locale).catch(() => null),
   ]);
+  const logo = pickLogo(images?.logos ?? [], locale);
+  const showLogoUrl = logoUrl(logo?.file_path ?? null);
   const current = episodes.find((item) => item.episode_number === episode);
   const rating = current ? formatRating(locale, current.vote_average) : null;
 
@@ -124,7 +127,17 @@ async function WatchTVInfo({
         className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
       >
         <ChevronLeft aria-hidden="true" className="size-4" />
-        {show.name}
+        {logo && showLogoUrl ? (
+          <Image
+            src={showLogoUrl}
+            alt={show.name}
+            width={logo.width}
+            height={logo.height}
+            className="h-auto max-h-10 w-auto max-w-48 object-contain object-left sm:max-h-12 sm:max-w-60"
+          />
+        ) : (
+          show.name
+        )}
       </Link>
 
       {/* The player bar above already shows the season and episode numbers. */}
