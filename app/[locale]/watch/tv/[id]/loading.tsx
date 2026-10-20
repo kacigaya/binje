@@ -2,20 +2,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function WatchTVInfoLoading({ heading }: { heading?: string } = {}) {
   return (
-    <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-3">
-      <Skeleton className="h-5 w-32" />
+    <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12">
       {/* Keep a page heading for screen readers without showing a generic label. */}
       {heading && <h1 className="sr-only">{heading}</h1>}
-      <Skeleton className="h-9 w-72 max-w-full" />
-      <div className="flex flex-wrap items-center gap-4">
-        <Skeleton className="h-5 w-12" />
-        <Skeleton className="h-5 w-16" />
-        <Skeleton className="h-5 w-28" />
-      </div>
-      <div className="max-w-3xl space-y-2">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3" />
-      </div>
+      <Skeleton className="h-14 w-60 max-w-full sm:h-16" />
     </div>
   );
 }

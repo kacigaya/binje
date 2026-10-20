@@ -138,7 +138,7 @@ export default function SeasonEpisodes({
       ) : (
         <ol className="-mx-2 space-y-1">
           {episodes.map((ep) => {
-            const still = stillUrl(ep.still_path, "w300");
+            const still = stillUrl(ep.still_path, "original");
             const isLast = last?.season === season && last.episode === ep.episode_number;
             return (
               <li key={ep.id}>

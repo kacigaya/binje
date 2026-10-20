@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { stillUrl } from "@/lib/tmdb";
 import type { Episode } from "@/types/tmdb";
-import { localizedHref } from "@/lib/i18n";
+import { formatRating, localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
 
 interface SeasonInfo {
@@ -257,8 +257,12 @@ export default function TVPlayer({
               className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
             >
               {episodes.map((ep) => {
-              const still = stillUrl(ep.still_path, "w300");
+              // Let Next resize the original so cards stay sharp on high-density screens.
+              const still = stillUrl(ep.still_path, "original");
               const isActive = ep.episode_number === episode;
+              // Unrated episodes report 0, which would read as a bad score.
+              const rating =
+                ep.vote_average > 0 ? formatRating(locale, ep.vote_average) : null;
               return (
                 <Link
                   key={ep.id}
@@ -278,7 +282,7 @@ export default function TVPlayer({
                       fill
                       loading="lazy"
                       className="object-cover transition-transform duration-200 group-hover:scale-105"
-                      sizes="320px"
+                      sizes="(max-width: 640px) 288px, 320px"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center bg-card text-muted-foreground text-xs">
@@ -301,11 +305,27 @@ export default function TVPlayer({
                       )}
                       {ep.episode_number}. {ep.name}
                     </p>
-                    {ep.runtime ? (
-                      <span className="flex items-center gap-1 text-[11px] text-white/60">
-                        <Clock aria-hidden="true" className="size-3" />
-                        {ep.runtime}m
-                      </span>
+                    {rating || ep.runtime ? (
+                      <div className="flex items-center gap-3 text-[11px] text-white/60 tabular-nums">
+                        {rating && (
+                          <span className="flex items-center gap-1 font-semibold text-white">
+                            <Image
+                              src="/tmdb.svg"
+                              alt="TMDB"
+                              width={28}
+                              height={12}
+                              className="h-3 w-auto shrink-0"
+                            />
+                            {rating}
+                          </span>
+                        )}
+                        {ep.runtime ? (
+                          <span className="flex items-center gap-1">
+                            <Clock aria-hidden="true" className="size-3" />
+                            {ep.runtime}m
+                          </span>
+                        ) : null}
+                      </div>
                     ) : null}
                     {ep.overview ? (
                       <p className="text-[11px] leading-snug text-white/50 line-clamp-2">

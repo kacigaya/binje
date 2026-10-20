@@ -4,17 +4,12 @@ import Image from "next/image";
 import { locale as getRootLocale } from "next/root-params";
 import { connection } from "next/server";
 import { cache, Suspense } from "react";
-import { Calendar, Clock } from "lucide-react";
 import { getTVDetails, getTVImages, getSeasonEpisodes } from "@/lib/cached-tmdb";
 import { backdropUrl, logoUrl, parseTmdbId, pickLogo } from "@/lib/tmdb";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
-import ExpandableOverview from "@/components/ExpandableOverview";
 import TVPlayer from "./TVPlayer";
 import Link from "next/link";
-import StreamTechBadges from "@/components/StreamTechBadges";
 import {
-  formatRating,
-  intlLocale,
   isLocale,
   localizedHref,
   translate,
@@ -88,110 +83,55 @@ export default async function WatchTVPage({
         <WatchTVPlayer params={params} searchParams={searchParams} />
       </Suspense>
       <Suspense fallback={<WatchTVInfoLoading heading={translate(locale, "TV")} />}>
-        <WatchTVInfo params={params} searchParams={searchParams} />
+        <WatchTVInfo params={params} />
       </Suspense>
     </div>
   );
 }
 
-/** The details page covers the show; this block covers only the episode being played. */
+/** Episode details live on the player cards; this block only links back to the show. */
 async function WatchTVInfo({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: Locale; id: string }>;
-  searchParams: Promise<{ s?: string; e?: string }>;
 }) {
-  const [{ locale, id }, { s, e }] = await Promise.all([params, searchParams]);
+  const { locale, id } = await params;
   const showId = parseTmdbId(id);
   if (showId === null) notFound();
 
-  const { season, episode } = parseEpisodeParams(s, e);
-  const [show, episodes, images] = await Promise.all([
+  const [show, images] = await Promise.all([
     getCachedTVDetails(showId, locale),
-    getSeasonEpisodes(showId, season, locale).catch(() => []),
     getTVImages(showId, locale).catch(() => null),
   ]);
   const logo = pickLogo(images?.logos ?? [], locale);
   const showLogoUrl = logoUrl(logo?.file_path ?? null);
-  const current = episodes.find((item) => item.episode_number === episode);
-  const rating = current ? formatRating(locale, current.vote_average) : null;
 
   return (
     <div
-      className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-3"
+      className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12"
       data-testid="watch-tv-data"
     >
-      <Link
-        href={localizedHref(locale, `/tv/${show.id}`)}
-        className="inline-flex items-center rounded-sm text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
-      >
-        {logo && showLogoUrl ? (
-          <Image
-            src={showLogoUrl}
-            alt={show.name}
-            width={logo.width}
-            height={logo.height}
-            className="h-auto max-h-10 w-auto max-w-48 object-contain object-left sm:max-h-12 sm:max-w-60"
-          />
-        ) : (
-          show.name
-        )}
-      </Link>
-
-      {/* The player bar above already shows the season and episode numbers. */}
       <h1
         className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
         style={{ fontFamily: "var(--font-heading)" }}
       >
-        {current?.name || `${translate(locale, "Episode")} ${episode}`}
-      </h1>
-
-      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
-        {rating && (
-          <div className="flex items-center gap-1.5 font-semibold text-foreground">
+        <Link
+          href={localizedHref(locale, `/tv/${show.id}`)}
+          className="inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+        >
+          {logo && showLogoUrl ? (
             <Image
-              src="/tmdb.svg"
-              alt="TMDB"
-              width={37}
-              height={16}
-              className="h-4 w-auto shrink-0"
+              src={showLogoUrl}
+              alt={show.name}
+              width={logo.width}
+              height={logo.height}
+              className="h-auto max-h-14 w-auto max-w-60 object-contain object-left sm:max-h-16 sm:max-w-xs"
             />
-            {rating}
-          </div>
-        )}
-        {current?.runtime ? (
-          <div className="flex items-center gap-1">
-            <Clock aria-hidden="true" className="size-4" />
-            {current.runtime}&nbsp;min
-          </div>
-        ) : null}
-        {current?.air_date && (
-          <div className="flex items-center gap-1">
-            <Calendar aria-hidden="true" className="size-4" />
-            {new Date(current.air_date).toLocaleDateString(intlLocale(locale), {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </div>
-        )}
-        <StreamTechBadges
-          type="tv"
-          tmdbId={show.id}
-          title={show.original_name}
-          year={show.first_air_date.slice(0, 4)}
-          imdbId={show.external_ids.imdb_id}
-        />
-      </div>
-
-      {current?.overview && (
-        <ExpandableOverview
-          key={`${season}-${episode}`}
-          text={current.overview}
-          className="max-w-3xl text-foreground/70 leading-relaxed"
-        />
-      )}
+          ) : (
+            show.name
+          )}
+        </Link>
+      </h1>
     </div>
   );
 }
