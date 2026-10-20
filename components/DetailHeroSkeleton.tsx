@@ -23,16 +23,9 @@ export default function DetailHeroSkeleton({
           <Skeleton className="aspect-2/3 w-full rounded-xl sm:row-span-2 sm:rounded-2xl" />
 
           <div className="min-w-0 space-y-2 sm:pt-28">
-            {heading ? (
-              <h1
-                className="text-2xl font-bold tracking-tight sm:text-4xl lg:text-5xl"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                {heading}
-              </h1>
-            ) : (
-              <Skeleton className="h-12 w-75 max-w-full" />
-            )}
+            {/* Keep a page heading for screen readers without showing a generic label. */}
+            {heading && <h1 className="sr-only">{heading}</h1>}
+            <Skeleton className="h-12 w-75 max-w-full" />
             <Skeleton className="h-5 w-48 max-w-full" />
           </div>
 
