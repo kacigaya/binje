@@ -19,6 +19,7 @@ export interface PlayHistoryItem {
   season?: number;
   episode?: number;
   episodeName?: string;
+  episodeStillPath?: string | null;
   progress?: number;
   positionSeconds?: number;
   durationSeconds?: number;

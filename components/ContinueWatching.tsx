@@ -18,7 +18,7 @@ import RemoveButton from "@/components/RemoveButton";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import ScrollArrows from "@/components/ScrollArrows";
 import { formatPlaybackTime } from "@/lib/format-time";
-import { backdropUrl, posterUrl } from "@/lib/tmdb";
+import { backdropUrl, posterUrl, stillUrl } from "@/lib/tmdb";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
@@ -72,9 +72,16 @@ export default function ContinueWatching() {
           className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-6 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
         >
           {items.map((item) => {
-            const image = item.backdrop_path
-              ? backdropUrl(item.backdrop_path, "w780")
-              : posterUrl(item.poster_path, "w342");
+            // Stored data comes from localStorage, so check the still path type.
+            const episodeStill =
+              item.type === "tv" && typeof item.episodeStillPath === "string"
+                ? stillUrl(item.episodeStillPath, "original")
+                : null;
+            const image =
+              episodeStill ??
+              (item.backdrop_path
+                ? backdropUrl(item.backdrop_path, "w780")
+                : posterUrl(item.poster_path, "w342"));
             const progress = getPlaybackProgress(item);
             const minutesLeft =
               progress !== null &&

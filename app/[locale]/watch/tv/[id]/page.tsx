@@ -154,6 +154,9 @@ async function WatchTVPlayer({
     () => [],
   );
   const seasons = show.seasons.filter((item) => item.season_number > 0);
+  const currentEpisode = initialEpisodes.find(
+    (item) => item.episode_number === episode,
+  );
 
   return (
     <>
@@ -168,9 +171,8 @@ async function WatchTVPlayer({
           vote_average: show.vote_average,
           season,
           episode,
-          episodeName: initialEpisodes.find(
-            (item) => item.episode_number === episode,
-          )?.name,
+          episodeName: currentEpisode?.name,
+          episodeStillPath: currentEpisode?.still_path,
         }}
       />
       <div
