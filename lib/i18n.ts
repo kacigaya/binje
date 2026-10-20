@@ -193,7 +193,6 @@ const FRENCH = {
   Searching: "Recherche",
   Undo: "Annuler",
   "Skip to content": "Aller au contenu",
-  "Featured titles": "Titres à la une",
   "Pause featured titles": "Mettre en pause les titres à la une",
   "Resume featured titles": "Reprendre les titres à la une",
   "Audio track": "Piste audio",
