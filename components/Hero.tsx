@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import { Info, Pause, Play } from "lucide-react";
 import { useReducedMotion } from "motion/react";
@@ -45,8 +52,12 @@ function heroLogoBox(width?: number, height?: number) {
   };
 }
 
+/** Auto-advance delay; swiping or picking a title restarts it. */
+const ROTATION_MS = 15000;
+
 export default function Hero({ items }: HeroProps) {
-  const { locale, t } = useTranslations();
+  const { t } = useTranslations();
+  const trackRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
@@ -56,47 +67,164 @@ export default function Hero({ items }: HeroProps) {
     () => items.filter((item) => Boolean(item?.id)),
     [items],
   );
+  const count = safeItems.length;
+
+  const scrollToIndex = useCallback(
+    (index: number) => {
+      const track = trackRef.current;
+      if (!track) return;
+      track.scrollTo({
+        left: index * track.clientWidth,
+        behavior: reducedMotion ? "auto" : "smooth",
+      });
+    },
+    [reducedMotion],
+  );
+
+  // The scroll position is the source of truth, so swipes and buttons stay in sync.
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (track.clientWidth === 0) return;
+        setActiveIndex(Math.round(track.scrollLeft / track.clientWidth));
+      });
+    };
+    track.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      track.removeEventListener("scroll", onScroll);
+    };
+  }, []);
 
   useEffect(() => {
     // Disable automatic rotation for reduced motion; everyone else gets a pause control.
-    if (safeItems.length <= 1 || paused || !rotates) return;
+    if (count <= 1 || paused || !rotates) return;
+    const timeoutId = window.setTimeout(
+      () => scrollToIndex((activeIndex + 1) % count),
+      ROTATION_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [activeIndex, count, paused, rotates, scrollToIndex]);
 
-    const intervalId = window.setInterval(() => {
-      setActiveIndex((previousIndex) => (previousIndex + 1) % safeItems.length);
-    }, 15000);
-
-    return () => window.clearInterval(intervalId);
-  }, [paused, rotates, safeItems.length]);
-
-  const normalizedIndex =
-    safeItems.length > 0 ? activeIndex % safeItems.length : 0;
-  const activeItem = safeItems[normalizedIndex];
-  if (!activeItem) return null;
-
-  const backdrop = activeItem.backdrop_path;
-  const logo = logoUrl(activeItem.logo_path ?? null);
-  const logoBox = heroLogoBox(activeItem.logo_width, activeItem.logo_height);
-  const detailHref =
-    activeItem.media_type === "tv"
-      ? `/tv/${activeItem.id}`
-      : `/movie/${activeItem.id}`;
-  const watchHref =
-    activeItem.media_type === "tv"
-      ? `/watch/tv/${activeItem.id}`
-      : `/watch/${activeItem.id}`;
-  const rating = formatRating(locale, activeItem.vote_average) ?? t("N/A");
+  if (count === 0) return null;
 
   return (
-    <section className="relative flex min-h-[70svh] w-full items-end overflow-hidden sm:min-h-[80svh]">
+    <section
+      className="relative w-full"
+      aria-roledescription="carousel"
+      aria-label={t("Featured titles")}
+    >
+      <div
+        ref={trackRef}
+        className="scrollbar-hide flex snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain"
+      >
+        {safeItems.map((item, index) => (
+          <HeroSlide
+            key={item.id}
+            item={item}
+            first={index === 0}
+            active={index === activeIndex}
+            label={`${index + 1} / ${count}`}
+          />
+        ))}
+      </div>
+
+      {count > 1 && (
+        // Sits above the overlapping first rail, which covers the bottom 3rem.
+        <div className="pointer-events-none absolute inset-x-0 bottom-16 sm:bottom-20 short:bottom-16">
+          <div className="mx-auto flex max-w-7xl items-center justify-end gap-3 px-4 sm:px-6">
+            <div className="pointer-events-auto flex items-center">
+              {safeItems.map((item, index) => {
+                const isActive = index === activeIndex;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => scrollToIndex(index)}
+                    aria-label={item.title}
+                    aria-current={isActive ? "true" : undefined}
+                    className="group flex h-6 cursor-pointer items-center px-1 focus-visible:outline-none"
+                  >
+                    <span
+                      className={`block h-1 rounded-full transition-all duration-300 group-focus-visible:ring-2 group-focus-visible:ring-accent-red/60 motion-reduce:transition-none ${
+                        isActive ? "w-8 bg-white" : "w-5 bg-white/30 group-hover:bg-white/60"
+                      }`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+            {rotates && (
+              <button
+                type="button"
+                onClick={() => setPaused((previous) => !previous)}
+                aria-pressed={paused}
+                aria-label={
+                  paused
+                    ? t("Resume featured titles")
+                    : t("Pause featured titles")
+                }
+                className="pointer-events-auto flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+              >
+                {paused ? (
+                  <Play aria-hidden="true" className="size-4" />
+                ) : (
+                  <Pause aria-hidden="true" className="size-4" />
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function HeroSlide({
+  item,
+  first,
+  active,
+  label,
+}: {
+  item: MediaItem;
+  first: boolean;
+  active: boolean;
+  label: string;
+}) {
+  const { locale, t } = useTranslations();
+  const backdrop = item.backdrop_path;
+  const logo = logoUrl(item.logo_path ?? null);
+  const logoBox = heroLogoBox(item.logo_width, item.logo_height);
+  const detailHref =
+    item.media_type === "tv" ? `/tv/${item.id}` : `/movie/${item.id}`;
+  const watchHref =
+    item.media_type === "tv" ? `/watch/tv/${item.id}` : `/watch/${item.id}`;
+  const rating = formatRating(locale, item.vote_average) ?? t("N/A");
+  // Only the visible slide is exposed, so the page keeps exactly one h1.
+  const Heading = active ? "h1" : "h2";
+
+  return (
+    <div
+      role="group"
+      aria-roledescription="slide"
+      aria-label={label}
+      // Off-screen slides stay out of the tab order and the accessibility tree.
+      inert={!active}
+      className="relative flex min-h-[70svh] w-full shrink-0 snap-start snap-always items-end sm:min-h-[80svh]"
+    >
       {backdrop && (
         <Image
           src={backdrop}
           loader={tmdbBackdropLoader}
-          alt={activeItem.title}
+          alt={item.title}
           fill
-          priority
-          // `priority` emits a preload; `fetchPriority` keeps the backdrop ahead of poster requests.
-          fetchPriority="high"
+          priority={first}
+          // `priority` emits a preload; `fetchPriority` keeps the first backdrop ahead of poster requests.
+          fetchPriority={first ? "high" : undefined}
           className="object-cover object-top"
           sizes="100vw"
         />
@@ -106,38 +234,38 @@ export default function Hero({ items }: HeroProps) {
       <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
 
       {/* Content stays in flow so the hero grows instead of clipping it on short screens. */}
-      <div className="relative mx-auto w-full max-w-7xl px-4 pt-28 pb-16 sm:px-6 sm:pb-24 short:pt-24 short:pb-16">
+      <div className="relative mx-auto w-full max-w-7xl px-4 pt-28 pb-28 sm:px-6 sm:pb-36 short:pt-24 short:pb-28">
         <div className="max-w-2xl space-y-4">
           {/* Fix the title slot height so logo loading cannot shift the bottom-anchored content. */}
           <div className="flex min-h-28 items-end sm:min-h-36 short:min-h-20">
             {logo ? (
               <>
-                {/* Keep an h1 in the document when the logo replaces the visible title. */}
-                <h1 className="sr-only">{activeItem.title}</h1>
+                {/* Keep a heading in the document when the logo replaces the visible title. */}
+                <Heading className="sr-only">{item.title}</Heading>
                 <Image
                   src={logo}
                   alt=""
                   aria-hidden="true"
-                  width={activeItem.logo_width ?? 500}
-                  height={activeItem.logo_height ?? 200}
-                  priority
+                  width={item.logo_width ?? 500}
+                  height={item.logo_height ?? 200}
+                  priority={first}
                   sizes={logoBox.sizes}
                   style={logoBox.style}
                   className="h-28 w-(--logo-width) object-contain object-left-bottom sm:h-36 sm:w-(--logo-width-sm) short:h-20"
                 />
               </>
             ) : (
-              <h1
+              <Heading
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-none text-balance"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
-                {activeItem.title}
-              </h1>
+                {item.title}
+              </Heading>
             )}
           </div>
 
           <div className="flex items-center gap-3">
-            {activeItem.media_type === "tv" && (
+            {item.media_type === "tv" && (
               <Badge className="border-white/20 bg-white/10 text-xs text-foreground hover:bg-white/10">
                 {t("TV Series")}
               </Badge>
@@ -153,22 +281,21 @@ export default function Hero({ items }: HeroProps) {
               />
               <span className="text-sm tabular-nums">{rating}</span>
             </div>
-            <RottenTomatoesRating imdbId={activeItem.imdbId} />
-            {activeItem.contentRating && (
+            <RottenTomatoesRating imdbId={item.imdbId} />
+            {item.contentRating && (
               <span className="rounded border border-white/25 px-1.5 text-xs font-semibold text-foreground/80">
-                {activeItem.contentRating}
+                {item.contentRating}
               </span>
             )}
-            {activeItem.date && (
+            {item.date && (
               <span className="text-sm text-muted-foreground">
-                {new Date(activeItem.date).getFullYear()}
+                {new Date(item.date).getFullYear()}
               </span>
             )}
           </div>
 
           <ExpandableOverview
-            key={activeItem.id}
-            text={activeItem.overview}
+            text={item.overview}
             className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-xl"
           />
 
@@ -194,29 +321,9 @@ export default function Hero({ items }: HeroProps) {
               <Info className="size-5" />
               {t("Details")}
             </IntentPrefetchLink>
-            {/* Keep this in the action row so the overlapping first rail cannot hide it. */}
-            {rotates && safeItems.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setPaused((previous) => !previous)}
-                aria-pressed={paused}
-                aria-label={
-                  paused
-                    ? t("Resume featured titles")
-                    : t("Pause featured titles")
-                }
-                className="ml-auto flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 sm:ml-2"
-              >
-                {paused ? (
-                  <Play aria-hidden="true" className="size-4" />
-                ) : (
-                  <Pause aria-hidden="true" className="size-4" />
-                )}
-              </button>
-            )}
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

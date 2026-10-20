@@ -9,7 +9,7 @@ export default function HeroSkeleton() {
       <Skeleton className="absolute inset-0 rounded-none" />
       <div className="absolute inset-0 bg-linear-to-t from-background via-background/60 to-transparent" />
       <div className="absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent" />
-      <div className="relative mx-auto w-full max-w-7xl px-4 pt-28 pb-16 sm:px-6 sm:pb-24 short:pt-24 short:pb-16">
+      <div className="relative mx-auto w-full max-w-7xl px-4 pt-28 pb-28 sm:px-6 sm:pb-36 short:pt-24 short:pb-28">
         <div className="max-w-2xl space-y-4">
           {/* Matches the pinned title slot in Hero so the swap is shift-free. */}
           <Skeleton className="h-28 w-72 max-w-[80vw] sm:h-36 sm:w-90 short:h-20" />
