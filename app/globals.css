@@ -44,8 +44,8 @@
     --accent-red: #e11d48;
     /* Use this red for text contrast: 6.9:1 on red/15, 7.6:1 on the page; #e11d48 falls below 4.5:1. */
     --accent-red-text: #fb7185;
-    /* Amber keeps ratings readable on posters without competing with the red action color. */
-    --rating: #fbbf24;
+    /* Rating stars share the brand red; it keeps 3:1 contrast on the dark background. */
+    --rating: var(--accent-red);
 }
 
 .dark,
