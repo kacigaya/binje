@@ -4,7 +4,7 @@ import Image from "next/image";
 import { locale as getRootLocale } from "next/root-params";
 import { connection } from "next/server";
 import { cache, Suspense } from "react";
-import { Calendar, ChevronLeft, Clock } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 import { getTVDetails, getTVImages, getSeasonEpisodes } from "@/lib/cached-tmdb";
 import { backdropUrl, logoUrl, parseTmdbId, pickLogo } from "@/lib/tmdb";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
@@ -124,9 +124,8 @@ async function WatchTVInfo({
     >
       <Link
         href={localizedHref(locale, `/tv/${show.id}`)}
-        className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+        className="inline-flex items-center rounded-sm text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
       >
-        <ChevronLeft aria-hidden="true" className="size-4" />
         {logo && showLogoUrl ? (
           <Image
             src={showLogoUrl}
