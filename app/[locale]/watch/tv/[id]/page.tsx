@@ -4,27 +4,22 @@ import Image from "next/image";
 import { locale as getRootLocale } from "next/root-params";
 import { connection } from "next/server";
 import { cache, Suspense } from "react";
-import { Calendar, Layers, Tv } from "lucide-react";
-import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
-import { Badge } from "@/components/ui/badge";
-import {
-  getTVDetails,
-  getTVImages,
-  getSeasonEpisodes,
-} from "@/lib/cached-tmdb";
-import {
-  getTVContentRating,
-  backdropUrl,
-  logoUrl,
-  pickLogo,
-  parseTmdbId,
-} from "@/lib/tmdb";
+import { Calendar, ChevronLeft, Clock } from "lucide-react";
+import { getTVDetails, getSeasonEpisodes } from "@/lib/cached-tmdb";
+import { backdropUrl, parseTmdbId } from "@/lib/tmdb";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
 import ExpandableOverview from "@/components/ExpandableOverview";
 import TVPlayer from "./TVPlayer";
 import Link from "next/link";
 import StreamTechBadges from "@/components/StreamTechBadges";
-import { formatRating, isLocale, localizedHref, pluralize, translate, type Locale } from "@/lib/i18n";
+import {
+  formatRating,
+  intlLocale,
+  isLocale,
+  localizedHref,
+  translate,
+  type Locale,
+} from "@/lib/i18n";
 import { WatchTVInfoLoading, WatchTVPlayerLoading } from "./loading";
 
 export async function generateMetadata({
@@ -40,8 +35,7 @@ export async function generateMetadata({
   if (showId === null) return { title: translate(locale, "TV") };
   try {
     const show = await getTVDetails(showId, locale);
-    const season = s ? parseInt(s, 10) : 1;
-    const episode = e ? parseInt(e, 10) : 1;
+    const { season, episode } = parseEpisodeParams(s, e);
     const title = `${show.name}: ${translate(locale, "Season")} ${season}, ${translate(locale, "Episode")} ${episode}`;
     const image = backdropUrl(show.backdrop_path, "w1280");
     const fallback = translate(
@@ -68,6 +62,13 @@ export async function generateMetadata({
   }
 }
 
+function parseEpisodeParams(s?: string, e?: string) {
+  return {
+    season: s ? parseInt(s, 10) : 1,
+    episode: e ? parseInt(e, 10) : 1,
+  };
+}
+
 // Memoize per request so the info and player Suspense branches share one show-details fetch.
 const getCachedTVDetails = cache(getTVDetails);
 
@@ -87,120 +88,98 @@ export default async function WatchTVPage({
         <WatchTVPlayer params={params} searchParams={searchParams} />
       </Suspense>
       <Suspense fallback={<WatchTVInfoLoading heading={translate(locale, "TV")} />}>
-        <WatchTVInfo params={params} />
+        <WatchTVInfo params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
+/** The details page covers the show; this block covers only the episode being played. */
 async function WatchTVInfo({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: Locale; id: string }>;
+  searchParams: Promise<{ s?: string; e?: string }>;
 }) {
-  const { locale, id } = await params;
+  const [{ locale, id }, { s, e }] = await Promise.all([params, searchParams]);
   const showId = parseTmdbId(id);
   if (showId === null) notFound();
-  const showPromise = getCachedTVDetails(showId, locale);
-  const [show, images] = await Promise.all([
-    showPromise,
-    getTVImages(showId, locale),
+
+  const { season, episode } = parseEpisodeParams(s, e);
+  const [show, episodes] = await Promise.all([
+    getCachedTVDetails(showId, locale),
+    getSeasonEpisodes(showId, season, locale).catch(() => []),
   ]);
-  const logo = pickLogo(images.logos, locale);
-  const showLogoUrl = logoUrl(logo?.file_path ?? null);
-  const contentRating = getTVContentRating(show);
+  const current = episodes.find((item) => item.episode_number === episode);
+  const rating = current ? formatRating(locale, current.vote_average) : null;
 
   return (
     <div
-      className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-4"
+      className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-3"
       data-testid="watch-tv-data"
     >
-        <div className="space-y-4">
-          <Link
-            href={localizedHref(locale, `/tv/${show.id}`)}
-            className="inline-block"
-          >
-            {logo && showLogoUrl ? (
-              <>
-                {/* Keep an h1 in the document when the logo replaces the visible title. */}
-                <h1 className="sr-only">{show.name}</h1>
-                <Image
-                  src={showLogoUrl}
-                  alt=""
-                  aria-hidden="true"
-                  width={logo.width}
-                  height={logo.height}
-                  className="h-auto max-h-14 w-auto max-w-60 object-contain sm:max-h-16 sm:max-w-xs"
-                  priority
-                />
-              </>
-            ) : (
-              <h1
-                className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                {show.name}
-              </h1>
-            )}
-          </Link>
+      <Link
+        href={localizedHref(locale, `/tv/${show.id}`)}
+        className="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+      >
+        <ChevronLeft aria-hidden="true" className="size-4" />
+        {show.name}
+      </Link>
 
-          <div className="flex flex-wrap gap-2">
-            {show.genres.map((g) => (
-              <Badge
-                key={g.id}
-                variant="outline"
-                className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
-              >
-                {g.name}
-              </Badge>
-            ))}
-          </div>
+      {/* The player bar above already shows the season and episode numbers. */}
+      <h1
+        className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
+        style={{ fontFamily: "var(--font-heading)" }}
+      >
+        {current?.name || `${translate(locale, "Episode")} ${episode}`}
+      </h1>
 
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
-            <div className="flex items-center gap-1.5 font-semibold text-foreground">
-              <Image
-                src="/tmdb.svg"
-                alt="TMDB"
-                width={37}
-                height={16}
-                className="h-4 w-auto shrink-0"
-              />
-              {formatRating(locale, show.vote_average) ?? translate(locale, "N/A")}
-            </div>
-            <RottenTomatoesRating imdbId={show.external_ids.imdb_id} />
-            {contentRating && (
-              <span className="rounded-md border border-white/15 px-1.5 text-xs font-semibold text-foreground/80">
-                {contentRating}
-              </span>
-            )}
-            <div className="flex items-center gap-1">
-              <Layers aria-hidden="true" className="size-4" />
-              {show.number_of_seasons} {pluralize(locale, show.number_of_seasons, "Season", "Seasons")}
-            </div>
-            <div className="flex items-center gap-1">
-              <Tv aria-hidden="true" className="size-4" />
-              {show.number_of_episodes} {pluralize(locale, show.number_of_episodes, "Episode", "Episodes")}
-            </div>
-            {show.first_air_date && (
-              <div className="flex items-center gap-1">
-                <Calendar aria-hidden="true" className="size-4" />
-                {new Date(show.first_air_date).getFullYear()}
-              </div>
-            )}
-            <StreamTechBadges
-              type="tv"
-              tmdbId={show.id}
-              title={show.original_name}
-              year={show.first_air_date.slice(0, 4)}
-              imdbId={show.external_ids.imdb_id}
+      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
+        {rating && (
+          <div className="flex items-center gap-1.5 font-semibold text-foreground">
+            <Image
+              src="/tmdb.svg"
+              alt="TMDB"
+              width={37}
+              height={16}
+              className="h-4 w-auto shrink-0"
             />
+            {rating}
           </div>
+        )}
+        {current?.runtime ? (
+          <div className="flex items-center gap-1">
+            <Clock aria-hidden="true" className="size-4" />
+            {current.runtime}&nbsp;min
+          </div>
+        ) : null}
+        {current?.air_date && (
+          <div className="flex items-center gap-1">
+            <Calendar aria-hidden="true" className="size-4" />
+            {new Date(current.air_date).toLocaleDateString(intlLocale(locale), {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </div>
+        )}
+        <StreamTechBadges
+          type="tv"
+          tmdbId={show.id}
+          title={show.original_name}
+          year={show.first_air_date.slice(0, 4)}
+          imdbId={show.external_ids.imdb_id}
+        />
+      </div>
 
-          <ExpandableOverview
-            text={show.overview}
-            className="text-foreground/70 leading-relaxed"
-          />
-        </div>
+      {current?.overview && (
+        <ExpandableOverview
+          key={`${season}-${episode}`}
+          text={current.overview}
+          className="max-w-3xl text-foreground/70 leading-relaxed"
+        />
+      )}
     </div>
   );
 }
@@ -217,8 +196,7 @@ async function WatchTVPlayer({
   const showId = parseTmdbId(id);
   if (showId === null) notFound();
 
-  const season = s ? parseInt(s, 10) : 1;
-  const episode = e ? parseInt(e, 10) : 1;
+  const { season, episode } = parseEpisodeParams(s, e);
   const show = await getCachedTVDetails(showId, locale);
   const initialEpisodes = await getSeasonEpisodes(showId, season, locale).catch(
     () => [],

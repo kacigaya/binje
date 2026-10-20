@@ -2,38 +2,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function WatchInfoLoading({ heading }: { heading?: string } = {}) {
   return (
-    <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-4">
-        <div className="space-y-4">
-          {heading ? (
-            <h1
-              className="text-2xl font-bold tracking-tight sm:text-3xl"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {heading}
-            </h1>
-          ) : (
-            <Skeleton className="h-12 w-64 max-w-full" />
-          )}
-
-          <div className="flex flex-wrap gap-2">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-6 w-20 rounded-full" />
-            ))}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4">
-            <Skeleton className="h-5 w-12" />
-            <Skeleton className="h-5 w-20" />
-            <Skeleton className="h-5 w-16" />
-          </div>
-
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
-          </div>
-        </div>
+    <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-3">
+      {heading ? (
+        <h1
+          className="text-2xl font-bold tracking-tight sm:text-3xl"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          {heading}
+        </h1>
+      ) : (
+        <Skeleton className="h-9 w-64 max-w-full" />
+      )}
+      <div className="flex flex-wrap items-center gap-4">
+        <Skeleton className="h-5 w-14" />
+        <Skeleton className="h-5 w-16" />
       </div>
+      <Skeleton className="h-5 w-20" />
+    </div>
   );
 }
 

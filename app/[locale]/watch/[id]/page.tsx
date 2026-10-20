@@ -1,28 +1,15 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { locale as getRootLocale } from "next/root-params";
 import { cache, Suspense } from "react";
-import { Clock, Calendar } from "lucide-react";
-import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
+import { Calendar, Clock, Info } from "lucide-react";
 import StreamTechBadges from "@/components/StreamTechBadges";
-import { Badge } from "@/components/ui/badge";
 import Player from "@/components/Player";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
-import ExpandableOverview from "@/components/ExpandableOverview";
-import {
-  getMovieDetails,
-  getMovieImages,
-} from "@/lib/cached-tmdb";
-import {
-  getMovieContentRating,
-  backdropUrl,
-  logoUrl,
-  pickLogo,
-  parseTmdbId,
-} from "@/lib/tmdb";
-import { formatRating, isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
+import { getMovieDetails } from "@/lib/cached-tmdb";
+import { backdropUrl, parseTmdbId } from "@/lib/tmdb";
+import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
 import { WatchInfoLoading, WatchPlayerLoading } from "./loading";
 
 export async function generateMetadata({
@@ -83,6 +70,7 @@ export default async function WatchPage({
   );
 }
 
+/** The details page covers ratings, genres, and the synopsis; this block stays minimal. */
 async function WatchMovieInfo({
   params,
 }: {
@@ -91,14 +79,7 @@ async function WatchMovieInfo({
   const { locale, id } = await params;
   const movieId = parseTmdbId(id);
   if (movieId === null) notFound();
-  const moviePromise = getCachedMovieDetails(movieId, locale);
-  const [movie, images] = await Promise.all([
-    moviePromise,
-    getMovieImages(movieId, locale),
-  ]);
-  const logo = pickLogo(images.logos, locale);
-  const movieLogoUrl = logoUrl(logo?.file_path ?? null);
-  const contentRating = getMovieContentRating(movie);
+  const movie = await getCachedMovieDetails(movieId, locale);
 
   return (
     <>
@@ -114,93 +95,44 @@ async function WatchMovieInfo({
         }}
       />
 
-      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-4">
-        <div className="space-y-4">
-          <Link
-            href={localizedHref(locale, `/movie/${movie.id}`)}
-            className="inline-block"
-          >
-            {logo && movieLogoUrl ? (
-              <>
-                {/* Keep an h1 in the document when the logo replaces the visible title. */}
-                <h1 className="sr-only">{movie.title}</h1>
-                <Image
-                  src={movieLogoUrl}
-                  alt=""
-                  aria-hidden="true"
-                  width={logo.width}
-                  height={logo.height}
-                  className="h-auto max-h-14 w-auto max-w-60 object-contain sm:max-h-16 sm:max-w-xs"
-                  priority
-                />
-              </>
-            ) : (
-              <h1
-                className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                {movie.title}
-              </h1>
-            )}
-          </Link>
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12 space-y-3">
+        <h1
+          className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          {movie.title}
+        </h1>
 
-          <div className="flex flex-wrap gap-2">
-            {movie.genres.map((g) => (
-              <Badge
-                key={g.id}
-                variant="outline"
-                className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
-              >
-                {g.name}
-              </Badge>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
-            <div className="flex items-center gap-1.5 font-semibold text-foreground">
-              <Image
-                src="/tmdb.svg"
-                alt="TMDB"
-                width={37}
-                height={16}
-                className="h-4 w-auto shrink-0"
-              />
-              {formatRating(locale, movie.vote_average) ?? translate(locale, "N/A")}
+        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground tabular-nums">
+          {movie.release_date && (
+            <div className="flex items-center gap-1">
+              <Calendar aria-hidden="true" className="size-4" />
+              {new Date(movie.release_date).getFullYear()}
             </div>
-            <RottenTomatoesRating imdbId={movie.imdb_id} />
-            {contentRating && (
-              <span className="rounded-md border border-white/15 px-1.5 text-xs font-semibold text-foreground/80">
-                {contentRating}
-              </span>
-            )}
-            {movie.runtime > 0 && (
-              <div className="flex items-center gap-1">
-                <Clock aria-hidden="true" className="size-4" />
-                {Math.floor(movie.runtime / 60)}&nbsp;h {movie.runtime % 60}&nbsp;m
-              </div>
-            )}
-            {movie.release_date && (
-              <div className="flex items-center gap-1">
-                <Calendar aria-hidden="true" className="size-4" />
-                {new Date(movie.release_date).getFullYear()}
-              </div>
-            )}
-            <StreamTechBadges
-              type="movie"
-              tmdbId={movie.id}
-              title={movie.original_title}
-              year={movie.release_date.slice(0, 4)}
-              imdbId={movie.imdb_id}
-            />
-          </div>
-
-          <ExpandableOverview
-            text={movie.overview}
-            className="text-foreground/70 leading-relaxed"
+          )}
+          {movie.runtime > 0 && (
+            <div className="flex items-center gap-1">
+              <Clock aria-hidden="true" className="size-4" />
+              {Math.floor(movie.runtime / 60)}&nbsp;h {movie.runtime % 60}&nbsp;m
+            </div>
+          )}
+          <StreamTechBadges
+            type="movie"
+            tmdbId={movie.id}
+            title={movie.original_title}
+            year={movie.release_date.slice(0, 4)}
+            imdbId={movie.imdb_id}
           />
         </div>
-      </div>
 
+        <Link
+          href={localizedHref(locale, `/movie/${movie.id}`)}
+          className="inline-flex items-center gap-1.5 rounded-sm text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+        >
+          <Info aria-hidden="true" className="size-4" />
+          {translate(locale, "Details")}
+        </Link>
+      </div>
     </>
   );
 }
