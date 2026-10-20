@@ -1,23 +1,19 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function WatchTVInfoLoading({ heading }: { heading?: string } = {}) {
-  return (
-    <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12">
-      {/* Keep a page heading for screen readers without showing a generic label. */}
-      {heading && <h1 className="sr-only">{heading}</h1>}
-      <Skeleton className="h-14 w-60 max-w-full sm:h-16" />
-    </div>
-  );
-}
-
-export function WatchTVPlayerLoading() {
+export function WatchTVPlayerLoading({ heading }: { heading?: string } = {}) {
   return (
     <div
-      className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-6"
+      className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-12"
       data-testid="watch-tv-player-frame"
     >
         <div className="space-y-4">
           <Skeleton className="w-full aspect-video rounded-xl" />
+
+          <div className="px-4 sm:px-0">
+            {/* Keep a page heading for screen readers without showing a generic label. */}
+            {heading && <h1 className="sr-only">{heading}</h1>}
+            <Skeleton className="h-14 w-60 max-w-full sm:h-16" />
+          </div>
 
           <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">
             <div className="flex items-center justify-between gap-3 sm:justify-start">
@@ -54,7 +50,6 @@ export default function WatchTVLoading() {
   return (
     <div className="flex flex-col pt-24">
       <WatchTVPlayerLoading />
-      <WatchTVInfoLoading />
     </div>
   );
 }

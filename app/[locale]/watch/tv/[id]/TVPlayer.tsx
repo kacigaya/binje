@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type MouseEvent } from "react";
+import { useState, useEffect, type MouseEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -34,6 +34,7 @@ export default function TVPlayer({
   seasons,
   initialEpisodes,
   poster,
+  header,
 }: {
   showId: number;
   title: string;
@@ -44,6 +45,8 @@ export default function TVPlayer({
   seasons: SeasonInfo[];
   initialEpisodes: Episode[];
   poster: string | null;
+  /** Rendered between the player and the episode controls. */
+  header?: ReactNode;
 }) {
   const { locale, t } = useTranslations();
   const router = useRouter();
@@ -149,6 +152,8 @@ export default function TVPlayer({
         episode={episode}
         poster={poster}
       />
+
+      {header && <div className="px-4 sm:px-0">{header}</div>}
 
       <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">
         <div className="flex items-center justify-between gap-3 sm:justify-start">

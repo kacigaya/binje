@@ -15,7 +15,7 @@ import {
   translate,
   type Locale,
 } from "@/lib/i18n";
-import { WatchTVInfoLoading, WatchTVPlayerLoading } from "./loading";
+import { WatchTVPlayerLoading } from "./loading";
 
 export async function generateMetadata({
   params,
@@ -79,59 +79,9 @@ export default async function WatchTVPage({
 
   return (
     <div className="flex flex-col pt-24" data-testid="watch-tv-shell">
-      <Suspense fallback={<WatchTVPlayerLoading />}>
+      <Suspense fallback={<WatchTVPlayerLoading heading={translate(locale, "TV")} />}>
         <WatchTVPlayer params={params} searchParams={searchParams} />
       </Suspense>
-      <Suspense fallback={<WatchTVInfoLoading heading={translate(locale, "TV")} />}>
-        <WatchTVInfo params={params} />
-      </Suspense>
-    </div>
-  );
-}
-
-/** Episode details live on the player cards; this block only links back to the show. */
-async function WatchTVInfo({
-  params,
-}: {
-  params: Promise<{ locale: Locale; id: string }>;
-}) {
-  const { locale, id } = await params;
-  const showId = parseTmdbId(id);
-  if (showId === null) notFound();
-
-  const [show, images] = await Promise.all([
-    getCachedTVDetails(showId, locale),
-    getTVImages(showId, locale).catch(() => null),
-  ]);
-  const logo = pickLogo(images?.logos ?? [], locale);
-  const showLogoUrl = logoUrl(logo?.file_path ?? null);
-
-  return (
-    <div
-      className="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-2 pb-12"
-      data-testid="watch-tv-data"
-    >
-      <h1
-        className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
-        style={{ fontFamily: "var(--font-heading)" }}
-      >
-        <Link
-          href={localizedHref(locale, `/tv/${show.id}`)}
-          className="inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
-        >
-          {logo && showLogoUrl ? (
-            <Image
-              src={showLogoUrl}
-              alt={show.name}
-              width={logo.width}
-              height={logo.height}
-              className="h-auto max-h-14 w-auto max-w-60 object-contain object-left sm:max-h-16 sm:max-w-xs"
-            />
-          ) : (
-            show.name
-          )}
-        </Link>
-      </h1>
     </div>
   );
 }
@@ -149,10 +99,13 @@ async function WatchTVPlayer({
   if (showId === null) notFound();
 
   const { season, episode } = parseEpisodeParams(s, e);
-  const show = await getCachedTVDetails(showId, locale);
-  const initialEpisodes = await getSeasonEpisodes(showId, season, locale).catch(
-    () => [],
-  );
+  const [show, initialEpisodes, images] = await Promise.all([
+    getCachedTVDetails(showId, locale),
+    getSeasonEpisodes(showId, season, locale).catch(() => []),
+    getTVImages(showId, locale).catch(() => null),
+  ]);
+  const logo = pickLogo(images?.logos ?? [], locale);
+  const showLogoUrl = logoUrl(logo?.file_path ?? null);
   const seasons = show.seasons.filter((item) => item.season_number > 0);
   const currentEpisode = initialEpisodes.find(
     (item) => item.episode_number === episode,
@@ -176,7 +129,7 @@ async function WatchTVPlayer({
         }}
       />
       <div
-        className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-6"
+        className="w-full max-w-7xl mx-auto px-0 sm:px-6 pb-12"
         data-testid="watch-tv-player"
       >
         <TVPlayer
@@ -193,6 +146,29 @@ async function WatchTVPlayer({
           }))}
           initialEpisodes={initialEpisodes}
           poster={backdropUrl(show.backdrop_path, "w1280")}
+          header={
+            <h1
+              className="text-2xl sm:text-3xl font-bold tracking-tight text-balance"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              <Link
+                href={localizedHref(locale, `/tv/${show.id}`)}
+                className="inline-flex rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+              >
+                {logo && showLogoUrl ? (
+                  <Image
+                    src={showLogoUrl}
+                    alt={show.name}
+                    width={logo.width}
+                    height={logo.height}
+                    className="h-auto max-h-14 w-auto max-w-60 object-contain object-left sm:max-h-16 sm:max-w-xs"
+                  />
+                ) : (
+                  show.name
+                )}
+              </Link>
+            </h1>
+          }
         />
       </div>
     </>
