@@ -122,6 +122,7 @@ async function WatchTVPlayer({
           backdrop_path: show.backdrop_path,
           date: show.first_air_date,
           vote_average: show.vote_average,
+          logoPath: logo?.file_path ?? null,
           season,
           episode,
           episodeName: currentEpisode?.name,

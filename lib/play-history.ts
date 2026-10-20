@@ -15,6 +15,7 @@ export interface PlayHistoryItem {
   backdrop_path: string | null;
   date: string;
   vote_average: number;
+  logoPath?: string | null;
   watchedAt: number;
   season?: number;
   episode?: number;

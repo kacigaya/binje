@@ -98,6 +98,7 @@ async function WatchMovieInfo({
           backdrop_path: movie.backdrop_path,
           date: movie.release_date,
           vote_average: movie.vote_average,
+          logoPath: logo?.file_path ?? null,
         }}
       />
 

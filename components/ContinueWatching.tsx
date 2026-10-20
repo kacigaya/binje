@@ -18,7 +18,7 @@ import RemoveButton from "@/components/RemoveButton";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import ScrollArrows from "@/components/ScrollArrows";
 import { formatPlaybackTime } from "@/lib/format-time";
-import { backdropUrl, posterUrl, stillUrl } from "@/lib/tmdb";
+import { backdropUrl, logoUrl, posterUrl, stillUrl } from "@/lib/tmdb";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
@@ -77,6 +77,8 @@ export default function ContinueWatching() {
               item.type === "tv" && typeof item.episodeStillPath === "string"
                 ? stillUrl(item.episodeStillPath, "original")
                 : null;
+            const logo =
+              typeof item.logoPath === "string" ? logoUrl(item.logoPath) : null;
             const image =
               episodeStill ??
               (item.backdrop_path
@@ -126,6 +128,20 @@ export default function ContinueWatching() {
                       className="object-cover"
                       sizes="(max-width: 640px) 224px, 256px"
                     />
+                  )}
+
+                  {/* Decorative: the title is repeated as text below the image. */}
+                  {logo && (
+                    <div className="absolute left-2.5 top-2.5 h-8 w-28">
+                      <Image
+                        src={logo}
+                        alt=""
+                        aria-hidden="true"
+                        fill
+                        className="object-contain object-left-top drop-shadow-md"
+                        sizes="112px"
+                      />
+                    </div>
                   )}
 
                   {timings && (
