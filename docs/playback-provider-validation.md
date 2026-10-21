@@ -1,5 +1,37 @@
 # Playback provider validation
 
+## WeCollege only (2026-10-21)
+
+Playback now runs on one provider, WeCollege, and every other resolver was
+removed. The provider is the public API behind Movy and Vidy; the resolver
+calls it directly and never reads a site page.
+
+- `GET https://api.wecollege.net/seed?mediaId=<tmdb id>` returns the seed for a
+  title. The endpoint rate limits hard (429 for minutes after a burst), so a
+  seed is kept for ten minutes and only refetched when the provider rejects it
+  with 401.
+- `GET https://api.wecollege.net/<server>/sources?title=&mediaType=&year=&tmdbId=&imdbId=&enc=2&seed=`
+  answers with a base64 payload encrypted with the same stream cipher the
+  player's own code uses. The marker `mvm1` fails the payload closed when the
+  seed is stale or the body is altered.
+- The servers are asked in batches of four, Miami and Boise first: they carry
+  the 4K ladder (2160p, 1080p, 720p, 480p as separate media playlists), while
+  the others answer with one adaptive playlist. The batches stop as soon as a
+  4K source and subtitles are in hand. Reno and Orlando answer 500 while their
+  upstream is down and are asked last.
+- The media hosts answer only a request that carries the Movy referer, so the
+  resolver returns it and the proxy attaches it to the manifest, the segments
+  and the subtitle files. The subtitle files are served under a `.m3u8` path,
+  which `/api/hls` now recognizes as WebVTT instead of rejecting it.
+- The public `GET https://api.wecollege.net/4k-library?page=<n>` lists the
+  4,442 curated 4K titles with their TMDB ids; shows also carry the number of
+  UHD episodes.
+
+Measured on TMDB 969681 (Spider-Man: Brand New Day) and 1396 (Breaking Bad
+S1E1): a resolve answers in about 0.7 s with the 2160p rendition, the 1080p,
+720p and 480p renditions as quality options, and 32 subtitle tracks. The 4K
+ladder is a letterboxed 3840x1600 H.264 master at about 16 Mbps.
+
 ## Quality first (2026-10-16)
 
 `/api/sources` now ranks playable sources by the tallest rendition their
