@@ -1,15 +1,16 @@
 import { expect, test } from "bun:test";
-import { Agent } from "undici";
-import { dispatcherFor } from "@/lib/safe-fetch";
+import { getTargetUrl, isSafeHost } from "@/lib/safe-fetch";
 
-test("dispatcherFor routes only Atlantic-referred requests through the stream proxy", () => {
-  const proxy = new Agent();
-  const direct = dispatcherFor(undefined, proxy);
-  expect(direct).not.toBe(proxy);
-  expect(dispatcherFor({ referer: "https://atlantic.st/" }, proxy)).toBe(proxy);
-  expect(dispatcherFor(new Headers({ Referer: "https://atlantic.st/watch/1" }), proxy)).toBe(proxy);
-  expect(dispatcherFor({ referer: "https://atlantic.st.evil.test/" }, proxy)).toBe(direct);
-  expect(dispatcherFor({ referer: "https://vidrock.net/" }, proxy)).toBe(direct);
-  expect(dispatcherFor({ referer: "not a url" }, proxy)).toBe(direct);
-  expect(dispatcherFor({ referer: "https://atlantic.st/" }, undefined)).toBe(direct);
+test("getTargetUrl keeps http and https targets only", () => {
+  expect(getTargetUrl("https://cdn.test/video.m3u8")?.href).toBe("https://cdn.test/video.m3u8");
+  expect(getTargetUrl("file:///etc/passwd")).toBeNull();
+  expect(getTargetUrl("javascript:alert(1)")).toBeNull();
+  expect(getTargetUrl(null)).toBeNull();
+});
+
+test("isSafeHost blocks private and loopback addresses", async () => {
+  expect(await isSafeHost(new URL("http://127.0.0.1/stream.m3u8"))).toBe(false);
+  expect(await isSafeHost(new URL("http://192.168.1.10/stream.m3u8"))).toBe(false);
+  expect(await isSafeHost(new URL("http://[::1]/stream.m3u8"))).toBe(false);
+  expect(await isSafeHost(new URL("http://localhost/stream.m3u8"))).toBe(false);
 });

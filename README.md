@@ -66,7 +66,6 @@ Posters, backdrops, and logos in these screenshots come from TMDB.
    ```bash
    TMDB_API_KEY=your_key
    OMDB_API_KEY=your_key        # optional: Rotten Tomatoes scores
-   STREAM_PROXY_URL=http://...  # optional: VPN proxy for Atlantic streams
    ```
 
 3. Install and run:

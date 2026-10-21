@@ -1,21 +1,14 @@
-import { cachedResolveVideasyStream, type ResolveParams } from "@/lib/resolve-cache";
+import type { ResolveParams } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 import { parseTsCodecs, type StreamTech } from "@/lib/stream-probe";
+import { resolveWeCollegeStream } from "@/lib/wecollege";
 
 // Probes cost a resolve, two playlists and 128 KB of video; cache until a provider re-encode is likely.
 const TECH_TTL_MS = 6 * 60 * 60 * 1000;
 const PROBE_BYTES = 131_072;
-const PLAYER_ORIGIN = "https://player.videasy.to";
-const BROWSER_USER_AGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 const PLAYLIST_TIMEOUT_MS = 8000;
 
-const BASE_HEADERS = {
-  accept: "*/*",
-  origin: PLAYER_ORIGIN,
-  referer: `${PLAYER_ORIGIN}/`,
-  "user-agent": BROWSER_USER_AGENT,
-};
+type Upstream = { referer?: string; userAgent?: string };
 
 type StreamTechInfo = StreamTech & { height: number | null };
 
@@ -28,9 +21,13 @@ function firstNonComment(playlist: string) {
     .find((line) => line && !line.startsWith("#"));
 }
 
-async function fetchPlaylist(url: string) {
+async function fetchPlaylist(url: string, upstream: Upstream) {
   const response = await fetch(url, {
-    headers: BASE_HEADERS,
+    headers: {
+      accept: "*/*",
+      ...(upstream.referer ? { referer: upstream.referer, origin: new URL(upstream.referer).origin } : {}),
+      "user-agent": upstream.userAgent ?? "Mozilla/5.0",
+    },
     cache: "no-store",
     signal: AbortSignal.timeout(PLAYLIST_TIMEOUT_MS),
   });
@@ -39,14 +36,15 @@ async function fetchPlaylist(url: string) {
 }
 
 async function probeStreamTech(params: ResolveParams): Promise<StreamTechInfo> {
-  const stream = await cachedResolveVideasyStream(params);
+  const stream = await resolveWeCollegeStream(params);
+  const upstream: Upstream = { referer: stream.referer, userAgent: stream.userAgent };
 
   const top = stream.sources?.length
     ? stream.sources.reduce((a, b) => (b.height > a.height ? b : a))
     : null;
   let height = top?.height ?? null;
   let playlistUrl = top?.file ?? stream.url;
-  let playlist = await fetchPlaylist(playlistUrl);
+  let playlist = await fetchPlaylist(playlistUrl, upstream);
 
   if (playlist.includes("#EXT-X-STREAM-INF")) {
     const heights = [...playlist.matchAll(/RESOLUTION=\d+x(\d+)/g)].map((m) => Number(m[1]));
@@ -55,14 +53,19 @@ async function probeStreamTech(params: ResolveParams): Promise<StreamTechInfo> {
     const variant = firstNonComment(playlist);
     if (!variant) throw new Error("Master playlist has no variant.");
     playlistUrl = new URL(variant, playlistUrl).href;
-    playlist = await fetchPlaylist(playlistUrl);
+    playlist = await fetchPlaylist(playlistUrl, upstream);
   }
 
   const segment = firstNonComment(playlist);
   if (!segment) throw new Error("Playlist has no segment.");
 
   const response = await fetch(new URL(segment, playlistUrl), {
-    headers: { ...BASE_HEADERS, range: `bytes=0-${PROBE_BYTES - 1}` },
+    headers: {
+      accept: "*/*",
+      ...(upstream.referer ? { referer: upstream.referer, origin: new URL(upstream.referer).origin } : {}),
+      "user-agent": upstream.userAgent ?? "Mozilla/5.0",
+      range: `bytes=0-${PROBE_BYTES - 1}`,
+    },
     cache: "no-store",
     signal: AbortSignal.timeout(PLAYLIST_TIMEOUT_MS),
   });

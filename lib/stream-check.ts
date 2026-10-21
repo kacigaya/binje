@@ -1,8 +1,23 @@
-import type { ResolverResult } from "@/lib/videasy";
 import { fetchPublic } from "@/lib/safe-fetch";
 
 export const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
+
+export type Track = { file: string; label?: string };
+export type StreamSource = { file: string; height: number };
+// Every resolver answers with a playable URL, its subtitle tracks and optional renditions.
+export type ResolverResult = { url: string; tracks: Track[]; sources?: StreamSource[] };
+
+// The title query shared by /api/resolve and /api/sources; null when invalid.
+export type ResolveParams = {
+  type: "movie" | "tv";
+  id: string;
+  title: string;
+  year: string;
+  imdbId: string;
+  season: string;
+  episode: string;
+};
 const CHECK_TIMEOUT_MS = 6000;
 // Bound manifest and provider-page reads; larger bodies may be video files.
 const MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
