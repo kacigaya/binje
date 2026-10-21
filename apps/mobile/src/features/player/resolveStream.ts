@@ -8,8 +8,6 @@ const KNOWN_SOURCES: Record<PlaybackSource, true> = {
   athena: true,
   helios: true,
   pandora: true,
-  saturn: true,
-  neptune: true,
   moscow: true,
   cine4k: true,
   moviesapi: true,

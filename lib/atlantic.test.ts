@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { atlanticQuery, atlanticSourceValues, isAtlanticDecoy, unwrapAtlanticUrl } from "@/lib/atlantic";
+import {
+  atlanticQuery,
+  atlanticSourceValues,
+  atlanticStreamPayload,
+  isAtlanticDecoy,
+  unwrapAtlanticUrl,
+} from "@/lib/atlantic";
 
 const KEY = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
 const hex = (bytes: Uint8Array) => Buffer.from(bytes).toString("hex");
@@ -36,6 +42,14 @@ test("reads named sources in the server's order", () => {
   const body = { sources: { Neptune: { url: "n" }, Saturn: { url: "s" }, Other: { url: "o" } } };
   expect(atlanticSourceValues(body, ["Saturn", "Neptune"])).toEqual(["s", "n"]);
   expect(atlanticSourceValues({ error: "disabled" }, ["Moscow"])).toEqual([]);
+});
+
+test("reads the single-source payload under either name", () => {
+  expect(atlanticStreamPayload({ hls: "pd_payload" })).toBe("pd_payload");
+  expect(atlanticStreamPayload({ dash: "pd_old" })).toBe("pd_old");
+  expect(atlanticStreamPayload({ hls: "pd_new", dash: "pd_old" })).toBe("pd_new");
+  expect(atlanticStreamPayload({ error: "disabled" })).toBeUndefined();
+  expect(atlanticStreamPayload(null)).toBeUndefined();
 });
 
 test("uses each server's parameter names", () => {

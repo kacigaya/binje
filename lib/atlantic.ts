@@ -13,22 +13,20 @@ import { createTtlCache } from "@/lib/ttl-cache";
 
 // Athena returns plain URLs; stream.hls.lol uses prefixed hex nonce||AES-GCM with bundled keys.
 // Turnstile is page-only; skip disabled Shegu and Aphrodite, which serves decoys without X-Az-* signatures.
+// The /planets servers (Saturn, Neptune) are gone: their payloads no longer decrypt with the
+// published key and the site itself no longer asks for them.
 const SITE = "https://atlantic.st/";
 const API = "https://stream.hls.lol";
 const ATHENA = "https://zcdn.bluevelvet.space";
 const cache = createTtlCache<ResolvedStream>(10 * 60 * 1000);
-// Saturn and Neptune come from one /planets answer.
-const planets = createTtlCache<unknown>(60 * 1000);
 // Pandora matches titles in English, which binje's own params are not.
 const englishTitles = createTtlCache<{ title: string; year: string }>(24 * 60 * 60 * 1000);
 
-export type AtlanticServer = "athena" | "helios" | "pandora" | "saturn" | "neptune" | "moscow";
+export type AtlanticServer = "athena" | "helios" | "pandora" | "moscow";
 
 const WRAPPED = {
   helios: { path: "helios", prefix: "hl_", key: "117c358bcfcaf8fe2cfca57c9d2238a300e1c4de2efb83a5012ba84d8a31f1dd", name: "Moscow" },
   moscow: { path: "moscow", prefix: "ms_", key: "55060a042823f51a94c296894a58a0db15f3baef807155140983083fa799ef47", name: "Moscow" },
-  saturn: { path: "planets", prefix: "pl_", key: "d31157f286118352b140326486d7da7fdce1b8f2e30d376ab33af875b7c9a80f", name: "Saturn" },
-  neptune: { path: "planets", prefix: "pl_", key: "d31157f286118352b140326486d7da7fdce1b8f2e30d376ab33af875b7c9a80f", name: "Neptune" },
 } as const;
 const PANDORA_KEY = "44730e0f65f1932ac6d76827239c901cc231b10520efa120ed324314eb4ca6a8";
 
@@ -54,6 +52,15 @@ export function atlanticSourceValues(body: unknown, names: readonly string[]): s
     const source = sources[name];
     return isRecord(source) && typeof source.url === "string" && source.url ? [source.url] : [];
   });
+}
+
+// The single-source answer carries its payload under "hls" now and used to
+// carry it under "dash"; both names are still in the wild.
+export function atlanticStreamPayload(body: unknown): string | undefined {
+  if (!isRecord(body)) return undefined;
+  if (typeof body.hls === "string") return body.hls;
+  if (typeof body.dash === "string") return body.dash;
+  return undefined;
 }
 
 export function atlanticQuery(server: "athena" | "wrapped", { type, id, season, episode }: ResolveParams) {
@@ -102,14 +109,13 @@ async function candidates(server: AtlanticServer, params: ResolveParams): Promis
     query.set("t", title);
     if (year) query.set("ry", year);
     const body = await fetchJson(`${API}/pandora?${query}`, { referer: SITE });
-    const dash = isRecord(body) && typeof body.dash === "string" ? body.dash : undefined;
-    const url = dash ? await unwrapAtlanticUrl(dash, "pd_", PANDORA_KEY) : undefined;
+    const payload = atlanticStreamPayload(body);
+    const url = payload ? await unwrapAtlanticUrl(payload, "pd_", PANDORA_KEY) : undefined;
     return url ? [url] : [];
   }
   const { path, prefix, key, name } = WRAPPED[server];
   const query = atlanticQuery("wrapped", params);
-  const load = () => fetchJson(`${API}/${path}?${query}`, { referer: SITE });
-  const body = await (path === "planets" ? planets.get(query.toString(), load) : load());
+  const body = await fetchJson(`${API}/${path}?${query}`, { referer: SITE });
   const urls = await Promise.all(atlanticSourceValues(body, [name]).map((value) => unwrapAtlanticUrl(value, prefix, key)));
   return urls.filter((url) => url !== undefined);
 }

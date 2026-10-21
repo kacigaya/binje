@@ -7,8 +7,6 @@ export type PlaybackSource =
   | "athena"
   | "helios"
   | "pandora"
-  | "saturn"
-  | "neptune"
   | "moscow"
   | "vidzee"
   | "moviebox"
