@@ -7,7 +7,8 @@ import { srtToVtt } from "@/lib/srt";
 import { unwrapTransportStream } from "@/lib/transport-stream";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-const PLAYER_ORIGIN = "https://player.videasy.to";
+// WeCollege media hosts answer only a request that carries their site referer.
+const STREAM_REFERER = "https://www.movy.sx/";
 const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
 const FETCH_TIMEOUT_MS = 12000;
@@ -210,7 +211,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
   }
 
-  const referer = streamReferer(targetUrl) ?? `${PLAYER_ORIGIN}/`;
+  const referer = streamReferer(targetUrl) ?? STREAM_REFERER;
   const pinnedUserAgent = streamUserAgent(targetUrl);
   const headers = new Headers({
     accept: request.headers.get("accept") ?? "*/*",
@@ -327,6 +328,12 @@ export async function GET(request: NextRequest) {
         status: response.status,
         headers: responseHeaders,
       });
+    }
+    // Subtitle files are served under a .m3u8 path by some providers.
+    if (text.startsWith("WEBVTT")) {
+      responseHeaders.set("content-type", "text/vtt");
+      responseHeaders.set("cache-control", SEGMENT_CACHE_CONTROL);
+      return new NextResponse(bytes, { status: response.status, headers: responseHeaders });
     }
     // Never serve an upstream HTML page from this origin.
     if (expectsPlaylist || contentType.includes("html")) {

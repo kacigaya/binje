@@ -26,8 +26,12 @@ export function allowStreamHost(url: string | URL, referer?: string, userAgent?:
   });
 }
 
-export function allowStreamHosts(urls: (string | undefined)[]): void {
-  for (const url of urls) if (url) allowStreamHost(url);
+export function allowStreamHosts(
+  urls: (string | undefined)[],
+  referer?: string,
+  userAgent?: string,
+): void {
+  for (const url of urls) if (url) allowStreamHost(url, referer, userAgent);
 }
 
 export function isAllowedStreamHost(url: URL): boolean {
