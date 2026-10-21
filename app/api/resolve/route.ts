@@ -5,7 +5,8 @@ export const maxDuration = 20;
 
 export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
-  const source = query.get("source") ?? "wecollege";
+  // Videasy was the only provider when this route had no source parameter.
+  const source = query.get("source") ?? "videasy";
   const params = parseResolveParams(query);
   if (!isPlaybackSource(source) || !params) {
     return NextResponse.json({ error: "Invalid params." }, { status: 400 });

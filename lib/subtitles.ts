@@ -1,7 +1,9 @@
 import { allowStreamHosts } from "@/lib/hls-hosts";
-import type { ResolveParams } from "@/lib/stream-check";
+import type { ResolveParams } from "@/lib/resolve-cache";
 import { fetchJson, httpUrl, isRecord } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
+import { vidrockSubtitles } from "@/lib/vidrock";
+import { vidzeeSubtitles } from "@/lib/vidzee";
 
 // `format: "srt"` files are converted to WebVTT by /api/hls.
 export type SubtitleTrack = { file: string; label?: string; format?: "srt" };
@@ -22,7 +24,7 @@ export function pickSubtitleTracks(tracks: SubtitleTrack[]): SubtitleTrack[] {
   });
 }
 
-// WebVTT by TMDB id, also used by the Atlantic family.
+// Vidrock's WebVTT-by-TMDB-id service, also used by Atlantic.
 async function graniteSubtitles({ type, id, season, episode }: ResolveParams): Promise<SubtitleTrack[]> {
   const path = type === "tv" ? `tv/${id}/${season}/${episode}` : `movie/${id}`;
   const body = await fetchJson(`https://sub.vdrk.site/v1/${path}`);
@@ -63,6 +65,8 @@ export async function titleSubtitles(params: ResolveParams): Promise<SubtitleTra
   const tracks = await cache.get(key, async () => {
     const lists = await Promise.allSettled([
       graniteSubtitles(params),
+      vidzeeSubtitles(params),
+      vidrockSubtitles(params),
       // It searches by IMDb id only; without one it is not asked at all.
       ...(params.imdbId ? [openSubtitles(params)] : []),
     ]);

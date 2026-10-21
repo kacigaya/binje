@@ -5,10 +5,27 @@ export type { PlaybackSource };
 
 // Follow server source order for automatic failover; ignore unknown ids so newer servers work with older apps.
 const KNOWN_SOURCES: Record<PlaybackSource, true> = {
-  wecollege: true,
+  athena: true,
+  helios: true,
+  pandora: true,
+  saturn: true,
+  neptune: true,
+  moscow: true,
+  cine4k: true,
+  moviesapi: true,
+  videasyws: true,
+  vidzee: true,
+  moviebox: true,
+  vidnest: true,
+  vsrc: true,
+  videm: true,
+  "2embed": true,
+  vidrock: true,
+  videasy: true,
+  vf: true,
 };
-// Start on WeCollege before the availability list arrives to avoid delaying playback.
-export const DEFAULT_SOURCE: PlaybackSource = "wecollege";
+// Try Athena before the availability list arrives to avoid delaying movie and episode playback.
+export const DEFAULT_SOURCE: PlaybackSource = "athena";
 // The server resolves every provider before answering.
 const SOURCES_TIMEOUT_MS = 25_000;
 

@@ -1,18 +1,64 @@
+import { resolveAtlanticStream } from "@/lib/atlantic";
+import { resolveCine4kStream } from "@/lib/cine4k";
+import { resolveFrembedStream } from "@/lib/frembed";
 import { allowStreamCookie, allowStreamHost, allowStreamHosts } from "@/lib/hls-hosts";
-import { probeManifest, type ResolveParams, type ResolvedStream } from "@/lib/stream-check";
+import { resolveMovieboxStream } from "@/lib/moviebox";
+import { resolveMoviesapiStream } from "@/lib/moviesapi";
+import { cachedResolveVideasyStream, type ResolveParams } from "@/lib/resolve-cache";
+import { probeManifest, type ResolvedStream } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
-import { resolveWeCollegeStream } from "@/lib/wecollege";
 import type { PlaybackSource } from "@/types/mobile-api";
+import { resolveTwoEmbedStream } from "@/lib/twoembed";
+import { resolveVidnestStream } from "@/lib/vidnest";
+import { resolveVidrockStream } from "@/lib/vidrock";
+import { resolveVidzeeStream } from "@/lib/vidzee";
+import { resolveVidemStream, resolveVsrcStream } from "@/lib/vsrc";
+import { resolveVideasyWsStream } from "@/lib/videasyws";
 
 export type { PlaybackSource };
 
-// WeCollege is the only provider; it answers with its own ladder, so the
-// failover chain has a single entry and the resolver picks the tallest
-// rendition it can play.
-export const PLAYBACK_SOURCES = ["wecollege"] as const satisfies readonly PlaybackSource[];
+// Automatic failover tries the tallest advertised rendition first. Equal heights follow
+// Atlantic's server order, excluding Aphrodite, then other providers.
+// VF stays outside the chain but remains available through RESOLVERS and /api/resolve-vf.
+export const PLAYBACK_SOURCES = [
+  "athena",
+  "helios",
+  "pandora",
+  "saturn",
+  "neptune",
+  "moscow",
+  "cine4k",
+  "moviesapi",
+  "videasyws",
+  "vidzee",
+  "moviebox",
+  "vidnest",
+  "vsrc",
+  "videm",
+  "2embed",
+  "vidrock",
+  "videasy",
+] as const satisfies readonly PlaybackSource[];
 
 const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<ResolvedStream>> = {
-  wecollege: resolveWeCollegeStream,
+  videasyws: resolveVideasyWsStream,
+  cine4k: resolveCine4kStream,
+  athena: resolveAtlanticStream("athena"),
+  helios: resolveAtlanticStream("helios"),
+  pandora: resolveAtlanticStream("pandora"),
+  saturn: resolveAtlanticStream("saturn"),
+  neptune: resolveAtlanticStream("neptune"),
+  moscow: resolveAtlanticStream("moscow"),
+  vidzee: resolveVidzeeStream,
+  moviebox: resolveMovieboxStream,
+  vidnest: resolveVidnestStream,
+  vsrc: resolveVsrcStream,
+  videm: resolveVidemStream,
+  "2embed": resolveTwoEmbedStream,
+  moviesapi: resolveMoviesapiStream,
+  vidrock: resolveVidrockStream,
+  videasy: cachedResolveVideasyStream,
+  vf: resolveFrembedStream,
 };
 
 // Drop sources past this deadline so the availability route stays within maxDuration.
@@ -29,12 +75,7 @@ export async function resolvePlaybackSource(source: PlaybackSource, params: Reso
   const result = await RESOLVERS[source](params);
   allowStreamHost(result.url, result.referer, result.userAgent);
   if (result.cookie && result.cookieScope) allowStreamCookie(result.cookieScope, result.cookie);
-  // The subtitle and rendition hosts answer only with the provider's referer.
-  allowStreamHosts(
-    [...result.tracks.map((track) => track.file), ...(result.sources ?? []).map((item) => item.file)],
-    result.referer,
-    result.userAgent,
-  );
+  allowStreamHosts([...result.tracks.map((track) => track.file), ...(result.sources ?? []).map((item) => item.file)]);
   return result;
 }
 

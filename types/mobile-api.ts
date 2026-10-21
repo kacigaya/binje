@@ -1,7 +1,25 @@
 export type MobileLocale = "en" | "fr";
 export type MobileMediaType = "movie" | "tv";
 // Provider ids accepted by /api/resolve?source= and listed by /api/sources.
-export type PlaybackSource = "wecollege";
+export type PlaybackSource =
+  | "videasyws"
+  | "cine4k"
+  | "athena"
+  | "helios"
+  | "pandora"
+  | "saturn"
+  | "neptune"
+  | "moscow"
+  | "vidzee"
+  | "moviebox"
+  | "vidnest"
+  | "vsrc"
+  | "videm"
+  | "2embed"
+  | "moviesapi"
+  | "vidrock"
+  | "videasy"
+  | "vf";
 
 export interface MobileMediaSummary {
   id: number;

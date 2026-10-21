@@ -46,10 +46,27 @@ type PresentationVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void
 
 // /api/sources orders playable sources for automatic failover; ignore unknown ids.
 const KNOWN_SOURCES: Record<PlaybackSource, true> = {
-  wecollege: true,
+  athena: true,
+  helios: true,
+  pandora: true,
+  saturn: true,
+  neptune: true,
+  moscow: true,
+  cine4k: true,
+  moviesapi: true,
+  videasyws: true,
+  vidzee: true,
+  moviebox: true,
+  vidnest: true,
+  vsrc: true,
+  videm: true,
+  "2embed": true,
+  vidrock: true,
+  videasy: true,
+  vf: true,
 };
-// Start on WeCollege before the availability list arrives to avoid delaying playback.
-const DEFAULT_SOURCE: PlaybackSource = "wecollege";
+// Try Athena before the availability list arrives to avoid delaying movie and episode playback.
+const DEFAULT_SOURCE: PlaybackSource = "athena";
 
 function isKnownSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && Object.hasOwn(KNOWN_SOURCES, value);

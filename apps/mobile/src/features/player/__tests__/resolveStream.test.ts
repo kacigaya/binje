@@ -21,23 +21,41 @@ describe("native stream resolver", () => {
     expect(() => buildResolveQuery({ type: "tv", id: 9, title: "Show", year: "2024" })).toThrow("season and episode");
   });
 
-  test("resolves WeCollege through the resolve route", async () => {
+  test("resolves every source, French included, through the resolve route", async () => {
     const media = { type: "tv" as const, id: 9, title: "Show", year: "2024", season: 2, episode: 3 };
-    await resolveStream(media, "wecollege");
+    await resolveStream(media, "videasy");
+    await resolveStream(media, "vf");
     expect(request).toHaveBeenNthCalledWith(1, "/api/resolve", {
-      query: expect.objectContaining({ source: "wecollege", season: 2, episode: 3 }),
+      query: expect.objectContaining({ source: "videasy", season: 2, episode: 3 }),
+    });
+    expect(request).toHaveBeenNthCalledWith(2, "/api/resolve", {
+      query: expect.objectContaining({ source: "vf", season: 2, episode: 3 }),
     });
   });
 
   test("lists available sources in server order and drops unknown ids", async () => {
-    request.mockResolvedValueOnce({ sources: ["wecollege", "future-provider", 7] });
+    request.mockResolvedValueOnce({ sources: ["vsrc", "future-provider", "vidzee", 7] });
     const sources = await fetchAvailableSources({ type: "movie", id: 1, title: "X", year: "2020" });
-    expect(sources).toEqual(["wecollege"]);
+    expect(sources).toEqual(["vsrc", "vidzee"]);
     expect(request).toHaveBeenCalledWith("/api/sources", expect.objectContaining({ query: expect.objectContaining({ id: 1 }) }));
+  });
+
+  test("selects VidZee without changing episode coordinates", async () => {
+    await resolveStream({ type: "tv", id: 9, title: "Show", year: "2024", season: 2, episode: 3 }, "vidzee");
+    expect(request).toHaveBeenCalledWith("/api/resolve", {
+      query: expect.objectContaining({ source: "vidzee", season: 2, episode: 3 }),
+    });
+  });
+
+  test("selects MovieBox through the resolve route", async () => {
+    await resolveStream({ type: "movie", id: 27205, title: "Inception", year: "2010" }, "moviebox");
+    expect(request).toHaveBeenCalledWith("/api/resolve", {
+      query: expect.objectContaining({ source: "moviebox", id: 27205 }),
+    });
   });
 
   test("rejects a malformed stream response", async () => {
     request.mockResolvedValueOnce({ url: "javascript:alert(1)" });
-    await expect(resolveStream({ type: "movie", id: 1, title: "X", year: "2020" }, "wecollege")).rejects.toThrow("playable stream");
+    await expect(resolveStream({ type: "movie", id: 1, title: "X", year: "2020" }, "videasy")).rejects.toThrow("playable stream");
   });
 });
