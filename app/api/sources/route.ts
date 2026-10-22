@@ -5,10 +5,13 @@ import { availablePlaybackSources, parseResolveParams } from "@/lib/sources";
 export const maxDuration = 20;
 
 export async function GET(request: NextRequest) {
-  const params = parseResolveParams(request.nextUrl.searchParams);
-  if (!params) return NextResponse.json({ error: "Invalid params." }, { status: 400 });
+  const query = new URLSearchParams(request.nextUrl.searchParams);
+  const audio = query.get("audio") ?? "vo";
+  query.delete("audio");
+  const params = parseResolveParams(query);
+  if (!params || (audio !== "vo" && audio !== "vf")) return NextResponse.json({ error: "Invalid params." }, { status: 400 });
 
-  const sources = await availablePlaybackSources(params);
+  const sources = await availablePlaybackSources(params, audio);
   return NextResponse.json({ sources }, {
     headers: { "cache-control": "private, max-age=120" },
   });

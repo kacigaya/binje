@@ -40,11 +40,13 @@ export type ResolveParams = {
   imdbId: string;
   season: string;
   episode: string;
+  audio?: "vf" | "vostfr";
 };
 
 // Key by TMDB id and episode; title and year only guide provider lookup.
-export function resolveKey({ type, id, season, episode }: ResolveParams) {
-  return type === "tv" ? `tv:${id}:${season}:${episode}` : `movie:${id}`;
+export function resolveKey({ type, id, season, episode, audio }: ResolveParams) {
+  const key = type === "tv" ? `tv:${id}:${season}:${episode}` : `movie:${id}`;
+  return audio ? `${key}:${audio}` : key;
 }
 
 type Track = { file: string; label?: string };
@@ -197,10 +199,10 @@ export class UpstreamError extends Error {
 }
 
 // Guard URLs from provider responses too, including base hrefs, script hosts and redirects.
-export async function fetchText(url: string, init: { referer?: string; userAgent?: string; headers?: Record<string, string> } = {}) {
+export async function fetchText(url: string, init: { referer?: string; userAgent?: string; headers?: Record<string, string>; signal?: AbortSignal } = {}) {
   const response = await fetchPublic(url, {
     cache: "no-store",
-    signal: AbortSignal.timeout(10_000),
+    signal: init.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(10_000)]) : AbortSignal.timeout(10_000),
     headers: {
       "user-agent": init.userAgent ?? BROWSER_USER_AGENT,
       ...(init.referer ? { referer: init.referer } : {}),

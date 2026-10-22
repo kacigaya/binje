@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { isPlaybackSource, parseResolveParams, PLAYBACK_SOURCES } from "./sources";
 
 test("plays the servers in preference order", () => {
-  expect(PLAYBACK_SOURCES).toEqual(["vidcore", "vidsu", "vidme", "vidru"]);
+  expect(PLAYBACK_SOURCES).toEqual(["vidcore", "vidsu", "vidme", "vidru", "frembed"]);
 });
 
 test("accepts every listed source and nothing else", () => {
@@ -23,4 +23,15 @@ test("parses a title query and rejects malformed ones", () => {
   expect(query("type=movie&id=1x&title=X&year=2020")).toBeNull();
   expect(query("type=movie&id=1&title=&year=2020")).toBeNull();
   expect(query("type=movie&id=1&title=X&year=2020&imdbId=nm1")).toBeNull();
+});
+
+test("parses only supported resolver audio lanes", () => {
+  const query = new URLSearchParams("type=movie&id=1&title=X&year=2020&audio=vf");
+  expect(parseResolveParams(query)?.audio).toBe("vf");
+  query.set("audio", "vostfr");
+  expect(parseResolveParams(query)?.audio).toBe("vostfr");
+  query.set("audio", "vo");
+  expect(parseResolveParams(query)).toBeNull();
+  query.set("audio", "");
+  expect(parseResolveParams(query)).toBeNull();
 });

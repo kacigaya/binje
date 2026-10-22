@@ -1,6 +1,7 @@
 import { afterEach, expect, mock, test } from "bun:test";
+import { fetchPublic } from "./safe-fetch";
 import { isAllowedStreamHost } from "./hls-hosts";
-import { fetchText, firstInOrder, httpUrl, isPlayableManifest, manifestHeight, probeManifest } from "./stream-check";
+import { fetchText, firstInOrder, httpUrl, isPlayableManifest, manifestHeight, probeManifest, resolveKey } from "./stream-check";
 
 const originalFetch = globalThis.fetch;
 afterEach(() => {
@@ -129,4 +130,24 @@ test("provider requests refuse private targets and leave the proxy allowlist alo
   expect(isAllowedStreamHost(new URL("https://203.0.113.42/x"))).toBe(false);
   await expect(fetchText("https://203.0.113.43/start")).rejects.toThrow("Blocked redirect target.");
   expect(calls.some((url) => url.includes("169.254") || url.includes("10.0.0.1"))).toBe(false);
+});
+
+test("resolver cache keys keep audio and episodes separate", () => {
+  const params = { type: "tv", id: "1", title: "X", year: "2020", imdbId: "", season: "1", episode: "2" } as const;
+  expect(resolveKey(params)).toBe("tv:1:1:2");
+  expect(resolveKey({ ...params, audio: "vf" })).toBe("tv:1:1:2:vf");
+  expect(resolveKey({ ...params, audio: "vostfr" })).toBe("tv:1:1:2:vostfr");
+});
+
+test("manual provider requests keep redirects unread and still block private targets", async () => {
+  const fetch = mock(async () => new Response(null, { status: 302, headers: { location: "http://127.0.0.1/private" } }));
+  globalThis.fetch = fetch as unknown as typeof globalThis.fetch;
+  const response = await fetchPublic("https://203.0.113.80/api/stream", { redirect: "manual" });
+  expect(response.status).toBe(302);
+  expect(fetch).toHaveBeenCalledTimes(1);
+  await expect(fetchPublic("http://127.0.0.1/api/stream", { redirect: "manual" })).rejects.toThrow("Blocked target.");
+  for (const target of ["http://[::ffff:127.0.0.1]/", "http://[::ffff:7f00:1]/", "http://[::ffff:a00:1]/", "http://[::127.0.0.1]/", "http://[0:0:0:0:0:ffff:7f00:1]/"]) {
+    await expect(fetchPublic(target, { redirect: "manual" })).rejects.toThrow("Blocked target.");
+  }
+  expect(fetch).toHaveBeenCalledTimes(1);
 });
