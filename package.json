@@ -13,6 +13,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "bash -lc 'shopt -s globstar; bun test lib/**/*.test.ts app/**/*.test.ts'",
+    "test:dependencies": "node --test scripts/dependency-security.test.mjs",
     "test:instant": "bun run build:instant && playwright test e2e/instant.spec.ts",
     "test:e2e": "bun run build:instant && playwright test",
     "mobile:start": "bun --cwd apps/mobile start",
@@ -30,7 +31,7 @@
     "lucide-react": "^1.56.0",
     "morphicons": "^1.7.0",
     "motion": "^13.1.0",
-    "next": "16.3.8",
+    "next": "16.4.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "sonner": "^2.0.8",
@@ -39,7 +40,7 @@
     "undici": "7.29.1"
   },
   "devDependencies": {
-    "@next/playwright": "16.3.8",
+    "@next/playwright": "16.4.2",
     "@playwright/test": "1.62.1",
     "@shadcn/lint": "^0.2.0",
     "@tailwindcss/postcss": "^4.3.3",
@@ -59,15 +60,26 @@
     "brace-expansion": "1.1.21",
     "fast-uri": "^3.1.8",
     "hono": "^4.13.7",
-    "ip-address": "^10.7.1",
+    "ip-address": "^10.7.4",
     "js-yaml": "^4.3.2",
     "nanoid": "^3.3.18",
     "postcss": "^8.5.23",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "undici": "^7.29.1",
     "qs": "^6.16.0",
     "body-parser": "^2.3.0",
-    "uuid": "^11.1.1"
+    "uuid": "^11.1.1",
+    "@humanfs/node": "^0.16.8",
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@xmldom/xmldom": "^0.9.12",
+    "baseline-browser-mapping": "^2.11.0",
+    "browserslist": "^4.28.7",
+    "compression": "^1.8.2",
+    "decode-uri-component": "^0.5.0",
+    "image-size": "^2.0.4",
+    "proxy-addr": "^2.0.8",
+    "shell-quote": "^1.11.0",
+    "source-map-js": "^1.2.2"
   },
   "ignoreScripts": [
     "sharp",
@@ -78,6 +90,9 @@
     "unrs-resolver"
   ],
   "patchedDependencies": {
-    "image-size@1.2.1": "patches/image-size@1.2.1.patch"
+    "braces@3.0.3": "patches/braces@3.0.3.patch",
+    "node-forge@1.4.0": "patches/node-forge@1.4.0.patch",
+    "query-string@7.1.3": "patches/query-string@7.1.3.patch",
+    "@expo/plist@0.8.1": "patches/@expo%2Fplist@0.8.1.patch"
   }
 }

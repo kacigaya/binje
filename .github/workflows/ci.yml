@@ -26,6 +26,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run lint
       - run: bun run test
+      - run: bun run test:dependencies
       - run: bunx next typegen
       - run: bunx tsc --noEmit
   mobile:
