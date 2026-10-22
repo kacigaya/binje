@@ -8,6 +8,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
+import AudioMenu from "@/components/AudioMenu";
 import CastControls from "@/components/CastControls";
 import {
   ControlButton,
@@ -1058,25 +1059,14 @@ export default function Player({
                 <MorphIcon icon={isFullscreen ? Minimize : Maximize} reducedMotion="user" />
               </ControlButton>
             )}
-            <div role="group" aria-label={t("Audio")} className="flex items-center rounded-full bg-white/10">
-              {(["vo", "vf"] as const).map((version) => {
-                const label = version === "vo" ? t("Original audio") : t("French audio");
-                return (
-                  <ControlButton
-                    key={version}
-                    aria-label={label}
-                    aria-pressed={shownAudio === version}
-                    aria-busy={version === "vf" && vfPending}
-                    title={label}
-                    disabled={googleCasting || (version === "vf" && vfUnavailable)}
-                    onClick={() => setAudio(version)}
-                    className="text-xs font-semibold"
-                  >
-                    {version.toUpperCase()}
-                  </ControlButton>
-                );
-              })}
-            </div>
+            <AudioMenu
+              container={containerRef}
+              value={shownAudio}
+              onSelect={setAudio}
+              pending={vfPending}
+              frenchUnavailable={vfUnavailable}
+              disabled={googleCasting}
+            />
             {qualities.length > 0 && (
               <Select
                 ariaLabel={t("Quality")}

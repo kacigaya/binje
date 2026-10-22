@@ -179,6 +179,14 @@ for (const input of ["mouse", "touch"] as const) {
         await expect.poll(() => page.locator("video track").evaluate((track: HTMLTrackElement) => track.track.mode)).toBe("disabled");
         await subtitles.click();
 
+        const audio = page.getByRole("button", { name: "Audio", exact: true });
+        if (input === "touch") await audio.tap();
+        else await audio.click();
+        await expect(page.getByRole("radio", { name: "Original audio", exact: true })).toBeChecked();
+        await expect(page.getByText("French audio", { exact: true })).toBeInViewport();
+        await page.keyboard.press("Escape");
+        await expect(audio).toBeFocused();
+
         await page.locator("video").evaluate((video: HTMLVideoElement) => video.pause());
         await page.getByRole("button", { name: "Exit fullscreen" }).click();
         await quality.click();
@@ -660,4 +668,43 @@ test("a delay set during auto-sync wins over its late answer", async ({ page }) 
   await page.waitForTimeout(500);
   await expect.poll(() => cueStarts(page)).toEqual([10.5]);
   await expect(page.locator("output")).toHaveText("+0.5 s");
+});
+
+test("audio selector uses flags, switches sources, and restores keyboard focus", async ({ page }) => {
+  await page.route("**/api/sources?*audio=vf", (route) => route.fulfill({
+    json: { sources: ["frembed"] },
+  }));
+  const audio = page.getByRole("button", { name: "Audio", exact: true });
+  await expect(audio).toHaveText("🇬🇧");
+  await audio.focus();
+  await page.keyboard.press("Enter");
+  const original = page.getByRole("radio", { name: "Original audio", exact: true });
+  const french = page.getByRole("radio", { name: "French audio", exact: true });
+  await expect(original).toBeChecked();
+  const resolvingFrench = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname === "/api/resolve" && url.searchParams.get("audio") === "vf";
+  });
+  await page.getByText("French audio", { exact: true }).click();
+  await resolvingFrench;
+  await expect(french).toBeChecked();
+  await expect(audio).toHaveText("🇫🇷");
+  await page.getByText("Original audio", { exact: true }).click();
+  await expect(original).toBeChecked();
+  await expect(audio).toHaveText("🇬🇧");
+  await page.keyboard.press("Escape");
+  await expect(audio).toBeFocused();
+  await expect(audio).toHaveAttribute("aria-expanded", "false");
+});
+
+test("audio selector falls back when French is unavailable", async ({ page }) => {
+  await page.route("**/api/sources?*audio=vf", (route) => route.fulfill({
+    json: { sources: [] },
+  }));
+  const audio = page.getByRole("button", { name: "Audio", exact: true });
+  await audio.click();
+  await page.getByText("French audio", { exact: true }).click();
+  await expect(page.getByRole("radio", { name: "French audio", exact: true })).toBeDisabled();
+  await expect(page.getByRole("radio", { name: "Original audio", exact: true })).toBeChecked();
+  await expect(audio).toHaveText("🇬🇧");
 });
