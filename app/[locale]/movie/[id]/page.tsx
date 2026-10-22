@@ -13,7 +13,6 @@ import CastRow from "@/components/CastRow";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
 import WatchlistButton from "@/components/WatchlistButton";
 import DetailHero from "@/components/DetailHero";
-import StreamTechBadges from "@/components/StreamTechBadges";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import {
   getMovieDetails,
@@ -139,13 +138,6 @@ async function MovieDetails({
                 })}
               </div>
             )}
-            <StreamTechBadges
-              type="movie"
-              tmdbId={movie.id}
-              title={movie.original_title}
-              year={movie.release_date.slice(0, 4)}
-              imdbId={movie.imdb_id}
-            />
           </div>
 
           <div className="flex flex-wrap gap-2">
