@@ -18,6 +18,18 @@ test("strips a complete PNG placed in front of a transport stream", () => {
   expect(Array.from(unwrapTransportStream(bytes) ?? [])).toEqual(ts);
 });
 
+test("extracts a transport stream carried in a private PNG chunk", () => {
+  const ts = transportStream(3);
+  const bytes = new Uint8Array([
+    ...PNG_SIGNATURE,
+    ...chunk("IHDR", Array(13).fill(1)),
+    ...chunk("IDAT", Array(11).fill(2)),
+    ...chunk("tsDa", ts),
+    ...chunk("IEND"),
+  ]);
+  expect(Array.from(unwrapTransportStream(bytes) ?? [])).toEqual(ts);
+});
+
 test("accepts a transport stream that is only mislabeled", () => {
   const bytes = new Uint8Array(transportStream(2));
   expect(unwrapTransportStream(bytes)?.byteLength).toBe(376);

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { locale as getRootLocale } from "next/root-params";
 import { cache, Suspense } from "react";
 import { Calendar, Clock, Info } from "lucide-react";
-import StreamTechBadges from "@/components/StreamTechBadges";
 import Player from "@/components/Player";
 import PlayHistoryRecorder from "@/components/PlayHistoryRecorder";
 import { getMovieDetails, getMovieImages } from "@/lib/cached-tmdb";
@@ -138,13 +137,6 @@ async function WatchMovieInfo({
               {Math.floor(movie.runtime / 60)}&nbsp;h {movie.runtime % 60}&nbsp;m
             </div>
           )}
-          <StreamTechBadges
-            type="movie"
-            tmdbId={movie.id}
-            title={movie.original_title}
-            year={movie.release_date.slice(0, 4)}
-            imdbId={movie.imdb_id}
-          />
         </div>
 
         <Link

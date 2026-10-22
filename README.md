@@ -18,6 +18,7 @@
 
 - Browse, search, and filter movies and TV shows (data from TMDB).
 - Watch in a custom HLS player with subtitles, quality select, and auto-sync.
+- Play streams from the Vidsu, Vidme, and Vidru servers. See [docs/playback-providers.md](docs/playback-providers.md).
 - Cast with Google Cast and AirPlay.
 - English and French interfaces.
 - Expo mobile app for Android and iOS.
@@ -66,7 +67,6 @@ Posters, backdrops, and logos in these screenshots come from TMDB.
    ```bash
    TMDB_API_KEY=your_key
    OMDB_API_KEY=your_key        # optional: Rotten Tomatoes scores
-   STREAM_PROXY_URL=http://...  # optional: VPN proxy for Atlantic streams
    ```
 
 3. Install and run:

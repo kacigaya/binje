@@ -1,11 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import {
+  capWasmMemory,
   decryptStreamUrls,
   pageConfig,
   parseHostToken,
   streamUrlsPayload,
   withHostToken,
-} from "@/lib/videasyws";
+} from "@/lib/vidru";
 
 // alloc() -> 0 and decrypt(ptr, len) -> len - 12: an identity "cipher" with
 // the provider's export shape, so the plaintext is the input after its nonce.
@@ -73,6 +74,45 @@ describe("decryptStreamUrls", () => {
 
   test("rejects a payload shorter than its nonce", async () => {
     await expect(decryptStreamUrls(decryptModule, Buffer.alloc(4).toString("base64"))).rejects.toThrow();
+  });
+
+  test("stops a decryptor that never returns", async () => {
+    // Same module with decrypt's body replaced by `loop br 0 end unreachable`.
+    const looping = new Uint8Array([
+      ...IDENTITY_DECRYPTOR.subarray(0, IDENTITY_DECRYPTOR.length - 16),
+      0x0a, 0x0f, 0x02,
+      0x04, 0x00, 0x41, 0x00, 0x0b,
+      0x08, 0x00, 0x03, 0x40, 0x0c, 0x00, 0x0b, 0x00, 0x0b,
+    ]);
+    const input = Buffer.alloc(20).toString("base64");
+    await expect(decryptStreamUrls(new WebAssembly.Module(looping), input)).rejects.toThrow("timed out");
+  });
+});
+
+describe("capWasmMemory", () => {
+  test("adds a maximum so the module cannot grow memory without bound", () => {
+    const capped = new WebAssembly.Module(capWasmMemory(IDENTITY_DECRYPTOR));
+    const { memory } = new WebAssembly.Instance(capped, {}).exports as { memory: WebAssembly.Memory };
+    expect(memory.buffer.byteLength).toBe(65536);
+    expect(() => memory.grow(255)).not.toThrow();
+    expect(() => memory.grow(1)).toThrow();
+  });
+
+  test("keeps a lower maximum the module already declares", () => {
+    const at = IDENTITY_DECRYPTOR.indexOf(0x05, 8);
+    // Memory entry flags 1, min 1, max 2.
+    const bounded = new Uint8Array([...IDENTITY_DECRYPTOR.subarray(0, at), 0x05, 0x04, 0x01, 0x01, 0x01, 0x02, ...IDENTITY_DECRYPTOR.subarray(at + 5)]);
+    const { memory } = new WebAssembly.Instance(new WebAssembly.Module(capWasmMemory(bounded)), {}).exports as { memory: WebAssembly.Memory };
+    expect(() => memory.grow(1)).not.toThrow();
+    expect(() => memory.grow(1)).toThrow();
+  });
+
+  test("rejects a module that starts above the cap", () => {
+    const large = new Uint8Array(IDENTITY_DECRYPTOR);
+    // The memory entry is flags 0, min 1; raise min to 512 pages (two-byte LEB 0x80 0x04).
+    const at = large.indexOf(0x05, 8);
+    const huge = new Uint8Array([...large.subarray(0, at), 0x05, 0x04, 0x01, 0x00, 0x80, 0x04, ...large.subarray(at + 5)]);
+    expect(() => capWasmMemory(huge)).toThrow();
   });
 });
 

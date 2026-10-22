@@ -1,4 +1,3 @@
-import type { ResolverResult } from "@/lib/videasy";
 import { fetchPublic } from "@/lib/safe-fetch";
 
 export const BROWSER_USER_AGENT =
@@ -33,9 +32,26 @@ async function readCapped(response: Response, maxBytes: number): Promise<string>
   return new TextDecoder().decode(bytes);
 }
 
+export type ResolveParams = {
+  type: "movie" | "tv";
+  id: string;
+  title: string;
+  year: string;
+  imdbId: string;
+  season: string;
+  episode: string;
+};
+
+// Key by TMDB id and episode; title and year only guide provider lookup.
+export function resolveKey({ type, id, season, episode }: ResolveParams) {
+  return type === "tv" ? `tv:${id}:${season}:${episode}` : `movie:${id}`;
+}
+
+type Track = { file: string; label?: string };
+export type ResolverResult = { url: string; tracks: Track[] };
+
 // Keep provider headers server-side; attach them in the proxy, never in JSON responses.
-export type Upstream = { referer?: string; userAgent?: string };
-export type ResolvedStream = ResolverResult & Upstream & { cookie?: string; cookieScope?: string };
+export type ResolvedStream = ResolverResult & { referer?: string };
 
 export function httpUrl(value: unknown, base?: string | URL): string | undefined {
   if (typeof value !== "string" || !value) return;
@@ -45,44 +61,38 @@ export function httpUrl(value: unknown, base?: string | URL): string | undefined
   } catch { /* Invalid provider URLs are discarded. */ }
 }
 
-// Length of a finished stream: an ENDLIST media playlist or a static MPD.
-// Live, master or unreadable manifests give undefined.
+// Length of a finished stream: an ENDLIST media playlist.
+// Live, master or unreadable playlists give undefined.
 export function finishedStreamSeconds(manifest: string): number | undefined {
-  if (manifest.includes("<MPD")) {
-    if (/type="dynamic"/.test(manifest)) return;
-    const duration = /mediaPresentationDuration="PT(?:([\d.]+)H)?(?:([\d.]+)M)?(?:([\d.]+)S)?"/.exec(manifest);
-    return duration ? Number(duration[1] ?? 0) * 3600 + Number(duration[2] ?? 0) * 60 + Number(duration[3] ?? 0) : undefined;
-  }
   if (!manifest.includes("#EXT-X-ENDLIST")) return;
   return [...manifest.matchAll(/#EXTINF:([\d.]+)/g)].reduce((total, match) => total + Number(match[1]), 0);
 }
 
-// Tallest rendition a master or MPD advertises; 0 when it lists none, as media playlists do.
+// Tallest rendition a master playlist advertises; 0 when it lists none, as media playlists do.
 export function manifestHeight(manifest: string): number {
-  const heights = [...manifest.matchAll(/RESOLUTION=\d+x(\d+)|<Representation\b[^>]*\bheight="(\d+)"/g)].map(
-    (match) => Number(match[1] ?? match[2]),
-  );
-  return Math.max(0, ...heights);
+  return Math.max(0, ...[...manifest.matchAll(/RESOLUTION=\d+x(\d+)/g)].map((match) => Number(match[1])));
 }
 
-// Reject failed manifests and short decoys; probe a master's first variant but tolerate an unreadable variant.
-// Resolve to the advertised height when playable. Apply private-network checks to every third-party URL.
+function uris(playlist: string) {
+  return playlist.split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
+}
+
+// Reject failed manifests, short decoys and streams whose middle segment fails, such as
+// previews that stop after a minute. Probe a master's first variant but tolerate an unreadable
+// variant. Resolve to the advertised height when playable. Apply private-network checks to every URL.
 export async function probeManifest(
   url: string,
-  upstream: Upstream & { cookie?: string } = {},
+  referer?: string,
 ): Promise<{ height: number } | undefined> {
-  const headers = new Headers({ accept: "*/*", "user-agent": upstream.userAgent ?? BROWSER_USER_AGENT });
-  if (upstream.referer) {
-    headers.set("referer", upstream.referer);
-    headers.set("origin", new URL(upstream.referer).origin);
+  const headers = new Headers({ accept: "*/*", "user-agent": BROWSER_USER_AGENT });
+  if (referer) {
+    headers.set("referer", referer);
+    headers.set("origin", new URL(referer).origin);
   }
-  if (upstream.cookie) headers.set("cookie", upstream.cookie);
+  const request = (target: string) =>
+    fetchPublic(target, { cache: "no-store", headers, signal: AbortSignal.timeout(CHECK_TIMEOUT_MS) });
   const load = async (target: string) => {
-    const response = await fetchPublic(target, {
-      cache: "no-store",
-      headers,
-      signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
-    });
+    const response = await request(target);
     if (!response.ok) {
       await response.body?.cancel();
       return undefined;
@@ -92,22 +102,55 @@ export async function probeManifest(
       url: response.url || target,
     };
   };
+  // Read one chunk, not the segment: disguised segments can be several megabytes.
+  // Range is optional for HLS servers, so the request does not ask for one.
+  const segmentLoads = async (target: string) => {
+    const response = await request(target);
+    if (!response.ok) {
+      await response.body?.cancel();
+      return false;
+    }
+    const reader = response.body?.getReader();
+    const chunk = await reader?.read();
+    await reader?.cancel();
+    return Boolean(chunk && !chunk.done);
+  };
   try {
     const manifest = await load(url);
-    if (!manifest || !(manifest.text.startsWith("#EXTM3U") || manifest.text.includes("<MPD"))) return;
-    let playlist = manifest.text;
-    if (playlist.includes("#EXT-X-STREAM-INF")) {
-      const variant = playlist.split("\n").map((line) => line.trim()).find((line) => line && !line.startsWith("#"));
-      const target = variant ? httpUrl(variant, manifest.url) : undefined;
-      playlist = (target && (await load(target).catch(() => undefined))?.text) || "";
+    if (!manifest?.text.startsWith("#EXTM3U")) return;
+    let media: { text: string; url: string } | undefined = manifest;
+    if (manifest.text.includes("#EXT-X-STREAM-INF")) {
+      const target = httpUrl(uris(manifest.text)[0], manifest.url);
+      media = target ? await load(target).catch(() => undefined) : undefined;
+      if (!media?.text.startsWith("#EXTM3U")) media = undefined;
     }
-    const seconds = finishedStreamSeconds(playlist);
-    if (seconds === undefined || seconds >= MIN_STREAM_SECONDS) return { height: manifestHeight(manifest.text) };
-  } catch { /* Unreachable manifests are unplayable. */ }
+    if (media) {
+      const seconds = finishedStreamSeconds(media.text);
+      if (seconds !== undefined && seconds < MIN_STREAM_SECONDS) return;
+      const segments = uris(media.text);
+      const middle = httpUrl(segments[Math.floor(segments.length / 2)], media.url);
+      if (segments.length && !(middle && (await segmentLoads(middle)))) return;
+    }
+    return { height: manifestHeight(manifest.text) };
+  } catch { /* Unreachable manifests and segments are unplayable. */ }
 }
 
-export async function isPlayableManifest(url: string, upstream: Upstream & { cookie?: string } = {}) {
-  return (await probeManifest(url, upstream)) !== undefined;
+export async function isPlayableManifest(url: string, referer?: string) {
+  return (await probeManifest(url, referer)) !== undefined;
+}
+
+export type StreamCandidate = { url: string; referer?: string };
+
+// The first candidate whose manifest plays, probed concurrently but chosen in list order.
+export function firstPlayable(candidates: StreamCandidate[]): Promise<StreamCandidate> {
+  return firstInOrder(
+    candidates.map(async (candidate) => {
+      if (!(await isPlayableManifest(candidate.url, candidate.referer))) {
+        throw new Error("Unplayable stream.");
+      }
+      return candidate;
+    }),
+  );
 }
 
 // Probe concurrently, but honor order: a result wins only after all earlier tasks fail.

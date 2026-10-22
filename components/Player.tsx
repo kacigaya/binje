@@ -40,33 +40,12 @@ type PlayerMediaType = "movie" | "tv";
 type Track = { file: string; label?: string; lang?: string; format?: "srt" };
 // height is the rendition's own; label is its 16:9 class (lib/quality-class).
 type Quality = { index: number; height: number; label: number; bitrate: number };
-type StreamSource = { file: string; height: number };
-type ResolvedMedia = { url: string; sources: StreamSource[] };
 type PresentationVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
 
 // /api/sources orders playable sources for automatic failover; ignore unknown ids.
-const KNOWN_SOURCES: Record<PlaybackSource, true> = {
-  athena: true,
-  helios: true,
-  pandora: true,
-  saturn: true,
-  neptune: true,
-  moscow: true,
-  cine4k: true,
-  moviesapi: true,
-  videasyws: true,
-  vidzee: true,
-  moviebox: true,
-  vidnest: true,
-  vsrc: true,
-  videm: true,
-  "2embed": true,
-  vidrock: true,
-  videasy: true,
-  vf: true,
-};
-// Try Athena before the availability list arrives to avoid delaying movie and episode playback.
-const DEFAULT_SOURCE: PlaybackSource = "athena";
+const KNOWN_SOURCES: Record<PlaybackSource, true> = { vidsu: true, vidme: true, vidru: true };
+// Try Vidsu before the availability list arrives to avoid delaying movie and episode playback.
+const DEFAULT_SOURCE: PlaybackSource = "vidsu";
 
 function isKnownSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && Object.hasOwn(KNOWN_SOURCES, value);
@@ -118,46 +97,6 @@ function isTrack(value: unknown): value is Track {
 
 function trackSrc(track: Track) {
   return track.format === "srt" ? `${proxied(track.file)}&format=srt` : proxied(track.file);
-}
-
-// Upstream reports height only, so bitrates come from a conservative H.264
-// ladder; unknown heights use the nearest lower rung.
-const BITRATE_LADDER: [height: number, bandwidth: number][] = [
-  [2160, 16_000_000],
-  [1440, 10_000_000],
-  [1080, 6_000_000],
-  [720, 3_000_000],
-  [480, 1_400_000],
-  [360, 800_000],
-  [240, 400_000],
-];
-
-function ladderBandwidth(height: number): number {
-  for (const [rung, bandwidth] of BITRATE_LADDER) {
-    if (height >= rung) return bandwidth;
-  }
-  return BITRATE_LADDER[BITRATE_LADDER.length - 1][1];
-}
-
-function createMasterPlaylist(sources: StreamSource[]) {
-  const lines = ["#EXTM3U", "#EXT-X-VERSION:3"];
-  const seen = new Set<number>();
-  const renditions = [...sources]
-    .filter((source) => {
-      if (!Number.isFinite(source.height) || source.height <= 0) return false;
-      if (seen.has(source.height)) return false;
-      seen.add(source.height);
-      return true;
-    })
-    .sort((a, b) => b.height - a.height);
-  for (const source of renditions) {
-    const width = Math.round((source.height * 16) / 9 / 2) * 2;
-    lines.push(
-      `#EXT-X-STREAM-INF:BANDWIDTH=${ladderBandwidth(source.height)},RESOLUTION=${width}x${source.height}`,
-      new URL(proxied(source.file), window.location.origin).href,
-    );
-  }
-  return `${lines.join("\n")}\n`;
 }
 
 export default function Player({
@@ -241,7 +180,7 @@ export default function Player({
   const [qualities, setQualities] = useState<Quality[]>([]);
   const [quality, setQuality] = useState(-1);
   const [loading, setLoading] = useState(true);
-  const [resolvedMedia, setResolvedMedia] = useState<ResolvedMedia | null>(null);
+  const [streamUrl, setStreamUrl] = useState<string | null>(null);
   const [googleCasting, setGoogleCasting] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [videoAspectRatio, setVideoAspectRatio] = useState<Keyed<number> | null>(null);
@@ -261,7 +200,7 @@ export default function Player({
   // Fetch title-wide subtitles only when the playing source has none.
   const [titleTracks, setTitleTracks] = useState<Keyed<Track[]> | null>(null);
   const titleList = forMedia(titleTracks, mediaKey);
-  const needsTitleTracks = resolvedMedia !== null && tracks.length === 0;
+  const needsTitleTracks = streamUrl !== null && tracks.length === 0;
   const shownTracks = useMemo(
     () => (tracks.length ? tracks : needsTitleTracks ? (titleList ?? []) : []),
     [needsTitleTracks, titleList, tracks],
@@ -496,7 +435,7 @@ export default function Player({
   }
 
   async function autoSync() {
-    const stream = resolvedMedia?.url;
+    const stream = streamUrl;
     const track = activeSubtitle >= 0 ? allTracks[activeSubtitle] : null;
     if (!stream || !track || !activeSyncKey) return;
     const key = activeSyncKey;
@@ -719,11 +658,10 @@ export default function Player({
     setTracks([]);
     setQualities([]);
     setQuality(-1);
-    setResolvedMedia(null);
+    setStreamUrl(null);
     lastSavedAtRef.current = 0;
 
     let hls: Hls | null = null;
-    let masterUrl: string | null = null;
 
     const nativeHlsSupported = Boolean(
       video.canPlayType("application/vnd.apple.mpegurl") &&
@@ -742,20 +680,12 @@ export default function Player({
         if (cancelled) return;
 
         const nextTracks = (data.tracks ?? []).filter((t) => t.file);
-        const nextSources = data.sources ?? [];
         setTracks(nextTracks);
-        setResolvedMedia({ url: data.url, sources: nextSources });
+        setStreamUrl(data.url);
         const HlsModule = hlsModulePromise ? await hlsModulePromise : null;
         if (cancelled) return;
         const hlsSupported = Boolean(HlsModule?.isSupported());
-        if (!nativeHlsSupported && hlsSupported && nextSources.length) {
-          masterUrl = URL.createObjectURL(
-            new Blob([createMasterPlaylist(nextSources)], {
-              type: "application/vnd.apple.mpegurl",
-            }),
-          );
-        }
-        const src = masterUrl ?? proxied(data.url);
+        const src = proxied(data.url);
 
         if (nativeHlsSupported) {
           video.src = src;
@@ -818,7 +748,6 @@ export default function Player({
       video.pause();
       video.removeAttribute("src");
       video.load();
-      if (masterUrl) URL.revokeObjectURL(masterUrl);
     };
   }, [mediaKey, reloadKey, source, sourceUrl]);
 
@@ -888,12 +817,6 @@ export default function Player({
     saveProgress(video.currentTime, video.duration);
   }
 
-  const selectedHeight = qualities.find((item) => item.index === quality)?.height;
-  const castSource = selectedHeight
-    ? resolvedMedia?.sources.find((source) => source.height === selectedHeight)?.file ??
-      resolvedMedia?.url ??
-      null
-    : resolvedMedia?.url ?? null;
   let statusText = t("Loading…");
   if (exhausted) statusText = t("Stream unavailable. Try again later.");
   else if (awaitingSources) statusText = t("Checking sources…");
@@ -1136,7 +1059,7 @@ export default function Player({
             <CastControls
               videoRef={videoRef}
               mediaKey={mediaKey}
-              source={castSource}
+              source={streamUrl}
               tracks={castTracks}
               title={title}
               onRemoteProgress={saveProgress}

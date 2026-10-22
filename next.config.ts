@@ -66,7 +66,7 @@ const nextConfig: NextConfig = {
     },
     // Keep /api/hls same-origin so third-party pages cannot drive the segment proxy from a browser.
     {
-      source: "/api/(search|resolve|resolve-vf|sources|episodes)",
+      source: "/api/(search|resolve|sources|episodes)",
       headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
     },
   ],

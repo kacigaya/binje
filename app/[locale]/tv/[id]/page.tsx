@@ -15,7 +15,6 @@ import WatchlistButton from "@/components/WatchlistButton";
 import DetailHero from "@/components/DetailHero";
 import SeasonEpisodes from "@/components/SeasonEpisodes";
 import { Skeleton } from "@/components/ui/skeleton";
-import StreamTechBadges from "@/components/StreamTechBadges";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import {
   getTVDetails,
@@ -147,13 +146,6 @@ async function TVShowDetails({
                 })}
               </div>
             )}
-            <StreamTechBadges
-              type="tv"
-              tmdbId={show.id}
-              title={show.original_name}
-              year={show.first_air_date.slice(0, 4)}
-              imdbId={show.external_ids.imdb_id}
-            />
           </div>
 
           <div className="flex flex-wrap gap-2">
