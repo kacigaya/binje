@@ -9,7 +9,7 @@ function isTransportStreamAt(bytes: Uint8Array, offset: number) {
   );
 }
 
-// CDNs may disguise MPEG-TS with an image MIME type or a PNG prefix.
+// CDNs may disguise MPEG-TS with an image MIME type, a PNG prefix, or a private PNG chunk.
 // Return the transport stream, or null for other bodies.
 export function unwrapTransportStream(bytes: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> | null {
   let offset = 0;
@@ -17,11 +17,13 @@ export function unwrapTransportStream(bytes: Uint8Array<ArrayBuffer>): Uint8Arra
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     let position = PNG_SIGNATURE.length;
     offset = -1;
-    // Each chunk is length, type, data, CRC; the video starts after IEND.
+    // Each chunk is length, type, data, CRC. The video is one chunk's data or follows IEND.
     while (position + 12 <= bytes.length) {
       const length = view.getUint32(position);
       const type = String.fromCharCode(...bytes.subarray(position + 4, position + 8));
+      const data = position + 8;
       position += 12 + length;
+      if (length >= TS_PACKET_BYTES && isTransportStreamAt(bytes, data)) return bytes.subarray(data, data + length);
       if (type === "IEND") {
         offset = position;
         break;
