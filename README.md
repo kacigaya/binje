@@ -18,6 +18,7 @@
 
 - Browse, search, and filter movies and TV shows (data from TMDB).
 - Watch in a custom HLS player with subtitles, quality select, and auto-sync.
+- Play streams from the Vidsu, Vidme, and Vidru servers that [Nightflix](https://nightflix.bz/) uses. See [docs/playback-providers.md](docs/playback-providers.md).
 - Cast with Google Cast and AirPlay.
 - English and French interfaces.
 - Expo mobile app for Android and iOS.
