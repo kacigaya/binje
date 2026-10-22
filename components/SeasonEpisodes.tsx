@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Clock, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatAirDate, localizedHref } from "@/lib/i18n";
+import { formatAirDate, formatRating, localizedHref } from "@/lib/i18n";
 import {
   getPlayHistory,
   getPlaybackProgress,
@@ -141,6 +141,9 @@ export default function SeasonEpisodes({
             const still = stillUrl(ep.still_path, "original");
             const isLast = last?.season === season && last.episode === ep.episode_number;
             const airDate = formatAirDate(locale, ep.air_date);
+            // Unrated episodes report 0, which would read as a bad score.
+            const rating =
+              ep.vote_average > 0 ? formatRating(locale, ep.vote_average) : null;
             return (
               <li key={ep.id}>
                 <Link
@@ -190,11 +193,25 @@ export default function SeasonEpisodes({
                         </span>
                       )}
                     </p>
-                    {airDate && (
-                      <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-                        <time dateTime={ep.air_date ?? undefined}>{airDate}</time>
+                    {airDate || rating ? (
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground tabular-nums">
+                        {airDate && (
+                          <time dateTime={ep.air_date ?? undefined}>{airDate}</time>
+                        )}
+                        {rating && (
+                          <span className="flex items-center gap-1 font-semibold text-foreground">
+                            <Image
+                              src="/tmdb.svg"
+                              alt="TMDB"
+                              width={28}
+                              height={12}
+                              className="h-3 w-auto shrink-0"
+                            />
+                            {rating}
+                          </span>
+                        )}
                       </p>
-                    )}
+                    ) : null}
                     {ep.overview && (
                       <p className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">
                         {ep.overview}
