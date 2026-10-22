@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  capWasmMemory,
   decryptStreamUrls,
   pageConfig,
   parseHostToken,
@@ -85,6 +86,24 @@ describe("decryptStreamUrls", () => {
     ]);
     const input = Buffer.alloc(20).toString("base64");
     await expect(decryptStreamUrls(new WebAssembly.Module(looping), input)).rejects.toThrow("timed out");
+  });
+});
+
+describe("capWasmMemory", () => {
+  test("adds a maximum so the module cannot grow memory without bound", () => {
+    const capped = new WebAssembly.Module(capWasmMemory(IDENTITY_DECRYPTOR));
+    const { memory } = new WebAssembly.Instance(capped, {}).exports as { memory: WebAssembly.Memory };
+    expect(memory.buffer.byteLength).toBe(65536);
+    expect(() => memory.grow(255)).not.toThrow();
+    expect(() => memory.grow(1)).toThrow();
+  });
+
+  test("rejects a module that starts above the cap", () => {
+    const large = new Uint8Array(IDENTITY_DECRYPTOR);
+    // The memory entry is flags 0, min 1; raise min to 512 pages (two-byte LEB 0x80 0x04).
+    const at = large.indexOf(0x05, 8);
+    const huge = new Uint8Array([...large.subarray(0, at), 0x05, 0x04, 0x01, 0x00, 0x80, 0x04, ...large.subarray(at + 5)]);
+    expect(() => capWasmMemory(huge)).toThrow();
   });
 });
 

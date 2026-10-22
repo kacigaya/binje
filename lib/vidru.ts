@@ -55,6 +55,56 @@ export function streamUrlsPayload(body: unknown): { urls: string[] } | { encrypt
   return { encrypted: streams, wasmUrl, window: String(vs.w ?? wasmUrl) };
 }
 
+// The real module asks for 4 pages (256 KiB) and declares no maximum.
+const MAX_MEMORY_PAGES = 256;
+
+function readLeb(bytes: Uint8Array, start: number): [value: number, end: number] {
+  let value = 0;
+  let shift = 0;
+  let position = start;
+  for (;;) {
+    if (position >= bytes.length || shift > 28) throw new Error("Unexpected Vidru decryptor.");
+    const byte = bytes[position++];
+    value |= (byte & 0x7f) << shift;
+    if (!(byte & 0x80)) return [value >>> 0, position];
+    shift += 7;
+  }
+}
+
+function leb(value: number): number[] {
+  const out: number[] = [];
+  do {
+    const byte = value & 0x7f;
+    value >>>= 7;
+    out.push(value ? byte | 0x80 : byte);
+  } while (value);
+  return out;
+}
+
+// Give the module's one memory a 16 MiB maximum, so growing past it fails inside the module
+// instead of exhausting the server. Section 5 holds memories; its entries are flags, min[, max].
+export function capWasmMemory(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  let position = 8;
+  while (position < bytes.length) {
+    const id = bytes[position];
+    const [size, body] = readLeb(bytes, position + 1);
+    const end = body + size;
+    if (id === 5) {
+      const [count, entry] = readLeb(bytes, body);
+      const [flags, afterFlags] = readLeb(bytes, entry);
+      const [minimum, afterMin] = readLeb(bytes, afterFlags);
+      const afterEntry = flags & 1 ? readLeb(bytes, afterMin)[1] : afterMin;
+      if (count !== 1 || flags > 1 || afterEntry !== end || minimum > MAX_MEMORY_PAGES) {
+        throw new Error("Unexpected Vidru decryptor.");
+      }
+      const section = [1, 1, ...leb(minimum), ...leb(MAX_MEMORY_PAGES)];
+      return new Uint8Array([...bytes.subarray(0, position), 5, ...leb(section.length), ...section, ...bytes.subarray(end)]);
+    }
+    position = end;
+  }
+  return new Uint8Array(bytes);
+}
+
 function decryptor(wasmUrl: string, window: string) {
   return decryptors.get(window, async () => {
     const response = await fetchPublic(wasmUrl, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
@@ -64,7 +114,7 @@ function decryptor(wasmUrl: string, window: string) {
     }
     const bytes = await response.arrayBuffer();
     if (bytes.byteLength > MAX_WASM_BYTES) throw new Error("Vidru decryptor unavailable.");
-    const decryptModule = await WebAssembly.compile(bytes);
+    const decryptModule = await WebAssembly.compile(capWasmMemory(new Uint8Array(bytes)));
     // No imports means the module can only compute: no host access at all.
     if (WebAssembly.Module.imports(decryptModule).length > 0) throw new Error("Unexpected Vidru decryptor.");
     return decryptModule;
@@ -72,7 +122,7 @@ function decryptor(wasmUrl: string, window: string) {
 }
 
 // The module is untrusted code. It runs in a worker that is stopped when it overruns, so a
-// looping or memory-hungry module cannot hold the server. Termination frees its memory.
+// looping module cannot hold the server.
 const DECRYPT_TIMEOUT_MS = 2000;
 const DECRYPT_WORKER = `
 const { parentPort, workerData } = process.getBuiltinModule("node:worker_threads");
