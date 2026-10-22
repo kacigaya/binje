@@ -43,7 +43,7 @@ type Track = { file: string; label?: string; lang?: string; format?: "srt" };
 type Quality = { index: number; height: number; label: number; bitrate: number };
 type PresentationVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
 
-// TV episodes reuse this component; key state by media so the previous episode's state is ignored.
+// Key state by media to ignore state from the previous episode.
 type Keyed<T> = { key: string; value: T };
 function forMedia<T>(state: Keyed<T> | null, key: string): T | undefined {
   return state?.key === key ? state.value : undefined;
@@ -70,7 +70,7 @@ function languageOf(label?: string): string | undefined {
 // Timing belongs to a release: providers can serve different cuts of a title.
 const SYNC_KEY = "subtitle-sync-v2";
 const MAX_SAVED_SYNCS = 300;
-// A cue's own times, before any delay or scale was applied to it.
+// Keep original cue times so timing changes do not accumulate.
 const originalCueTimes = new WeakMap<TextTrackCue, [number, number]>();
 
 function isSync(value: unknown): value is SubtitleSync {
@@ -127,7 +127,7 @@ export default function Player({
     return params.toString();
   }, [episode, imdbId, season, title, tmdbId, type, year]);
 
-  // undefined while probing, null when the probe itself failed.
+  // undefined while probing; null if the probe failed.
   const [available, setAvailable] = useState<Keyed<PlaybackSource[] | null> | null>(null);
   const [failed, setFailed] = useState<Keyed<PlaybackSource[]> | null>(null);
   const [playing, setPlaying] = useState<Keyed<PlaybackSource> | null>(null);
@@ -212,7 +212,7 @@ export default function Player({
         return { ...track, label: count > 1 ? `${label} ${count}` : label };
       });
   }, [locale, shownTracks]);
-  // Cache subtitles per title because source resolution may repeat while availability settles.
+  // Repeated source resolution must reuse the title's subtitle request.
   const titleRequestRef = useRef<string | null>(null);
   useEffect(() => {
     if (!needsTitleTracks || titleRequestRef.current === mediaKey) return;
@@ -225,15 +225,15 @@ export default function Player({
         setTitleTracks({ key, value: list });
       })
       .catch(() => {
-        // Optional: playback goes on without subtitles; a later resolve retries.
+        // Allow a later retry without stopping playback.
         if (titleRequestRef.current === key) titleRequestRef.current = null;
       });
   }, [mediaKey, mediaQuery, needsTitleTracks]);
-  // Track selection by file so arriving tracks cannot move it; default to the first track until chosen.
+  // Select by file so new tracks cannot shift the selection.
   const [subtitle, setSubtitle] = useState<{ file: string | null; on: boolean } | null>(null);
   const subtitleOn = subtitle ? subtitle.on : tracks.length > 0;
   const pickedFile = subtitle ? subtitle.file : tracks[0]?.file;
-  // Fall back to the first track if the selected file belongs to a previous episode or has disappeared.
+  // Use the first track if the selected file is no longer available.
   const activeSubtitle = !subtitleOn || !allTracks.length
     ? -1
     : Math.max(allTracks.findIndex((track) => track.file === pickedFile), 0);

@@ -4,7 +4,6 @@ import { qualityClass } from "@/lib/quality-class";
 export const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 const CHECK_TIMEOUT_MS = 6000;
-// Bound manifest and provider-page reads; larger bodies may be video files.
 const MAX_MANIFEST_BYTES = 2 * 1024 * 1024;
 const MAX_PAGE_BYTES = 4 * 1024 * 1024;
 // Short finished streams can be decoys, such as Aphrodite's error clip or ViDZY's /troll/ playlist.
@@ -62,8 +61,7 @@ export function httpUrl(value: unknown, base?: string | URL): string | undefined
   } catch { /* Invalid provider URLs are discarded. */ }
 }
 
-// Length of a finished stream: an ENDLIST media playlist.
-// Live, master or unreadable playlists give undefined.
+// Only ENDLIST media playlists provide a finished duration.
 export function finishedStreamSeconds(manifest: string): number | undefined {
   if (!manifest.includes("#EXT-X-ENDLIST")) return;
   return [...manifest.matchAll(/#EXTINF:([\d.]+)/g)].reduce((total, match) => total + Number(match[1]), 0);
@@ -78,9 +76,8 @@ function uris(playlist: string) {
   return playlist.split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
 }
 
-// Reject failed manifests, short decoys and streams whose middle segment fails, such as
-// previews that stop after a minute. Probe a master's first variant but tolerate an unreadable
-// variant. Resolve to the advertised height when playable. Apply private-network checks to every URL.
+// Reject short decoys and failed middle segments; tolerate an unreadable first variant.
+// Check every URL for private-network access and return the advertised quality.
 export async function probeManifest(
   url: string,
   referer?: string,
@@ -110,8 +107,8 @@ export async function probeManifest(
       url: response.url || target,
     };
   };
-  // Read one chunk, not the segment: disguised segments can be several megabytes.
-  // Range is optional for HLS servers, so the request does not ask for one.
+  // Read one chunk to limit large segment responses.
+  // HLS servers need not support Range requests.
   const segmentLoads = async (target: string) => {
     const response = await request(target);
     if (!response.ok) {
@@ -150,7 +147,7 @@ export async function isPlayableManifest(url: string, referer?: string) {
 
 export type StreamCandidate = { url: string; referer?: string };
 
-// The first candidate whose manifest plays, probed concurrently but chosen in list order.
+// Probe concurrently; preserve provider preference order.
 export function firstPlayable(candidates: StreamCandidate[]): Promise<StreamCandidate> {
   return firstInOrder(
     candidates.map(async (candidate) => {

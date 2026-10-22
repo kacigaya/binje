@@ -46,8 +46,7 @@ async function availableHeight(source: PlaybackSource, params: ResolveParams) {
   return probe?.height;
 }
 
-// Resolve sources in parallel and list only those with loadable manifests, tallest rendition first.
-// Resolver caches let playback reuse the result without resolving again.
+// Rank playable sources by quality. Resolver caches let playback reuse these results.
 export function availablePlaybackSources(params: ResolveParams): Promise<PlaybackSource[]> {
   return availabilityCache.get(resolveKey(params), async () => {
     const checks = await Promise.allSettled(

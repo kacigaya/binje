@@ -11,7 +11,7 @@ export function resolveVidcoreStream(params: ResolveParams): Promise<ResolvedStr
     const token = process.env.VIDCORE_RESOLVER_TOKEN;
     if (!endpoint || !token) throw new Error("Vidcore browser resolver is not configured.");
 
-    // Browser resolution and CDN validation share one deadline below /api/sources' 15 seconds.
+    // Share one deadline for browser and CDN checks, below /api/sources' 15-second limit.
     const signal = AbortSignal.timeout(13_000);
     const { type, id, season, episode } = params;
     const response = await fetch(new URL("resolve", endpoint.endsWith("/") ? endpoint : `${endpoint}/`), {

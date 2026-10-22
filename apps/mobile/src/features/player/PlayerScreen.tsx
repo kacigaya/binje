@@ -25,7 +25,7 @@ import {
 import NativeCastControls from "./CastControls";
 import type { MobileMediaType, StreamResponse } from "../../types/api";
 
-// Episodes reuse this screen; key source state by media so the previous episode's state is ignored.
+// Key source state by media to ignore state from the previous episode.
 type Keyed<T> = { key: string; value: T };
 function forMedia<T>(state: Keyed<T> | null, key: string): T | undefined {
   return state?.key === key ? state.value : undefined;
@@ -47,7 +47,7 @@ export function PlayerScreen({
   const [season, setSeason] = useState(initialSeason ?? 1);
   const [episode, setEpisode] = useState(initialEpisode ?? 1);
   const [resolving, setResolving] = useState(false);
-  // undefined while probing, null when the probe itself failed.
+  // undefined while probing; null if the probe failed.
   const [available, setAvailable] = useState<Keyed<PlaybackSource[] | null> | null>(null);
   const [failed, setFailed] = useState<Keyed<PlaybackSource[]> | null>(null);
   const [playing, setPlaying] = useState<Keyed<PlaybackSource> | null>(null);
