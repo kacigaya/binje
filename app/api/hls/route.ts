@@ -1,22 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isValidCastToken } from "@/lib/cast-token";
-import { type Manifest, masterPlaylist, mediaPlaylist, parseMpd } from "@/lib/dash-to-hls";
-import { allowStreamHost, isAllowedStreamHost, streamCookie, streamReferer, streamUserAgent } from "@/lib/hls-hosts";
+import { allowStreamHost, isAllowedStreamHost, streamReferer } from "@/lib/hls-hosts";
 import { getTargetUrl, isSafeHost, safeFetch } from "@/lib/safe-fetch";
 import { srtToVtt } from "@/lib/srt";
 import { unwrapTransportStream } from "@/lib/transport-stream";
-import { createTtlCache } from "@/lib/ttl-cache";
 
-const PLAYER_ORIGIN = "https://player.videasy.to";
 const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36";
 const FETCH_TIMEOUT_MS = 12000;
 // Signed segment URLs have stable bytes; playlists can change, so cache them only briefly.
 const SEGMENT_CACHE_CONTROL = "public, max-age=3600, immutable";
 const PLAYLIST_CACHE_CONTROL = "public, max-age=30";
-// Share the parsed DASH manifest across master and per-representation playlist requests.
-const MANIFEST_TTL_MS = 60_000;
-const manifestCache = createTtlCache<Manifest>(MANIFEST_TTL_MS);
 // Sniff bounded text/image bodies for disguised segments or playlists; stream larger bodies through.
 const MAX_SNIFF_BYTES = 32 * 1024 * 1024;
 // Feature-length SRT files are a few hundred KB.
@@ -26,9 +20,8 @@ function proxiedUrl(
   requestUrl: string,
   castToken: string | null,
   referer?: string,
-  userAgent?: string,
 ) {
-  allowStreamHost(url, referer, userAgent);
+  allowStreamHost(url, referer);
   const proxyUrl = new URL("/api/hls", requestUrl);
   proxyUrl.searchParams.set("url", String(url));
   if (castToken) proxyUrl.searchParams.set("castToken", castToken);
@@ -41,7 +34,6 @@ function rewritePlaylist(
   requestUrl: string,
   castToken: string | null,
   referer?: string,
-  userAgent?: string,
 ) {
   return text
     .split("\n")
@@ -50,86 +42,12 @@ function rewritePlaylist(
       if (!trimmed) return line;
       if (trimmed.startsWith("#")) {
         return line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
-          return `URI="${proxiedUrl(new URL(uri, targetUrl), requestUrl, castToken, referer, userAgent)}"`;
+          return `URI="${proxiedUrl(new URL(uri, targetUrl), requestUrl, castToken, referer)}"`;
         });
       }
-      return proxiedUrl(new URL(trimmed, targetUrl), requestUrl, castToken, referer, userAgent);
+      return proxiedUrl(new URL(trimmed, targetUrl), requestUrl, castToken, referer);
     })
     .join("\n");
-}
-
-// Serve DASH as an HLS master; `rep=<id>` selects a representation's media playlist.
-// Segments still use the proxy's cookie scope and host allowlist.
-async function serveDashAsHls(
-  request: NextRequest,
-  targetUrl: URL,
-  headers: Headers,
-  castToken: string | null,
-  castHeaders: Headers | null,
-  rep: string | null,
-) {
-  if (rep !== null && !/^[\w-]{1,32}$/.test(rep)) {
-    return NextResponse.json({ error: "Invalid representation." }, { status: 400 });
-  }
-  let manifest: Manifest;
-  try {
-    manifest = await manifestCache.get(targetUrl.href, async () => {
-      const { response, finalUrl } = await safeFetch(targetUrl, {
-        cache: "no-store",
-        headers,
-        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      });
-      if (!response.ok) {
-        await response.body?.cancel();
-        throw new Error("Upstream manifest failed.");
-      }
-      return parseMpd(await response.text(), finalUrl);
-    });
-  } catch {
-    return NextResponse.json({ error: "Invalid upstream manifest." }, { status: 502 });
-  }
-
-  return renderDashAsHls(request, targetUrl, manifest, castToken, castHeaders, rep);
-}
-
-function renderDashAsHls(
-  request: NextRequest,
-  targetUrl: URL,
-  manifest: Manifest,
-  castToken: string | null,
-  castHeaders: Headers | null,
-  rep: string | null,
-) {
-
-  const referer = streamReferer(targetUrl);
-  const userAgent = streamUserAgent(targetUrl);
-  let body: string;
-  if (rep === null) {
-    body = masterPlaylist(manifest, (representation) => {
-      const variant = new URL("/api/hls", request.nextUrl.href);
-      variant.searchParams.set("url", targetUrl.href);
-      variant.searchParams.set("rep", representation.id);
-      if (castToken) variant.searchParams.set("castToken", castToken);
-      return `${variant.pathname}${variant.search}`;
-    });
-  } else {
-    const representation = [...manifest.video, ...manifest.audio].find((item) => item.id === rep);
-    if (!representation) return NextResponse.json({ error: "Unknown representation." }, { status: 404 });
-    body = mediaPlaylist(representation, (url) =>
-      proxiedUrl(url, request.nextUrl.href, castToken, referer, userAgent),
-    );
-  }
-
-  const responseHeaders = new Headers({
-    "content-security-policy": "default-src 'none'; sandbox",
-    "x-content-type-options": "nosniff",
-    "content-type": "application/vnd.apple.mpegurl",
-    "cache-control": PLAYLIST_CACHE_CONTROL,
-  });
-  if (castHeaders) {
-    for (const [key, value] of castHeaders) responseHeaders.set(key, value);
-  }
-  return new NextResponse(body, { headers: responseHeaders });
 }
 
 // Bound chunked reads independently of content-length and enforce a body deadline.
@@ -210,11 +128,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
   }
 
-  const referer = streamReferer(targetUrl) ?? `${PLAYER_ORIGIN}/`;
-  const pinnedUserAgent = streamUserAgent(targetUrl);
+  const referer = streamReferer(targetUrl);
   const headers = new Headers({
     accept: request.headers.get("accept") ?? "*/*",
-    "user-agent": pinnedUserAgent ?? request.headers.get("user-agent") ?? BROWSER_USER_AGENT,
+    "user-agent": request.headers.get("user-agent") ?? BROWSER_USER_AGENT,
   });
   if (referer) {
     headers.set("origin", new URL(referer).origin);
@@ -224,12 +141,6 @@ export async function GET(request: NextRequest) {
   const srt = request.nextUrl.searchParams.get("format") === "srt";
   const range = srt ? null : request.headers.get("range");
   if (range) headers.set("range", range);
-  const cookie = streamCookie(targetUrl);
-  if (cookie) headers.set("cookie", cookie);
-  const rep = request.nextUrl.searchParams.get("rep");
-  if (targetUrl.pathname.endsWith(".mpd") || rep !== null) {
-    return serveDashAsHls(request, targetUrl, headers, castToken, castHeaders, rep);
-  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -252,27 +163,6 @@ export async function GET(request: NextRequest) {
   if (!response.ok && contentType.includes("text/html")) {
     await response.body?.cancel();
     return NextResponse.json({ error: "Upstream request failed." }, { status: 502 });
-  }
-  const mayBeDash =
-    response.ok &&
-    !srt &&
-    !range &&
-    !/\.(?:m4s|mp4|m4a|ts|aac|vtt|srt)$/i.test(finalUrl.pathname) &&
-    (contentType.includes("xml") || contentType.includes("dash") || contentType.includes("application/octet-stream"));
-  if (mayBeDash) {
-    const text = await response.clone().text();
-    const start = text.trimStart();
-    if (start.startsWith("<?xml") || start.startsWith("<MPD")) {
-      if (!text.includes("<MPD")) {
-        return NextResponse.json({ error: "Invalid upstream manifest." }, { status: 502 });
-      }
-      try {
-        const manifest = await manifestCache.get(finalUrl.href, async () => parseMpd(text, finalUrl));
-        return renderDashAsHls(request, finalUrl, manifest, castToken, castHeaders, null);
-      } catch {
-        return NextResponse.json({ error: "Invalid upstream manifest." }, { status: 502 });
-      }
-    }
   }
   const responseHeaders = new Headers({
     "content-security-policy": "default-src 'none'; sandbox",
@@ -314,7 +204,7 @@ export async function GET(request: NextRequest) {
       responseHeaders.delete("content-length");
       const playlist = new TextDecoder().decode(bytes);
       return new NextResponse(
-        rewritePlaylist(playlist, finalUrl, request.nextUrl.href, castToken, referer, pinnedUserAgent),
+        rewritePlaylist(playlist, finalUrl, request.nextUrl.href, castToken, referer),
         { status: response.status, headers: responseHeaders },
       );
     }

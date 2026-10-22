@@ -1,4 +1,4 @@
-import { allowStreamCookie, allowStreamHost, allowStreamHosts } from "@/lib/hls-hosts";
+import { allowStreamHost, allowStreamHosts } from "@/lib/hls-hosts";
 import { probeManifest, resolveKey, type ResolvedStream, type ResolveParams } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 import type { PlaybackSource } from "@/types/mobile-api";
@@ -30,8 +30,7 @@ export function isPlaybackSource(value: unknown): value is PlaybackSource {
 // Register streams, subtitle tracks and quality renditions with their required proxy headers.
 export async function resolvePlaybackSource(source: PlaybackSource, params: ResolveParams): Promise<ResolvedStream> {
   const result = await RESOLVERS[source](params);
-  allowStreamHost(result.url, result.referer, result.userAgent);
-  if (result.cookie && result.cookieScope) allowStreamCookie(result.cookieScope, result.cookie);
+  allowStreamHost(result.url, result.referer);
   allowStreamHosts([...result.tracks.map((track) => track.file), ...(result.sources ?? []).map((item) => item.file)]);
   return result;
 }
@@ -46,8 +45,7 @@ function withDeadline<T>(promise: Promise<T>, ms: number): Promise<T> {
 // Height of the source's best rendition, 0 when unknown, or undefined when unplayable.
 async function availableHeight(source: PlaybackSource, params: ResolveParams) {
   const result = await resolvePlaybackSource(source, params);
-  const cookie = result.cookieScope && result.url.startsWith(result.cookieScope) ? result.cookie : undefined;
-  const probe = await probeManifest(result.url, { referer: result.referer, userAgent: result.userAgent, cookie });
+  const probe = await probeManifest(result.url, result.referer);
   return probe && Math.max(probe.height, ...(result.sources ?? []).map((item) => item.height || 0));
 }
 

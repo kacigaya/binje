@@ -49,17 +49,16 @@ test("counts only manifests that load, with the provider's headers", async () =>
       : new Response("<html>blocked</html>", { headers: { "content-type": "text/html" } });
   }) as unknown as typeof fetch;
   // The variant answering HTML proves nothing either way, so the master counts.
-  expect(await isPlayableManifest("https://203.0.113.40/master.m3u8", { referer: "https://player.test/e/1", userAgent: "Pinned" })).toBe(true);
+  expect(await isPlayableManifest("https://203.0.113.40/master.m3u8", "https://player.test/e/1")).toBe(true);
   expect(seen[0].get("referer")).toBe("https://player.test/e/1");
   expect(seen[0].get("origin")).toBe("https://player.test");
-  expect(seen[0].get("user-agent")).toBe("Pinned");
   expect(seen[1].get("referer")).toBe("https://player.test/e/1");
   expect(await isPlayableManifest("https://203.0.113.40/master.m3u8")).toBe(false);
   expect(await isPlayableManifest("http://127.0.0.1/master.m3u8")).toBe(false);
   expect(seen).toHaveLength(3);
 });
 
-test("rejects short decoy clips but not real or unfinished streams", async () => {
+test("rejects short decoy clips and DASH, but not real or unfinished streams", async () => {
   const media = (seconds: number[], end = true) =>
     `#EXTM3U\n${seconds.map((s, i) => `#EXTINF:${s},\nseg${i}.ts`).join("\n")}\n${end ? "#EXT-X-ENDLIST\n" : ""}`;
   const bodies: Record<string, string> = {
@@ -68,20 +67,17 @@ test("rejects short decoy clips but not real or unfinished streams", async () =>
     "/film/master.m3u8": "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nhttps://203.0.113.45/v/index.m3u8\n",
     "/v/index.m3u8": media(Array(30).fill(6)),
     "/live.m3u8": media([6, 6], false),
-    "/short.mpd": '<MPD type="static" mediaPresentationDuration="PT1M4S"></MPD>',
     "/long.mpd": '<MPD type="static" mediaPresentationDuration="PT2H28M8.5S"></MPD>',
   };
   globalThis.fetch = mock(async (input: unknown) => new Response(bodies[new URL(String(input)).pathname] ?? "")) as unknown as typeof fetch;
   expect(await isPlayableManifest("https://203.0.113.44/decoy/master.m3u8")).toBe(false);
   expect(await isPlayableManifest("https://203.0.113.44/film/master.m3u8")).toBe(true);
   expect(await isPlayableManifest("https://203.0.113.44/live.m3u8")).toBe(true);
-  expect(await isPlayableManifest("https://203.0.113.44/short.mpd")).toBe(false);
-  expect(await isPlayableManifest("https://203.0.113.44/long.mpd")).toBe(true);
+  expect(await isPlayableManifest("https://203.0.113.44/long.mpd")).toBe(false);
 });
 
 test("reads the tallest advertised rendition", async () => {
   expect(manifestHeight("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1,RESOLUTION=1920x1080\na.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=2,RESOLUTION=3840x2160\nb.m3u8\n")).toBe(2160);
-  expect(manifestHeight('<MPD><Representation id="1" width="1280" height="720"/><Representation id="2" height="1080"/></MPD>')).toBe(1080);
   expect(manifestHeight("#EXTM3U\n#EXTINF:6,\nseg.ts\n")).toBe(0);
   globalThis.fetch = mock(async () => new Response("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1,RESOLUTION=1280x720\nlive.m3u8\n")) as unknown as typeof fetch;
   expect(await probeManifest("https://203.0.113.46/master.m3u8")).toEqual({ height: 720 });

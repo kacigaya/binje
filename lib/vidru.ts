@@ -160,7 +160,7 @@ export function resolveVidruStream(params: ResolveParams): Promise<ResolvedStrea
     const url = await firstInOrder(
       urls.map(async (raw) => {
         const url = withHostToken(raw, await hostToken(new URL(raw).origin));
-        if (!(await isPlayableManifest(url, { referer }))) throw new Error("Unplayable stream.");
+        if (!(await isPlayableManifest(url, referer))) throw new Error("Unplayable stream.");
         return url;
       }),
     );

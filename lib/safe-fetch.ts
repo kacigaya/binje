@@ -2,7 +2,7 @@ import type { LookupAddress } from "node:dns";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { Agent } from "undici";
-import { allowStreamHost, streamCookie, streamUserAgent } from "@/lib/hls-hosts";
+import { allowStreamHost } from "@/lib/hls-hosts";
 
 // Provider URLs must never reach private networks, including through redirects or DNS rebinding.
 const MAX_REDIRECTS = 4;
@@ -122,7 +122,7 @@ const dispatcher = new Agent({
   },
 });
 
-// Proxy redirects register hosts and rescope cookies for later segments.
+// Proxy redirects register their target host, with the same Referer, for later segments.
 // Resolvers use trustRedirects: false to keep network checks without changing the proxy allowlist.
 export async function safeFetch(start: URL, init: RequestInit, { trustRedirects = true } = {}) {
   let current = start;
@@ -138,18 +138,8 @@ export async function safeFetch(start: URL, init: RequestInit, { trustRedirects 
     const location = response.headers.get("location");
     const next = location ? getTargetUrl(new URL(location, current).toString()) : null;
     if (!next || !(await isSafeHost(next))) throw new Error("Blocked redirect target.");
-    const headers = new Headers(init.headers);
-    if (trustRedirects) {
-      // The hop came from an already-allowed host, so trust it for later segments.
-      allowStreamHost(next, headers.get("referer") ?? undefined, streamUserAgent(current));
-      // A signed cookie is scoped to a path; it must not follow a hop elsewhere.
-      const cookie = streamCookie(next);
-      if (cookie) headers.set("cookie", cookie);
-      else headers.delete("cookie");
-    } else if (next.origin !== current.origin) {
-      headers.delete("cookie");
-    }
-    init = { ...init, headers };
+    // The hop came from an already-allowed host, so trust it for later segments.
+    if (trustRedirects) allowStreamHost(next, new Headers(init.headers).get("referer") ?? undefined);
     await response.body?.cancel();
     current = next;
   }
