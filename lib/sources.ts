@@ -2,6 +2,7 @@ import { allowStreamHost, allowStreamHosts } from "@/lib/hls-hosts";
 import { probeManifest, resolveKey, type ResolvedStream, type ResolveParams } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 import type { PlaybackSource } from "@/types/mobile-api";
+import { resolveFrembedStream } from "@/lib/frembed";
 import { resolveVidmeStream } from "@/lib/vidme";
 import { resolveVidruStream } from "@/lib/vidru";
 import { resolveVidsuStream } from "@/lib/vidsu";
@@ -16,6 +17,7 @@ const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<Resol
   vidsu: resolveVidsuStream,
   vidme: resolveVidmeStream,
   vidru: resolveVidruStream,
+  frembed: resolveFrembedStream,
 };
 
 // Drop sources past this deadline so the availability route stays within maxDuration.
@@ -47,13 +49,14 @@ async function availableHeight(source: PlaybackSource, params: ResolveParams) {
 }
 
 // Rank playable sources by quality. Resolver caches let playback reuse these results.
-export function availablePlaybackSources(params: ResolveParams): Promise<PlaybackSource[]> {
-  return availabilityCache.get(resolveKey(params), async () => {
+export function availablePlaybackSources(params: ResolveParams, audio: "vo" | "vf" = "vo"): Promise<PlaybackSource[]> {
+  const sources = audio === "vf" ? ["frembed"] as const : PLAYBACK_SOURCES.filter((source) => source !== "frembed");
+  return availabilityCache.get(`${resolveKey(params)}:${audio}`, async () => {
     const checks = await Promise.allSettled(
-      PLAYBACK_SOURCES.map((source) => withDeadline(availableHeight(source, params), PROBE_DEADLINE_MS)),
+      sources.map((source) => withDeadline(availableHeight(source, params), PROBE_DEADLINE_MS)),
     );
     const heights: Partial<Record<PlaybackSource, number>> = {};
-    PLAYBACK_SOURCES.forEach((source, index) => {
+    sources.forEach((source, index) => {
       const check = checks[index];
       if (check.status === "fulfilled" && check.value !== undefined) heights[source] = check.value;
     });
@@ -64,6 +67,7 @@ export function availablePlaybackSources(params: ResolveParams): Promise<Playbac
 // The title query shared by /api/resolve and /api/sources; null when invalid.
 export function parseResolveParams(query: URLSearchParams): ResolveParams | null {
   const type = query.get("type");
+  const audio = query.get("audio");
   const id = query.get("id") ?? "";
   const title = query.get("title")?.trim() ?? "";
   const year = query.get("year") ?? "";
@@ -71,6 +75,7 @@ export function parseResolveParams(query: URLSearchParams): ResolveParams | null
   const season = query.get("season") ?? "1";
   const episode = query.get("episode") ?? "1";
   if (
+    (audio !== null && audio !== "vf" && audio !== "vostfr") ||
     (type !== "movie" && type !== "tv") ||
     !/^\d+$/.test(id) ||
     !title ||
@@ -81,5 +86,5 @@ export function parseResolveParams(query: URLSearchParams): ResolveParams | null
   ) {
     return null;
   }
-  return { type, id, title, year, imdbId, season, episode };
+  return { type, id, title, year, imdbId, season, episode, ...(audio ? { audio } : {}) };
 }

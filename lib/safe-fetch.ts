@@ -67,18 +67,25 @@ function isBlockedIP(ip: string) {
   const family = isIP(ip);
   if (family === 4) return isBlockedIPv4(ip);
   if (family !== 6) return true;
-  const v6 = ip.toLowerCase();
-  const mapped = v6.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  let v6: string;
+  try {
+    v6 = new URL(`http://[${ip}]/`).hostname.slice(1, -1);
+  } catch { return true; }
+  // WHATWG URLs normalize mapped IPv4 literals to two hexadecimal groups.
+  const mappedHex = v6.match(/^::(?:ffff:)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (mappedHex) {
+    const high = parseInt(mappedHex[1], 16);
+    const low = parseInt(mappedHex[2], 16);
+    return isBlockedIPv4(`${high >>> 8}.${high & 255}.${low >>> 8}.${low & 255}`);
+  }
   return (
-    v6 === "::1" ||
-    v6 === "::" ||
+    /^::[0-9a-f]{0,4}$/.test(v6) ||
     v6.startsWith("fc") ||
     v6.startsWith("fd") ||
     v6.startsWith("fe8") ||
     v6.startsWith("fe9") ||
     v6.startsWith("fea") ||
-    v6.startsWith("feb") ||
-    (mapped ? isBlockedIPv4(mapped[1]) : false)
+    v6.startsWith("feb")
   );
 }
 
@@ -87,15 +94,32 @@ function bareHostname(url: URL) {
   return url.hostname.replace(/^\[|\]$/g, "");
 }
 
-export async function isSafeHost(url: URL) {
+async function lookupWithSignal(hostname: string, signal?: AbortSignal): Promise<LookupAddress[]> {
+  signal?.throwIfAborted();
+  const addresses = cachedLookup(hostname);
+  if (!signal) return addresses;
+  return new Promise((resolve, reject) => {
+    const abort = () => {
+      if (dnsCache.get(hostname)?.addresses === addresses) dnsCache.delete(hostname);
+      reject(signal.reason);
+    };
+    signal.addEventListener("abort", abort, { once: true });
+    addresses.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+    if (signal.aborted) abort();
+  });
+}
+
+export async function isSafeHost(url: URL, signal?: AbortSignal) {
+  signal?.throwIfAborted();
   const hostname = bareHostname(url);
   if (isIP(hostname)) return !isBlockedIP(hostname);
   if (hostname === "localhost" || hostname.endsWith(".localhost")) return false;
 
   try {
-    const addresses = await cachedLookup(hostname);
+    const addresses = await lookupWithSignal(hostname, signal);
     return addresses.length > 0 && addresses.every((addr) => !isBlockedIP(addr.address));
   } catch {
+    signal?.throwIfAborted();
     return false;
   }
 }
@@ -137,7 +161,7 @@ export async function safeFetch(start: URL, init: RequestInit, { trustRedirects 
 
     const location = response.headers.get("location");
     const next = location ? getTargetUrl(new URL(location, current).toString()) : null;
-    if (!next || !(await isSafeHost(next))) throw new Error("Blocked redirect target.");
+    if (!next || !(await isSafeHost(next, init.signal ?? undefined))) throw new Error("Blocked redirect target.");
     // The hop came from an already-allowed host, so trust it for later segments.
     if (trustRedirects) allowStreamHost(next, new Headers(init.headers).get("referer") ?? undefined);
     await response.body?.cancel();
@@ -150,6 +174,10 @@ export async function safeFetch(start: URL, init: RequestInit, { trustRedirects 
 // Apply private-network checks to provider URLs and every redirect.
 export async function fetchPublic(url: string | URL, init: RequestInit): Promise<Response> {
   const target = getTargetUrl(String(url));
-  if (!target || !(await isSafeHost(target))) throw new Error("Blocked target.");
+  if (!target || !(await isSafeHost(target, init.signal ?? undefined))) throw new Error("Blocked target.");
+  // Slot resolvers inspect redirects before deciding which hosters to fetch.
+  if (init.redirect === "manual") {
+    return fetch(target, { ...init, redirect: "manual", dispatcher } as RequestInit);
+  }
   return (await safeFetch(target, init, { trustRedirects: false })).response;
 }

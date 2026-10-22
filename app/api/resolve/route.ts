@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const query = request.nextUrl.searchParams;
   const source = query.get("source");
   const params = parseResolveParams(query);
-  if (!isPlaybackSource(source) || !params) {
+  if (!isPlaybackSource(source) || !params || (source !== "frembed" && query.has("audio"))) {
     return NextResponse.json({ error: "Invalid params." }, { status: 400 });
   }
 

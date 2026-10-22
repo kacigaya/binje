@@ -1,7 +1,7 @@
 import type { PlaybackSource } from "../types/mobile-api";
 
 // Vidcore starts first. This order breaks quality ties.
-export const PLAYBACK_SOURCES = ["vidcore", "vidsu", "vidme", "vidru"] as const satisfies readonly PlaybackSource[];
+export const PLAYBACK_SOURCES = ["vidcore", "vidsu", "vidme", "vidru", "frembed"] as const satisfies readonly PlaybackSource[];
 
 export function isPlaybackSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && (PLAYBACK_SOURCES as readonly string[]).includes(value);
@@ -19,7 +19,7 @@ export function selectPlaybackSource(
 ): PlaybackSource | null {
   const running = playing && !failed.includes(playing) ? playing : null;
   if (available == null && running) return running;
-  const best = (available ?? PLAYBACK_SOURCES).find((source) => !failed.includes(source));
+  const best = (available ?? PLAYBACK_SOURCES.filter((source) => source !== "frembed")).find((source) => !failed.includes(source));
   // Keep playback running if the availability response omits its source.
   return best ?? running;
 }

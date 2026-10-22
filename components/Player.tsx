@@ -42,6 +42,8 @@ type Track = { file: string; label?: string; lang?: string; format?: "srt" };
 // height is the rendition's own; label is its 16:9 class (lib/quality-class).
 type Quality = { index: number; height: number; label: number; bitrate: number };
 type PresentationVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
+// VO plays the original audio; VF asks /api/sources and /api/resolve for French sources.
+type AudioVersion = "vo" | "vf";
 
 // Key state by media to ignore state from the previous episode.
 type Keyed<T> = { key: string; value: T };
@@ -50,6 +52,14 @@ function forMedia<T>(state: Keyed<T> | null, key: string): T | undefined {
 }
 
 const RESOLVE_BASE = "/api";
+
+// The ranked playable sources, or null if the probe failed.
+function fetchSources(query: string): Promise<PlaybackSource[] | null> {
+  return fetch(`${RESOLVE_BASE}/sources?${query}`, { cache: "no-store" })
+    .then((response) => (response.ok ? response.json() : Promise.reject(new Error("probe failed"))))
+    .then((data: { sources?: unknown }) => (Array.isArray(data.sources) ? data.sources.filter(isPlaybackSource) : []))
+    .catch(() => null);
+}
 
 function proxied(url: string) {
   return `/api/hls?url=${encodeURIComponent(url)}`;
@@ -132,29 +142,49 @@ export default function Player({
   const [failed, setFailed] = useState<Keyed<PlaybackSource[]> | null>(null);
   const [playing, setPlaying] = useState<Keyed<PlaybackSource> | null>(null);
   const [probeKey, setProbeKey] = useState(0);
+  // The choice outlives episodes; each episode probes VF again and falls back to VO without it.
+  const [audio, setAudio] = useState<AudioVersion>("vo");
+  const [vfAvailable, setVfAvailable] = useState<Keyed<PlaybackSource[] | null> | null>(null);
   const availableList = forMedia(available, mediaKey);
   const failedList = forMedia(failed, mediaKey) ?? [];
-  const source = selectPlaybackSource(availableList, failedList, forMedia(playing, mediaKey));
+  const vfList = forMedia(vfAvailable, mediaKey);
+  const vfSource = vfList?.find((item) => !failedList.includes(item)) ?? null;
+  const vfUnavailable = vfList !== undefined && vfSource === null;
+  const vfPending = audio === "vf" && vfList === undefined;
+  const vfFellBack = audio === "vf" && vfUnavailable;
+  const shownAudio: AudioVersion = audio === "vf" && !vfUnavailable ? "vf" : "vo";
+  // VO keeps playing while VF is probed, and takes over again if VF fails.
+  const playingVf = audio === "vf" && vfSource !== null;
+  const source = playingVf ? vfSource : selectPlaybackSource(availableList, failedList, forMedia(playing, mediaKey));
   const exhausted = source === null && availableList !== undefined;
   const awaitingSources = source === null && !exhausted;
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${RESOLVE_BASE}/sources?${mediaQuery}`, { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("probe failed"))))
-      .then((data: { sources?: unknown }) => {
-        const list = Array.isArray(data.sources) ? data.sources.filter(isPlaybackSource) : [];
-        if (!cancelled) setAvailable({ key: mediaKey, value: list });
-      })
-      .catch(() => {
-        if (!cancelled) setAvailable({ key: mediaKey, value: null });
-      });
+    void fetchSources(mediaQuery).then((list) => {
+      if (!cancelled) setAvailable({ key: mediaKey, value: list });
+    });
     return () => {
       cancelled = true;
     };
   }, [mediaKey, mediaQuery, probeKey]);
 
-  const sourceUrl = source ? `${RESOLVE_BASE}/resolve?${mediaQuery}&source=${source}` : null;
+  // Probe VF once per title, on first request; switching back to VO keeps the answer.
+  const vfRequestRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (audio !== "vf" || vfRequestRef.current === mediaKey) return;
+    const key = mediaKey;
+    vfRequestRef.current = key;
+    void fetchSources(`${mediaQuery}&audio=vf`).then((list) => setVfAvailable({ key, value: list }));
+  }, [audio, mediaKey, mediaQuery, probeKey]);
+
+  useEffect(() => {
+    if (vfFellBack) toast.error(t("French audio unavailable"));
+  }, [vfFellBack, t]);
+
+  const sourceUrl = source
+    ? `${RESOLVE_BASE}/resolve?${mediaQuery}&source=${source}${playingVf ? "&audio=vf" : ""}`
+    : null;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
@@ -719,7 +749,8 @@ export default function Player({
           throw new Error("HLS unsupported");
         }
         setLoading(false);
-        setPlaying({ key: mediaKey, value: source });
+        // Only VO sources compete in automatic selection.
+        if (!playingVf) setPlaying({ key: mediaKey, value: source });
       } catch {
         if (!cancelled) {
           setLoading(false);
@@ -736,7 +767,7 @@ export default function Player({
       video.removeAttribute("src");
       video.load();
     };
-  }, [mediaKey, reloadKey, source, sourceUrl]);
+  }, [mediaKey, playingVf, reloadKey, source, sourceUrl]);
 
   useEffect(() => {
     if (exhausted) toast.error(t("Stream unavailable. Try again later."));
@@ -746,6 +777,8 @@ export default function Player({
     setFailed(null);
     setPlaying(null);
     setAvailable(null);
+    setVfAvailable(null);
+    vfRequestRef.current = null;
     setProbeKey((previous) => previous + 1);
     setReloadKey((previous) => previous + 1);
   }
@@ -1025,6 +1058,25 @@ export default function Player({
                 <MorphIcon icon={isFullscreen ? Minimize : Maximize} reducedMotion="user" />
               </ControlButton>
             )}
+            <div role="group" aria-label={t("Audio")} className="flex items-center rounded-full bg-white/10">
+              {(["vo", "vf"] as const).map((version) => {
+                const label = version === "vo" ? t("Original audio") : t("French audio");
+                return (
+                  <ControlButton
+                    key={version}
+                    aria-label={label}
+                    aria-pressed={shownAudio === version}
+                    aria-busy={version === "vf" && vfPending}
+                    title={label}
+                    disabled={googleCasting || (version === "vf" && vfUnavailable)}
+                    onClick={() => setAudio(version)}
+                    className="text-xs font-semibold"
+                  >
+                    {version.toUpperCase()}
+                  </ControlButton>
+                );
+              })}
+            </div>
             {qualities.length > 0 && (
               <Select
                 ariaLabel={t("Quality")}

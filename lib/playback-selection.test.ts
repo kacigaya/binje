@@ -41,3 +41,9 @@ test("keeps a running stream only when no ranked source can play", () => {
   expect(selectPlaybackSource([], ["vidsu"], "vidsu")).toBeNull();
   expect(selectPlaybackSource([], [])).toBeNull();
 });
+
+test("ranks Frembed by height and keeps it out of default VO fallback", () => {
+  expect(rankPlaybackSources({ frembed: 2160, vidcore: 1080 })).toEqual(["frembed", "vidcore"]);
+  expect(rankPlaybackSources({ frembed: 1080, vidcore: 1080 })).toEqual(["vidcore", "frembed"]);
+  expect(selectPlaybackSource(null, ["vidcore", "vidsu", "vidme", "vidru"])).toBeNull();
+});
