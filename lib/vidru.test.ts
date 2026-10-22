@@ -98,6 +98,15 @@ describe("capWasmMemory", () => {
     expect(() => memory.grow(1)).toThrow();
   });
 
+  test("keeps a lower maximum the module already declares", () => {
+    const at = IDENTITY_DECRYPTOR.indexOf(0x05, 8);
+    // Memory entry flags 1, min 1, max 2.
+    const bounded = new Uint8Array([...IDENTITY_DECRYPTOR.subarray(0, at), 0x05, 0x04, 0x01, 0x01, 0x01, 0x02, ...IDENTITY_DECRYPTOR.subarray(at + 5)]);
+    const { memory } = new WebAssembly.Instance(new WebAssembly.Module(capWasmMemory(bounded)), {}).exports as { memory: WebAssembly.Memory };
+    expect(() => memory.grow(1)).not.toThrow();
+    expect(() => memory.grow(1)).toThrow();
+  });
+
   test("rejects a module that starts above the cap", () => {
     const large = new Uint8Array(IDENTITY_DECRYPTOR);
     // The memory entry is flags 0, min 1; raise min to 512 pages (two-byte LEB 0x80 0x04).

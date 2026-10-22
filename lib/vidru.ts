@@ -81,7 +81,7 @@ function leb(value: number): number[] {
   return out;
 }
 
-// Give the module's one memory a 16 MiB maximum, so growing past it fails inside the module
+// Give the module's one memory a maximum of at most 16 MiB, so growing past it fails inside the module
 // instead of exhausting the server. Section 5 holds memories; its entries are flags, min[, max].
 export function capWasmMemory(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
   let position = 8;
@@ -93,11 +93,11 @@ export function capWasmMemory(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
       const [count, entry] = readLeb(bytes, body);
       const [flags, afterFlags] = readLeb(bytes, entry);
       const [minimum, afterMin] = readLeb(bytes, afterFlags);
-      const afterEntry = flags & 1 ? readLeb(bytes, afterMin)[1] : afterMin;
+      const [maximum, afterEntry] = flags & 1 ? readLeb(bytes, afterMin) : [MAX_MEMORY_PAGES, afterMin];
       if (count !== 1 || flags > 1 || afterEntry !== end || minimum > MAX_MEMORY_PAGES) {
         throw new Error("Unexpected Vidru decryptor.");
       }
-      const section = [1, 1, ...leb(minimum), ...leb(MAX_MEMORY_PAGES)];
+      const section = [1, 1, ...leb(minimum), ...leb(Math.min(maximum, MAX_MEMORY_PAGES))];
       return new Uint8Array([...bytes.subarray(0, position), 5, ...leb(section.length), ...section, ...bytes.subarray(end)]);
     }
     position = end;
