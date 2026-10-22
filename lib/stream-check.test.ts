@@ -78,17 +78,18 @@ test("rejects short decoy clips and DASH, but not real or unfinished streams", a
 });
 
 test("rejects previews whose middle segment fails", async () => {
-  const segments: string[] = [];
+  const segments: (string | null)[] = [];
   const playlist = `#EXTM3U\n${Array.from({ length: 120 }, (_, i) => `#EXTINF:10,\nseg-${i}.ts`).join("\n")}\n#EXT-X-ENDLIST\n`;
-  globalThis.fetch = mock(async (input: unknown) => {
+  globalThis.fetch = mock(async (input: unknown, init?: RequestInit) => {
     const path = new URL(String(input)).pathname;
     if (path.endsWith(".m3u8")) return new Response(playlist);
-    segments.push(path);
+    segments.push(path, new Headers(init?.headers).get("range"));
     // Like the vidzy.cc preview: the first nine segments load, later ones answer 403.
     return new Response("ts", { status: Number(path.match(/seg-(\d+)/)?.[1]) < 9 ? 200 : 403 });
   }) as unknown as typeof fetch;
   expect(await isPlayableManifest("https://203.0.113.47/index.m3u8")).toBe(false);
-  expect(segments).toEqual(["/seg-60.ts"]);
+  // Range is optional for HLS servers, so the probe must not depend on it.
+  expect(segments).toEqual(["/seg-60.ts", null]);
 });
 
 test("reads the tallest advertised rendition", async () => {
