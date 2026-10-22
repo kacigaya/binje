@@ -13,7 +13,7 @@ import {
 } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// Nightflix's "Vidru" server. ythd.org chains vs_src.php and a vidsrc.sh page to mint a
+// The "Vidru" server. ythd.org chains vs_src.php and a vidsrc.sh page to mint a
 // single-use data.vidsrc.sh api_token. Tokens are short-lived; Turnstile gates only the player page.
 const EMBED = "https://ythd.org";
 const MAX_WASM_BYTES = 1024 * 1024;

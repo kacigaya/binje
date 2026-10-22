@@ -8,7 +8,7 @@ import { resolveVidsuStream } from "@/lib/vidsu";
 
 export type { PlaybackSource };
 
-// Nightflix's servers in its own order. Failover tries the tallest advertised rendition first;
+// Servers in preference order. Failover tries the tallest advertised rendition first;
 // equal heights keep this order. Vidcore is missing: its stream endpoint fails for every title.
 export const PLAYBACK_SOURCES = ["vidsu", "vidme", "vidru"] as const satisfies readonly PlaybackSource[];
 

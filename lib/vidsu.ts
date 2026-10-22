@@ -11,7 +11,7 @@ import {
 } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// Nightflix's "Vidsu" server (player-4aq.pages.dev) merges three stream APIs keyed by TMDB id.
+// The "Vidsu" server (player-4aq.pages.dev) merges three stream APIs keyed by TMDB id.
 // Its fourth API, Molvin, is switched off in the player itself.
 const PLAYER = "https://player-4aq.pages.dev/";
 const cache = createTtlCache<ResolvedStream>(10 * 60 * 1000);

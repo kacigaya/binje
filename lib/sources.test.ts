@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { isPlaybackSource, parseResolveParams, PLAYBACK_SOURCES } from "./sources";
 
-test("plays Nightflix's servers in its order", () => {
+test("plays the servers in preference order", () => {
   expect(PLAYBACK_SOURCES).toEqual(["vidsu", "vidme", "vidru"]);
 });
 

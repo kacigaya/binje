@@ -12,7 +12,7 @@ import {
 } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// Nightflix's "Vidme" server. vidzen.fun signs its API with a token from the watch page and
+// The "Vidme" server. vidzen.fun signs its API with a token from the watch page and
 // proxies every stream under /api/stream/, which answers only with its own Referer.
 const SITE = "https://vidzen.fun";
 const REFERER = `${SITE}/`;

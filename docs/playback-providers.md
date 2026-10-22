@@ -1,12 +1,12 @@
 # Playback providers
 
-b!nje plays the servers that [Nightflix](https://nightflix.bz/) offers. Each server is a source in `lib/sources.ts`. The server resolves a source to one HLS stream. The browser then plays the stream through `/api/hls`.
+b!nje plays three stream servers: Vidsu, Vidme and Vidru. Each server is a source in `lib/sources.ts`. The server resolves a source to one HLS stream. The browser then plays the stream through `/api/hls`.
 
 Checked on 2026-10-22 with TMDB 969681 (movie) and TMDB 213562 S1E1 (TV).
 
 ## Sources
 
-| Source | Nightflix name | Resolver | How it resolves |
+| Source | Server | Resolver | How it resolves |
 | --- | --- | --- | --- |
 | `vidsu` | Vidsu AdFree | `lib/vidsu.ts` | Asks three JSON APIs by TMDB id: Vidrock (`themoviebox.uk`), Xpass (`freakyniki.elaxo.lol`) and Flix2Watch. |
 | `vidme` | Vidme AdFree | `lib/vidme.ts` | Reads a signed token from the vidzen.fun watch page, then asks each server (Mars, Jupiter, Mercury and others) for its streams. |
