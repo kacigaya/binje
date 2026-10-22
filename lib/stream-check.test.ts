@@ -76,6 +76,20 @@ test("rejects short decoy clips and DASH, but not real or unfinished streams", a
   expect(await isPlayableManifest("https://203.0.113.44/long.mpd")).toBe(false);
 });
 
+test("rejects previews whose middle segment fails", async () => {
+  const ranges: (string | null)[] = [];
+  const playlist = `#EXTM3U\n${Array.from({ length: 120 }, (_, i) => `#EXTINF:10,\nseg-${i}.ts`).join("\n")}\n#EXT-X-ENDLIST\n`;
+  globalThis.fetch = mock(async (input: unknown, init?: RequestInit) => {
+    const path = new URL(String(input)).pathname;
+    if (path.endsWith(".m3u8")) return new Response(playlist);
+    ranges.push(new Headers(init?.headers).get("range"));
+    // Like the vidzy.cc preview: the first nine segments load, later ones answer 403.
+    return new Response("ts", { status: Number(path.match(/seg-(\d+)/)?.[1]) < 9 ? 206 : 403 });
+  }) as unknown as typeof fetch;
+  expect(await isPlayableManifest("https://203.0.113.47/index.m3u8")).toBe(false);
+  expect(ranges).toEqual(["bytes=0-1023"]);
+});
+
 test("reads the tallest advertised rendition", async () => {
   expect(manifestHeight("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1,RESOLUTION=1920x1080\na.m3u8\n#EXT-X-STREAM-INF:BANDWIDTH=2,RESOLUTION=3840x2160\nb.m3u8\n")).toBe(2160);
   expect(manifestHeight("#EXTM3U\n#EXTINF:6,\nseg.ts\n")).toBe(0);

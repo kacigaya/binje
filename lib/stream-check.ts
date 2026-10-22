@@ -73,8 +73,13 @@ export function manifestHeight(manifest: string): number {
   return Math.max(0, ...[...manifest.matchAll(/RESOLUTION=\d+x(\d+)/g)].map((match) => Number(match[1])));
 }
 
-// Reject failed manifests and short decoys; probe a master's first variant but tolerate an unreadable variant.
-// Resolve to the advertised height when playable. Apply private-network checks to every third-party URL.
+function uris(playlist: string) {
+  return playlist.split("\n").map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
+}
+
+// Reject failed manifests, short decoys and streams whose middle segment fails, such as
+// previews that stop after a minute. Probe a master's first variant but tolerate an unreadable
+// variant. Resolve to the advertised height when playable. Apply private-network checks to every URL.
 export async function probeManifest(
   url: string,
   referer?: string,
@@ -84,12 +89,13 @@ export async function probeManifest(
     headers.set("referer", referer);
     headers.set("origin", new URL(referer).origin);
   }
+  const request = (target: string, extra: Record<string, string> = {}) => {
+    const init = new Headers(headers);
+    for (const [key, value] of Object.entries(extra)) init.set(key, value);
+    return fetchPublic(target, { cache: "no-store", headers: init, signal: AbortSignal.timeout(CHECK_TIMEOUT_MS) });
+  };
   const load = async (target: string) => {
-    const response = await fetchPublic(target, {
-      cache: "no-store",
-      headers,
-      signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
-    });
+    const response = await request(target);
     if (!response.ok) {
       await response.body?.cancel();
       return undefined;
@@ -99,18 +105,30 @@ export async function probeManifest(
       url: response.url || target,
     };
   };
+  // Read only the first bytes; disguised segments can be several megabytes.
+  const segmentLoads = async (target: string) => {
+    const response = await request(target, { range: "bytes=0-1023" });
+    await response.body?.cancel();
+    return response.ok;
+  };
   try {
     const manifest = await load(url);
     if (!manifest?.text.startsWith("#EXTM3U")) return;
-    let playlist = manifest.text;
-    if (playlist.includes("#EXT-X-STREAM-INF")) {
-      const variant = playlist.split("\n").map((line) => line.trim()).find((line) => line && !line.startsWith("#"));
-      const target = variant ? httpUrl(variant, manifest.url) : undefined;
-      playlist = (target && (await load(target).catch(() => undefined))?.text) || "";
+    let media: { text: string; url: string } | undefined = manifest;
+    if (manifest.text.includes("#EXT-X-STREAM-INF")) {
+      const target = httpUrl(uris(manifest.text)[0], manifest.url);
+      media = target ? await load(target).catch(() => undefined) : undefined;
+      if (!media?.text.startsWith("#EXTM3U")) media = undefined;
     }
-    const seconds = finishedStreamSeconds(playlist);
-    if (seconds === undefined || seconds >= MIN_STREAM_SECONDS) return { height: manifestHeight(manifest.text) };
-  } catch { /* Unreachable manifests are unplayable. */ }
+    if (media) {
+      const seconds = finishedStreamSeconds(media.text);
+      if (seconds !== undefined && seconds < MIN_STREAM_SECONDS) return;
+      const segments = uris(media.text);
+      const middle = httpUrl(segments[Math.floor(segments.length / 2)], media.url);
+      if (segments.length && !(middle && (await segmentLoads(middle)))) return;
+    }
+    return { height: manifestHeight(manifest.text) };
+  } catch { /* Unreachable manifests and segments are unplayable. */ }
 }
 
 export async function isPlayableManifest(url: string, referer?: string) {
