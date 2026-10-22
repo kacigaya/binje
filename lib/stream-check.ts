@@ -89,11 +89,8 @@ export async function probeManifest(
     headers.set("referer", referer);
     headers.set("origin", new URL(referer).origin);
   }
-  const request = (target: string, extra: Record<string, string> = {}) => {
-    const init = new Headers(headers);
-    for (const [key, value] of Object.entries(extra)) init.set(key, value);
-    return fetchPublic(target, { cache: "no-store", headers: init, signal: AbortSignal.timeout(CHECK_TIMEOUT_MS) });
-  };
+  const request = (target: string) =>
+    fetchPublic(target, { cache: "no-store", headers, signal: AbortSignal.timeout(CHECK_TIMEOUT_MS) });
   const load = async (target: string) => {
     const response = await request(target);
     if (!response.ok) {
@@ -105,11 +102,18 @@ export async function probeManifest(
       url: response.url || target,
     };
   };
-  // Read only the first bytes; disguised segments can be several megabytes.
+  // Read one chunk, not the segment: disguised segments can be several megabytes.
+  // Range is optional for HLS servers, so the request does not ask for one.
   const segmentLoads = async (target: string) => {
-    const response = await request(target, { range: "bytes=0-1023" });
-    await response.body?.cancel();
-    return response.ok;
+    const response = await request(target);
+    if (!response.ok) {
+      await response.body?.cancel();
+      return false;
+    }
+    const reader = response.body?.getReader();
+    const chunk = await reader?.read();
+    await reader?.cancel();
+    return Boolean(chunk && !chunk.done);
   };
   try {
     const manifest = await load(url);

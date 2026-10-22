@@ -17,7 +17,7 @@ Vidsu and Vidru played both test titles to the end. Vidme played the movie. For 
 ## Rules for every resolver
 
 1. Accept HLS only. The player cannot load MP4 or DASH, so resolvers drop them.
-2. Probe each candidate with `probeManifest` and return the first one that plays. The probe rejects finished streams under two minutes. It also reads the first kilobyte of one segment in the middle of the stream.
+2. Probe each candidate with `probeManifest` and return the first one that plays. The probe rejects finished streams under two minutes. It also starts to read one segment in the middle of the stream.
 3. Keep upstream headers on the server. A resolver returns a `referer`, and the proxy sends it to that host.
 4. Fail with an error. `/api/sources` then leaves the source out, and the player tries the next one.
 

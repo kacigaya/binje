@@ -69,7 +69,8 @@ test("rejects short decoy clips and DASH, but not real or unfinished streams", a
     "/live.m3u8": media([6, 6], false),
     "/long.mpd": '<MPD type="static" mediaPresentationDuration="PT2H28M8.5S"></MPD>',
   };
-  globalThis.fetch = mock(async (input: unknown) => new Response(bodies[new URL(String(input)).pathname] ?? "")) as unknown as typeof fetch;
+  // Paths outside the table are segments.
+  globalThis.fetch = mock(async (input: unknown) => new Response(bodies[new URL(String(input)).pathname] ?? "ts")) as unknown as typeof fetch;
   expect(await isPlayableManifest("https://203.0.113.44/decoy/master.m3u8")).toBe(false);
   expect(await isPlayableManifest("https://203.0.113.44/film/master.m3u8")).toBe(true);
   expect(await isPlayableManifest("https://203.0.113.44/live.m3u8")).toBe(true);
@@ -77,17 +78,17 @@ test("rejects short decoy clips and DASH, but not real or unfinished streams", a
 });
 
 test("rejects previews whose middle segment fails", async () => {
-  const ranges: (string | null)[] = [];
+  const segments: string[] = [];
   const playlist = `#EXTM3U\n${Array.from({ length: 120 }, (_, i) => `#EXTINF:10,\nseg-${i}.ts`).join("\n")}\n#EXT-X-ENDLIST\n`;
-  globalThis.fetch = mock(async (input: unknown, init?: RequestInit) => {
+  globalThis.fetch = mock(async (input: unknown) => {
     const path = new URL(String(input)).pathname;
     if (path.endsWith(".m3u8")) return new Response(playlist);
-    ranges.push(new Headers(init?.headers).get("range"));
+    segments.push(path);
     // Like the vidzy.cc preview: the first nine segments load, later ones answer 403.
-    return new Response("ts", { status: Number(path.match(/seg-(\d+)/)?.[1]) < 9 ? 206 : 403 });
+    return new Response("ts", { status: Number(path.match(/seg-(\d+)/)?.[1]) < 9 ? 200 : 403 });
   }) as unknown as typeof fetch;
   expect(await isPlayableManifest("https://203.0.113.47/index.m3u8")).toBe(false);
-  expect(ranges).toEqual(["bytes=0-1023"]);
+  expect(segments).toEqual(["/seg-60.ts"]);
 });
 
 test("reads the tallest advertised rendition", async () => {
