@@ -670,12 +670,12 @@ test("a delay set during auto-sync wins over its late answer", async ({ page }) 
   await expect(page.locator("output")).toHaveText("+0.5 s");
 });
 
-test("audio selector uses flags, switches sources, and restores keyboard focus", async ({ page }) => {
+test("audio selector uses a language icon, switches sources, and restores keyboard focus", async ({ page }) => {
   await page.route("**/api/sources?*audio=vf", (route) => route.fulfill({
     json: { sources: ["frembed"] },
   }));
   const audio = page.getByRole("button", { name: "Audio", exact: true });
-  await expect(audio).toHaveText("🇬🇧");
+  await expect(audio.locator("svg")).toBeVisible();
   await audio.focus();
   await page.keyboard.press("Enter");
   const original = page.getByRole("radio", { name: "Original audio", exact: true });
@@ -688,10 +688,8 @@ test("audio selector uses flags, switches sources, and restores keyboard focus",
   await page.getByText("French audio", { exact: true }).click();
   await resolvingFrench;
   await expect(french).toBeChecked();
-  await expect(audio).toHaveText("🇫🇷");
   await page.getByText("Original audio", { exact: true }).click();
   await expect(original).toBeChecked();
-  await expect(audio).toHaveText("🇬🇧");
   await page.keyboard.press("Escape");
   await expect(audio).toBeFocused();
   await expect(audio).toHaveAttribute("aria-expanded", "false");
@@ -706,5 +704,4 @@ test("audio selector falls back when French is unavailable", async ({ page }) =>
   await page.getByText("French audio", { exact: true }).click();
   await expect(page.getByRole("radio", { name: "French audio", exact: true })).toBeDisabled();
   await expect(page.getByRole("radio", { name: "Original audio", exact: true })).toBeChecked();
-  await expect(audio).toHaveText("🇬🇧");
 });

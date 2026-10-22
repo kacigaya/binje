@@ -2,6 +2,8 @@
 
 import { Popover } from "@base-ui/react/popover";
 import { Check } from "lucide-react";
+import { Languages } from "lucide";
+import { MorphIcon } from "morphicons/react";
 import { useId, type RefObject } from "react";
 import { controlButtonClass } from "@/components/PlayerControls";
 import { useTranslations } from "@/lib/use-locale";
@@ -28,7 +30,7 @@ export default function AudioMenu({
         disabled={disabled}
         className={controlButtonClass}
       >
-        <span aria-hidden="true" className="text-lg">{value === "vo" ? "🇬🇧" : "🇫🇷"}</span>
+        <MorphIcon icon={Languages} aria-hidden="true" reducedMotion="user" />
       </Popover.Trigger>
       <Popover.Portal container={container}>
         <Popover.Positioner positionMethod="fixed" sideOffset={8} collisionPadding={8} className="z-50 outline-none">
@@ -53,7 +55,7 @@ export default function AudioMenu({
                     onChange={() => onSelect(version)}
                     className="sr-only"
                   />
-                  <span aria-hidden="true" className="text-lg">{version === "vo" ? "🇬🇧" : "🇫🇷"}</span>
+                  <span aria-hidden="true" className="text-xs font-semibold">{version === "vo" ? "VO" : "VF"}</span>
                   <span className="flex-1">{version === "vo" ? t("Original audio") : t("French audio")}</span>
                   {value === version && <Check aria-hidden="true" className="size-3.5 shrink-0" />}
                 </label>
