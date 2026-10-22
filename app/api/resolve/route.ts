@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   try {
     const result = await resolvePlaybackSource(source, params);
     // Cache privately and briefly: signed URLs are per viewer, but reloads should reuse the resolve.
-    return NextResponse.json({ url: result.url, tracks: result.tracks, sources: result.sources }, {
+    return NextResponse.json({ url: result.url, tracks: result.tracks }, {
       headers: { "cache-control": "private, max-age=300" },
     });
   } catch {

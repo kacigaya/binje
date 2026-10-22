@@ -27,11 +27,11 @@ export function isPlaybackSource(value: unknown): value is PlaybackSource {
   return typeof value === "string" && (PLAYBACK_SOURCES as readonly string[]).includes(value);
 }
 
-// Register streams, subtitle tracks and quality renditions with their required proxy headers.
+// Register streams and subtitle tracks with the Referer their hosts need.
 export async function resolvePlaybackSource(source: PlaybackSource, params: ResolveParams): Promise<ResolvedStream> {
   const result = await RESOLVERS[source](params);
   allowStreamHost(result.url, result.referer);
-  allowStreamHosts([...result.tracks.map((track) => track.file), ...(result.sources ?? []).map((item) => item.file)]);
+  allowStreamHosts(result.tracks.map((track) => track.file));
   return result;
 }
 
@@ -46,7 +46,7 @@ function withDeadline<T>(promise: Promise<T>, ms: number): Promise<T> {
 async function availableHeight(source: PlaybackSource, params: ResolveParams) {
   const result = await resolvePlaybackSource(source, params);
   const probe = await probeManifest(result.url, result.referer);
-  return probe && Math.max(probe.height, ...(result.sources ?? []).map((item) => item.height || 0));
+  return probe?.height;
 }
 
 // Resolve sources in parallel and list only those with loadable manifests, tallest rendition first.

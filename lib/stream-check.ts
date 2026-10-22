@@ -48,8 +48,7 @@ export function resolveKey({ type, id, season, episode }: ResolveParams) {
 }
 
 type Track = { file: string; label?: string };
-type StreamSource = { file: string; height: number };
-export type ResolverResult = { url: string; tracks: Track[]; sources?: StreamSource[] };
+export type ResolverResult = { url: string; tracks: Track[] };
 
 // Keep provider headers server-side; attach them in the proxy, never in JSON responses.
 export type ResolvedStream = ResolverResult & { referer?: string };
