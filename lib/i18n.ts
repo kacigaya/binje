@@ -255,6 +255,27 @@ export function formatRating(locale: Locale, value: number): string | null {
   return formatter.format(value);
 }
 
+const airDateFormatters = new Map<Locale, Intl.DateTimeFormat>();
+
+/** A TMDB `YYYY-MM-DD` date, or null when TMDB has none. Formats in UTC so
+ * the calendar day does not shift with the viewer's time zone. */
+export function formatAirDate(locale: Locale, value: string | null | undefined): string | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  let formatter = airDateFormatters.get(locale);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(intlLocale(locale), {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+    airDateFormatters.set(locale, formatter);
+  }
+  return formatter.format(date);
+}
+
 const pluralRules = new Map<Locale, Intl.PluralRules>();
 
 export function pluralize(

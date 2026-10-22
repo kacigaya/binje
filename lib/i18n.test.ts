@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  formatAirDate,
   formatRating,
   localizedHref,
   pluralize,
@@ -26,6 +27,14 @@ describe("i18n", () => {
     expect(formatRating("fr", Number.NaN)).toBeNull();
     expect(pluralize("en", 1, "Season", "Seasons")).toBe("Season");
     expect(pluralize("fr", 2, "Season", "Seasons")).toBe("Saisons");
+  });
+
+  test("formats air dates by calendar day and skips missing ones", () => {
+    expect(formatAirDate("en", "2026-10-11")).toBe("Oct 11, 2026");
+    expect(formatAirDate("fr", "2026-01-01")).toBe("1 janv. 2026");
+    expect(formatAirDate("fr", null)).toBeNull();
+    expect(formatAirDate("fr", "")).toBeNull();
+    expect(formatAirDate("fr", "2026-13-45")).toBeNull();
   });
 
   // Unknown keys fall back to English, so a missing French translation can look valid.

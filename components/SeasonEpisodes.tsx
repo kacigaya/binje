@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Clock, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { localizedHref } from "@/lib/i18n";
+import { formatAirDate, localizedHref } from "@/lib/i18n";
 import {
   getPlayHistory,
   getPlaybackProgress,
@@ -140,6 +140,7 @@ export default function SeasonEpisodes({
           {episodes.map((ep) => {
             const still = stillUrl(ep.still_path, "original");
             const isLast = last?.season === season && last.episode === ep.episode_number;
+            const airDate = formatAirDate(locale, ep.air_date);
             return (
               <li key={ep.id}>
                 <Link
@@ -189,6 +190,11 @@ export default function SeasonEpisodes({
                         </span>
                       )}
                     </p>
+                    {airDate && (
+                      <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                        <time dateTime={ep.air_date ?? undefined}>{airDate}</time>
+                      </p>
+                    )}
                     {ep.overview && (
                       <p className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground">
                         {ep.overview}
