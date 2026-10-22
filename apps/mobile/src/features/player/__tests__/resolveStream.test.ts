@@ -34,9 +34,9 @@ describe("native stream resolver", () => {
   });
 
   test("lists available sources in server order and drops unknown ids", async () => {
-    request.mockResolvedValueOnce({ sources: ["vidme", "future-provider", "vidru", 7] });
+    request.mockResolvedValueOnce({ sources: ["vidcore", "vidme", "future-provider", "vidru", 7] });
     const sources = await fetchAvailableSources({ type: "movie", id: 1, title: "X", year: "2020" });
-    expect(sources).toEqual(["vidme", "vidru"]);
+    expect(sources).toEqual(["vidcore", "vidme", "vidru"]);
     expect(request).toHaveBeenCalledWith("/api/sources", expect.objectContaining({ query: expect.objectContaining({ id: 1 }) }));
   });
 

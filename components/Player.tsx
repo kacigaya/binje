@@ -43,7 +43,7 @@ type Quality = { index: number; height: number; label: number; bitrate: number }
 type PresentationVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
 
 // /api/sources orders playable sources for automatic failover; ignore unknown ids.
-const KNOWN_SOURCES: Record<PlaybackSource, true> = { vidsu: true, vidme: true, vidru: true };
+const KNOWN_SOURCES: Record<PlaybackSource, true> = { vidcore: true, vidsu: true, vidme: true, vidru: true };
 // Try Vidsu before the availability list arrives to avoid delaying movie and episode playback.
 const DEFAULT_SOURCE: PlaybackSource = "vidsu";
 

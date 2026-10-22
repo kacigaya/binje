@@ -1,4 +1,5 @@
 import { fetchPublic } from "@/lib/safe-fetch";
+import { qualityClass } from "@/lib/quality-class";
 
 export const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
@@ -51,7 +52,7 @@ type Track = { file: string; label?: string };
 export type ResolverResult = { url: string; tracks: Track[] };
 
 // Keep provider headers server-side; attach them in the proxy, never in JSON responses.
-export type ResolvedStream = ResolverResult & { referer?: string };
+export type ResolvedStream = ResolverResult & { referer?: string; height?: number };
 
 export function httpUrl(value: unknown, base?: string | URL): string | undefined {
   if (typeof value !== "string" || !value) return;
@@ -70,7 +71,7 @@ export function finishedStreamSeconds(manifest: string): number | undefined {
 
 // Tallest rendition a master playlist advertises; 0 when it lists none, as media playlists do.
 export function manifestHeight(manifest: string): number {
-  return Math.max(0, ...[...manifest.matchAll(/RESOLUTION=\d+x(\d+)/g)].map((match) => Number(match[1])));
+  return Math.max(0, ...[...manifest.matchAll(/RESOLUTION=(\d+)x(\d+)/g)].map((match) => qualityClass(Number(match[1]), Number(match[2]))));
 }
 
 function uris(playlist: string) {
@@ -83,14 +84,21 @@ function uris(playlist: string) {
 export async function probeManifest(
   url: string,
   referer?: string,
+  signal?: AbortSignal,
 ): Promise<{ height: number } | undefined> {
   const headers = new Headers({ accept: "*/*", "user-agent": BROWSER_USER_AGENT });
   if (referer) {
     headers.set("referer", referer);
     headers.set("origin", new URL(referer).origin);
   }
-  const request = (target: string) =>
-    fetchPublic(target, { cache: "no-store", headers, signal: AbortSignal.timeout(CHECK_TIMEOUT_MS) });
+  const request = (target: string) => {
+    signal?.throwIfAborted();
+    return fetchPublic(target, {
+      cache: "no-store",
+      headers,
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(CHECK_TIMEOUT_MS)]) : AbortSignal.timeout(CHECK_TIMEOUT_MS),
+    });
+  };
   const load = async (target: string) => {
     const response = await request(target);
     if (!response.ok) {
@@ -131,6 +139,7 @@ export async function probeManifest(
       const middle = httpUrl(segments[Math.floor(segments.length / 2)], media.url);
       if (segments.length && !(middle && (await segmentLoads(middle)))) return;
     }
+    signal?.throwIfAborted();
     return { height: manifestHeight(manifest.text) };
   } catch { /* Unreachable manifests and segments are unplayable. */ }
 }

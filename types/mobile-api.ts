@@ -1,7 +1,7 @@
 export type MobileLocale = "en" | "fr";
 export type MobileMediaType = "movie" | "tv";
 // Provider ids accepted by /api/resolve?source= and listed by /api/sources.
-export type PlaybackSource = "vidsu" | "vidme" | "vidru";
+export type PlaybackSource = "vidcore" | "vidsu" | "vidme" | "vidru";
 
 export interface MobileMediaSummary {
   id: number;

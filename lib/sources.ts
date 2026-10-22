@@ -5,14 +5,16 @@ import type { PlaybackSource } from "@/types/mobile-api";
 import { resolveVidmeStream } from "@/lib/vidme";
 import { resolveVidruStream } from "@/lib/vidru";
 import { resolveVidsuStream } from "@/lib/vidsu";
+import { resolveVidcoreStream } from "@/lib/vidcore";
 
 export type { PlaybackSource };
 
 // Servers in preference order. Failover tries the tallest advertised rendition first;
-// equal heights keep this order. Vidcore is missing: its stream endpoint fails for every title.
-export const PLAYBACK_SOURCES = ["vidsu", "vidme", "vidru"] as const satisfies readonly PlaybackSource[];
+// equal heights keep this order.
+export const PLAYBACK_SOURCES = ["vidcore", "vidsu", "vidme", "vidru"] as const satisfies readonly PlaybackSource[];
 
 const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<ResolvedStream>> = {
+  vidcore: resolveVidcoreStream,
   vidsu: resolveVidsuStream,
   vidme: resolveVidmeStream,
   vidru: resolveVidruStream,
@@ -45,6 +47,7 @@ function withDeadline<T>(promise: Promise<T>, ms: number): Promise<T> {
 // Height of the source's best rendition, 0 when unknown, or undefined when unplayable.
 async function availableHeight(source: PlaybackSource, params: ResolveParams) {
   const result = await resolvePlaybackSource(source, params);
+  if (result.height !== undefined) return result.height;
   const probe = await probeManifest(result.url, result.referer);
   return probe?.height;
 }

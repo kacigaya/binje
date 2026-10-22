@@ -2,11 +2,12 @@ import { expect, test } from "bun:test";
 import { isPlaybackSource, parseResolveParams, PLAYBACK_SOURCES } from "./sources";
 
 test("plays the servers in preference order", () => {
-  expect(PLAYBACK_SOURCES).toEqual(["vidsu", "vidme", "vidru"]);
+  expect(PLAYBACK_SOURCES).toEqual(["vidcore", "vidsu", "vidme", "vidru"]);
 });
 
 test("accepts every listed source and nothing else", () => {
   expect(isPlaybackSource("vidru")).toBe(true);
+  expect(isPlaybackSource("vidcore")).toBe(true);
   expect(isPlaybackSource("athena")).toBe(false);
   expect(isPlaybackSource("en")).toBe(false);
   expect(isPlaybackSource("toString")).toBe(false);

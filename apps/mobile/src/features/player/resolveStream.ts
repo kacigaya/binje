@@ -4,7 +4,7 @@ import type { PlaybackSource, SourcesResponse, StreamResponse } from "../../type
 export type { PlaybackSource };
 
 // Follow server source order for automatic failover; ignore unknown ids so newer servers work with older apps.
-const KNOWN_SOURCES: Record<PlaybackSource, true> = { vidsu: true, vidme: true, vidru: true };
+const KNOWN_SOURCES: Record<PlaybackSource, true> = { vidcore: true, vidsu: true, vidme: true, vidru: true };
 // Try Vidsu before the availability list arrives to avoid delaying movie and episode playback.
 export const DEFAULT_SOURCE: PlaybackSource = "vidsu";
 // The server resolves every provider before answering.
