@@ -6,12 +6,10 @@ import { resolveVidmeStream } from "@/lib/vidme";
 import { resolveVidruStream } from "@/lib/vidru";
 import { resolveVidsuStream } from "@/lib/vidsu";
 import { resolveVidcoreStream } from "@/lib/vidcore";
+import { PLAYBACK_SOURCES, rankPlaybackSources } from "@/lib/playback-selection";
 
 export type { PlaybackSource };
-
-// Servers in preference order. Failover tries the tallest advertised rendition first;
-// equal heights keep this order.
-export const PLAYBACK_SOURCES = ["vidcore", "vidsu", "vidme", "vidru"] as const satisfies readonly PlaybackSource[];
+export { PLAYBACK_SOURCES, isPlaybackSource } from "@/lib/playback-selection";
 
 const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<ResolvedStream>> = {
   vidcore: resolveVidcoreStream,
@@ -24,10 +22,6 @@ const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<Resol
 const PROBE_DEADLINE_MS = 15_000;
 const AVAILABILITY_TTL_MS = 2 * 60 * 1000;
 const availabilityCache = createTtlCache<PlaybackSource[]>(AVAILABILITY_TTL_MS);
-
-export function isPlaybackSource(value: unknown): value is PlaybackSource {
-  return typeof value === "string" && (PLAYBACK_SOURCES as readonly string[]).includes(value);
-}
 
 // Register streams and subtitle tracks with the Referer their hosts need.
 export async function resolvePlaybackSource(source: PlaybackSource, params: ResolveParams): Promise<ResolvedStream> {
@@ -59,12 +53,12 @@ export function availablePlaybackSources(params: ResolveParams): Promise<Playbac
     const checks = await Promise.allSettled(
       PLAYBACK_SOURCES.map((source) => withDeadline(availableHeight(source, params), PROBE_DEADLINE_MS)),
     );
-    const playable = PLAYBACK_SOURCES.flatMap((source, index) => {
+    const heights: Partial<Record<PlaybackSource, number>> = {};
+    PLAYBACK_SOURCES.forEach((source, index) => {
       const check = checks[index];
-      return check.status === "fulfilled" && check.value !== undefined ? [{ source, height: check.value }] : [];
+      if (check.status === "fulfilled" && check.value !== undefined) heights[source] = check.value;
     });
-    // Array#sort is stable, so equal heights keep PLAYBACK_SOURCES order.
-    return playable.sort((a, b) => b.height - a.height).map((item) => item.source);
+    return rankPlaybackSources(heights);
   });
 }
 

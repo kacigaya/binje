@@ -31,6 +31,7 @@ import {
   updatePlayHistoryProgress,
 } from "@/lib/play-history";
 import type { PlaybackSource } from "@/lib/sources";
+import { isPlaybackSource, selectPlaybackSource } from "@/lib/playback-selection";
 import { applySync, type SubtitleSync } from "@/lib/subtitle-timing";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
@@ -41,15 +42,6 @@ type Track = { file: string; label?: string; lang?: string; format?: "srt" };
 // height is the rendition's own; label is its 16:9 class (lib/quality-class).
 type Quality = { index: number; height: number; label: number; bitrate: number };
 type PresentationVideo = HTMLVideoElement & { webkitEnterFullscreen?: () => void };
-
-// /api/sources orders playable sources for automatic failover; ignore unknown ids.
-const KNOWN_SOURCES: Record<PlaybackSource, true> = { vidcore: true, vidsu: true, vidme: true, vidru: true };
-// Try Vidsu before the availability list arrives to avoid delaying movie and episode playback.
-const DEFAULT_SOURCE: PlaybackSource = "vidsu";
-
-function isKnownSource(value: unknown): value is PlaybackSource {
-  return typeof value === "string" && Object.hasOwn(KNOWN_SOURCES, value);
-}
 
 // TV episodes reuse this component; key state by media so the previous episode's state is ignored.
 type Keyed<T> = { key: string; value: T };
@@ -142,12 +134,7 @@ export default function Player({
   const [probeKey, setProbeKey] = useState(0);
   const availableList = forMedia(available, mediaKey);
   const failedList = forMedia(failed, mediaKey) ?? [];
-  const usable = (id: PlaybackSource | undefined) => (id && !failedList.includes(id) ? id : undefined);
-  const playingSource = usable(forMedia(playing, mediaKey));
-  // /api/sources ranks by quality, so once it settles, move to its best source that has not failed.
-  // Keep the playing source while probing, or when the probe missed it.
-  const best = (availableList ?? [DEFAULT_SOURCE]).find((id) => !failedList.includes(id));
-  const source = (playingSource && !availableList?.includes(playingSource) ? playingSource : best) ?? null;
+  const source = selectPlaybackSource(availableList, failedList, forMedia(playing, mediaKey));
   const exhausted = source === null && availableList !== undefined;
   const awaitingSources = source === null && !exhausted;
 
@@ -156,7 +143,7 @@ export default function Player({
     fetch(`${RESOLVE_BASE}/sources?${mediaQuery}`, { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("probe failed"))))
       .then((data: { sources?: unknown }) => {
-        const list = Array.isArray(data.sources) ? data.sources.filter(isKnownSource) : [];
+        const list = Array.isArray(data.sources) ? data.sources.filter(isPlaybackSource) : [];
         if (!cancelled) setAvailable({ key: mediaKey, value: list });
       })
       .catch(() => {

@@ -15,10 +15,10 @@ import { upsertPlayHistory, updatePlayHistoryProgress } from "../../storage/play
 import { colors, fonts, spacing } from "../../theme";
 import { createProgressWriter } from "./progressWriter";
 import {
-  DEFAULT_SOURCE,
   fetchAvailableSources,
   proxiedHlsUrl,
   resolveStream,
+  selectPlaybackSource,
   type PlaybackSource,
   type StreamMedia,
 } from "./resolveStream";
@@ -83,12 +83,7 @@ export function PlayerScreen({
   }, [details.data, episode, id, season, type]);
   const availableList = forMedia(available, mediaKey);
   const failedList = forMedia(failed, mediaKey) ?? [];
-  const usable = (source: PlaybackSource | undefined) => (source && !failedList.includes(source) ? source : undefined);
-  const playingSource = usable(forMedia(playing, mediaKey));
-  // /api/sources ranks by quality, so once it settles, move to its best source that has not failed.
-  // Keep the playing source while probing, or when the probe missed it.
-  const best = (availableList ?? [DEFAULT_SOURCE]).find((item) => !failedList.includes(item));
-  const source = (playingSource && !availableList?.includes(playingSource) ? playingSource : best) ?? null;
+  const source = selectPlaybackSource(availableList, failedList, forMedia(playing, mediaKey));
   const exhausted = source === null && availableList !== undefined;
   const streamError = exhausted ? t("streamUnavailable") : null;
 

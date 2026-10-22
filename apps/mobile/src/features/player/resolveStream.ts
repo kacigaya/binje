@@ -1,18 +1,12 @@
 import { apiRequest } from "../../api/client";
 import type { PlaybackSource, SourcesResponse, StreamResponse } from "../../types/api";
+import { isPlaybackSource } from "../../../../../lib/playback-selection";
 
 export type { PlaybackSource };
+export { selectPlaybackSource } from "../../../../../lib/playback-selection";
 
-// Follow server source order for automatic failover; ignore unknown ids so newer servers work with older apps.
-const KNOWN_SOURCES: Record<PlaybackSource, true> = { vidcore: true, vidsu: true, vidme: true, vidru: true };
-// Try Vidsu before the availability list arrives to avoid delaying movie and episode playback.
-export const DEFAULT_SOURCE: PlaybackSource = "vidsu";
 // The server resolves every provider before answering.
 const SOURCES_TIMEOUT_MS = 25_000;
-
-export function isKnownSource(value: unknown): value is PlaybackSource {
-  return typeof value === "string" && Object.hasOwn(KNOWN_SOURCES, value);
-}
 export type StreamMedia = {
   type: "movie" | "tv";
   id: number;
@@ -54,7 +48,7 @@ export async function fetchAvailableSources(media: StreamMedia): Promise<Playbac
     query: buildResolveQuery(media),
     timeoutMs: SOURCES_TIMEOUT_MS,
   });
-  return Array.isArray(result.sources) ? result.sources.filter(isKnownSource) : [];
+  return Array.isArray(result.sources) ? result.sources.filter(isPlaybackSource) : [];
 }
 
 export async function resolveStream(media: StreamMedia, source: PlaybackSource): Promise<StreamResponse> {

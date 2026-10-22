@@ -17,6 +17,8 @@ Vidsu and Vidru played both test titles to the end. Vidme played the movie. For 
 
 ## Rules for every resolver
 
+Playback starts with Vidcore while availability checks run. If it fails, the player tries Vidsu, Vidme, then Vidru. Once the checks finish, both web and mobile choose the source with the highest advertised quality. Equal quality keeps that same preference order. A running lower-quality source does not block a switch to a better source.
+
 1. Accept HLS only. The player cannot load MP4 or DASH, so resolvers drop them.
 2. Probe each candidate with `probeManifest` and return the first one that plays. The probe rejects finished streams under two minutes. It also starts to read one segment in the middle of the stream.
 3. Keep upstream headers on the server. A resolver returns a `referer`, and the proxy sends it to that host.
