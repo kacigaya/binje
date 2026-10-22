@@ -1,3 +1,4 @@
+import { Worker } from "node:worker_threads";
 import { fetchPublic } from "@/lib/safe-fetch";
 import {
   fetchJson,
@@ -70,21 +71,51 @@ function decryptor(wasmUrl: string, window: string) {
   });
 }
 
-export async function decryptStreamUrls(decryptModule: WebAssembly.Module, encrypted: string): Promise<string[]> {
-  const { exports } = await WebAssembly.instantiate(decryptModule, {});
-  const { alloc, decrypt, memory } = exports;
-  if (typeof alloc !== "function" || typeof decrypt !== "function" || !(memory instanceof WebAssembly.Memory)) {
-    throw new Error("Unexpected Vidru decryptor.");
-  }
-  const input = Buffer.from(encrypted, "base64");
-  const pointer = Number(alloc(input.length));
-  new Uint8Array(memory.buffer, pointer, input.length).set(input);
-  const length = Number(decrypt(pointer, input.length));
-  if (!Number.isInteger(length) || length < 0 || length > input.length - NONCE_BYTES) {
-    throw new Error("Invalid Vidru stream list.");
-  }
-  const plain = new TextDecoder().decode(new Uint8Array(memory.buffer, pointer + NONCE_BYTES, length));
-  return plain.split("\n").flatMap((url) => httpUrl(url.trim()) ?? []);
+// The module is untrusted code. It runs in a worker that is stopped when it overruns, so a
+// looping or memory-hungry module cannot hold the server. Termination frees its memory.
+const DECRYPT_TIMEOUT_MS = 2000;
+const DECRYPT_WORKER = `
+const { parentPort, workerData } = process.getBuiltinModule("node:worker_threads");
+const { decryptModule, input, nonceBytes } = workerData;
+const { exports } = new WebAssembly.Instance(decryptModule, {});
+const { alloc, decrypt, memory } = exports;
+if (typeof alloc !== "function" || typeof decrypt !== "function" || !(memory instanceof WebAssembly.Memory)) {
+  throw new Error("Unexpected Vidru decryptor.");
+}
+const pointer = Number(alloc(input.length));
+new Uint8Array(memory.buffer, pointer, input.length).set(input);
+const length = Number(decrypt(pointer, input.length));
+if (!Number.isInteger(length) || length < 0 || length > input.length - nonceBytes) {
+  throw new Error("Invalid Vidru stream list.");
+}
+parentPort.postMessage(new TextDecoder().decode(new Uint8Array(memory.buffer, pointer + nonceBytes, length)));
+`;
+
+export function decryptStreamUrls(decryptModule: WebAssembly.Module, encrypted: string): Promise<string[]> {
+  const input = new Uint8Array(Buffer.from(encrypted, "base64"));
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(DECRYPT_WORKER, { eval: true, workerData: { decryptModule, input, nonceBytes: NONCE_BYTES } });
+    const timer = setTimeout(() => {
+      reject(new Error("Vidru decryptor timed out."));
+      void worker.terminate();
+    }, DECRYPT_TIMEOUT_MS);
+    const finish = () => {
+      clearTimeout(timer);
+      void worker.terminate();
+    };
+    worker.once("message", (plain: string) => {
+      finish();
+      resolve(plain.split("\n").flatMap((url) => httpUrl(url.trim()) ?? []));
+    });
+    worker.once("error", (error) => {
+      finish();
+      reject(error);
+    });
+    worker.once("exit", () => {
+      finish();
+      reject(new Error("Vidru decryptor stopped."));
+    });
+  });
 }
 
 // Answered as plain text or JSON; the token is a JWT bound to this server's IP.

@@ -74,6 +74,18 @@ describe("decryptStreamUrls", () => {
   test("rejects a payload shorter than its nonce", async () => {
     await expect(decryptStreamUrls(decryptModule, Buffer.alloc(4).toString("base64"))).rejects.toThrow();
   });
+
+  test("stops a decryptor that never returns", async () => {
+    // Same module with decrypt's body replaced by `loop br 0 end unreachable`.
+    const looping = new Uint8Array([
+      ...IDENTITY_DECRYPTOR.subarray(0, IDENTITY_DECRYPTOR.length - 16),
+      0x0a, 0x0f, 0x02,
+      0x04, 0x00, 0x41, 0x00, 0x0b,
+      0x08, 0x00, 0x03, 0x40, 0x0c, 0x00, 0x0b, 0x00, 0x0b,
+    ]);
+    const input = Buffer.alloc(20).toString("base64");
+    await expect(decryptStreamUrls(new WebAssembly.Module(looping), input)).rejects.toThrow("timed out");
+  });
 });
 
 describe("host tokens", () => {
