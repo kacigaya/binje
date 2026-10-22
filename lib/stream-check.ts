@@ -1,4 +1,3 @@
-import type { ResolverResult } from "@/lib/videasy";
 import { fetchPublic } from "@/lib/safe-fetch";
 
 export const BROWSER_USER_AGENT =
@@ -32,6 +31,25 @@ async function readCapped(response: Response, maxBytes: number): Promise<string>
   }
   return new TextDecoder().decode(bytes);
 }
+
+export type ResolveParams = {
+  type: "movie" | "tv";
+  id: string;
+  title: string;
+  year: string;
+  imdbId: string;
+  season: string;
+  episode: string;
+};
+
+// Key by TMDB id and episode; title and year only guide provider lookup.
+export function resolveKey({ type, id, season, episode }: ResolveParams) {
+  return type === "tv" ? `tv:${id}:${season}:${episode}` : `movie:${id}`;
+}
+
+type Track = { file: string; label?: string };
+type StreamSource = { file: string; height: number };
+export type ResolverResult = { url: string; tracks: Track[]; sources?: StreamSource[] };
 
 // Keep provider headers server-side; attach them in the proxy, never in JSON responses.
 export type Upstream = { referer?: string; userAgent?: string };
@@ -108,6 +126,20 @@ export async function probeManifest(
 
 export async function isPlayableManifest(url: string, upstream: Upstream & { cookie?: string } = {}) {
   return (await probeManifest(url, upstream)) !== undefined;
+}
+
+export type StreamCandidate = { url: string; referer?: string };
+
+// The first candidate whose manifest plays, probed concurrently but chosen in list order.
+export function firstPlayable(candidates: StreamCandidate[]): Promise<StreamCandidate> {
+  return firstInOrder(
+    candidates.map(async (candidate) => {
+      if (!(await isPlayableManifest(candidate.url, { referer: candidate.referer }))) {
+        throw new Error("Unplayable stream.");
+      }
+      return candidate;
+    }),
+  );
 }
 
 // Probe concurrently, but honor order: a result wins only after all earlier tasks fail.

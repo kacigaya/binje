@@ -30,7 +30,7 @@ async function expectRatio(page: Page, ratio: number) {
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("**/api/sources?*", (route) => route.fulfill({
-    json: { sources: ["cine4k"] },
+    json: { sources: ["vidsu"] },
   }));
   // Hold the external resolver while a deterministic local stream supplies frames.
   await page.route("**/api/resolve?*", () => {});
@@ -495,7 +495,7 @@ test("subtitle timing is saved for the source and ignores legacy unscoped correc
   await page.getByRole("button", { name: "Subtitles later" }).click();
   await expect.poll(() => cueStarts(page)).toEqual([10.5]);
 
-  await page.route("**/api/sources?*", (route) => route.fulfill({ json: { sources: ["athena"] } }));
+  await page.route("**/api/sources?*", (route) => route.fulfill({ json: { sources: ["vidme"] } }));
   await page.unroute("**/api/resolve?*");
   await page.route("**/api/resolve?*", (route) => route.fulfill({
     json: { url: "https://cdn.test/other.m3u8", tracks: [{ file: "https://subs.test/en.vtt", label: "English" }] },
@@ -503,7 +503,7 @@ test("subtitle timing is saved for the source and ignores legacy unscoped correc
   await page.reload();
   await expect.poll(() => cueStarts(page)).toEqual([10]);
 
-  await page.route("**/api/sources?*", (route) => route.fulfill({ json: { sources: ["cine4k"] } }));
+  await page.route("**/api/sources?*", (route) => route.fulfill({ json: { sources: ["vidsu"] } }));
   await playerWithSubtitle(page, vtt);
   await expect.poll(() => cueStarts(page)).toEqual([10.5]);
 });

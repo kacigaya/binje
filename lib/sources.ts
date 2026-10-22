@@ -1,64 +1,21 @@
-import { resolveAtlanticStream } from "@/lib/atlantic";
-import { resolveCine4kStream } from "@/lib/cine4k";
-import { resolveFrembedStream } from "@/lib/frembed";
 import { allowStreamCookie, allowStreamHost, allowStreamHosts } from "@/lib/hls-hosts";
-import { resolveMovieboxStream } from "@/lib/moviebox";
-import { resolveMoviesapiStream } from "@/lib/moviesapi";
-import { cachedResolveVideasyStream, type ResolveParams } from "@/lib/resolve-cache";
-import { probeManifest, type ResolvedStream } from "@/lib/stream-check";
+import { probeManifest, resolveKey, type ResolvedStream, type ResolveParams } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 import type { PlaybackSource } from "@/types/mobile-api";
-import { resolveTwoEmbedStream } from "@/lib/twoembed";
-import { resolveVidnestStream } from "@/lib/vidnest";
-import { resolveVidrockStream } from "@/lib/vidrock";
-import { resolveVidzeeStream } from "@/lib/vidzee";
-import { resolveVidemStream, resolveVsrcStream } from "@/lib/vsrc";
-import { resolveVideasyWsStream } from "@/lib/videasyws";
+import { resolveVidmeStream } from "@/lib/vidme";
+import { resolveVidruStream } from "@/lib/vidru";
+import { resolveVidsuStream } from "@/lib/vidsu";
 
 export type { PlaybackSource };
 
-// Automatic failover tries the tallest advertised rendition first. Equal heights follow
-// Atlantic's server order, excluding Aphrodite, then other providers.
-// VF stays outside the chain but remains available through RESOLVERS and /api/resolve-vf.
-export const PLAYBACK_SOURCES = [
-  "athena",
-  "helios",
-  "pandora",
-  "saturn",
-  "neptune",
-  "moscow",
-  "cine4k",
-  "moviesapi",
-  "videasyws",
-  "vidzee",
-  "moviebox",
-  "vidnest",
-  "vsrc",
-  "videm",
-  "2embed",
-  "vidrock",
-  "videasy",
-] as const satisfies readonly PlaybackSource[];
+// Nightflix's servers in its own order. Failover tries the tallest advertised rendition first;
+// equal heights keep this order. Vidcore is missing: its stream endpoint fails for every title.
+export const PLAYBACK_SOURCES = ["vidsu", "vidme", "vidru"] as const satisfies readonly PlaybackSource[];
 
 const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<ResolvedStream>> = {
-  videasyws: resolveVideasyWsStream,
-  cine4k: resolveCine4kStream,
-  athena: resolveAtlanticStream("athena"),
-  helios: resolveAtlanticStream("helios"),
-  pandora: resolveAtlanticStream("pandora"),
-  saturn: resolveAtlanticStream("saturn"),
-  neptune: resolveAtlanticStream("neptune"),
-  moscow: resolveAtlanticStream("moscow"),
-  vidzee: resolveVidzeeStream,
-  moviebox: resolveMovieboxStream,
-  vidnest: resolveVidnestStream,
-  vsrc: resolveVsrcStream,
-  videm: resolveVidemStream,
-  "2embed": resolveTwoEmbedStream,
-  moviesapi: resolveMoviesapiStream,
-  vidrock: resolveVidrockStream,
-  videasy: cachedResolveVideasyStream,
-  vf: resolveFrembedStream,
+  vidsu: resolveVidsuStream,
+  vidme: resolveVidmeStream,
+  vidru: resolveVidruStream,
 };
 
 // Drop sources past this deadline so the availability route stays within maxDuration.
@@ -97,8 +54,7 @@ async function availableHeight(source: PlaybackSource, params: ResolveParams) {
 // Resolve sources in parallel and list only those with loadable manifests, tallest rendition first.
 // Resolver caches let playback reuse the result without resolving again.
 export function availablePlaybackSources(params: ResolveParams): Promise<PlaybackSource[]> {
-  const key = params.type === "tv" ? `tv:${params.id}:${params.season}:${params.episode}` : `movie:${params.id}`;
-  return availabilityCache.get(key, async () => {
+  return availabilityCache.get(resolveKey(params), async () => {
     const checks = await Promise.allSettled(
       PLAYBACK_SOURCES.map((source) => withDeadline(availableHeight(source, params), PROBE_DEADLINE_MS)),
     );

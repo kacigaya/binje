@@ -1,14 +1,13 @@
 import { expect, test } from "bun:test";
 import { isPlaybackSource, parseResolveParams, PLAYBACK_SOURCES } from "./sources";
 
-test("plays Atlantic's servers first, in its order, without VF", () => {
-  expect(PLAYBACK_SOURCES.slice(0, 6)).toEqual(["athena", "helios", "pandora", "saturn", "neptune", "moscow"]);
-  expect(PLAYBACK_SOURCES).not.toContain("vf");
+test("plays Nightflix's servers in its order", () => {
+  expect(PLAYBACK_SOURCES).toEqual(["vidsu", "vidme", "vidru"]);
 });
 
 test("accepts every listed source and nothing else", () => {
-  expect(isPlaybackSource("2embed")).toBe(true);
-  expect(isPlaybackSource("vf")).toBe(false);
+  expect(isPlaybackSource("vidru")).toBe(true);
+  expect(isPlaybackSource("athena")).toBe(false);
   expect(isPlaybackSource("en")).toBe(false);
   expect(isPlaybackSource("toString")).toBe(false);
 });

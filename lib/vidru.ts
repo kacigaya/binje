@@ -1,4 +1,3 @@
-import type { ResolveParams } from "@/lib/resolve-cache";
 import { fetchPublic } from "@/lib/safe-fetch";
 import {
   fetchJson,
@@ -7,13 +6,15 @@ import {
   httpUrl,
   isPlayableManifest,
   isRecord,
+  resolveKey,
+  type ResolveParams,
   type ResolvedStream,
 } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
-// player.videasy.ws chains vs_src.php and a vidsrc.sh page to mint a single-use data.vidsrc.sh api_token.
-// Tokens are short-lived; Turnstile applies only to the player page (https://videasy.ws/docs.html).
-const EMBED = "https://player.videasy.ws";
+// Nightflix's "Vidru" server. ythd.org chains vs_src.php and a vidsrc.sh page to mint a
+// single-use data.vidsrc.sh api_token. Tokens are short-lived; Turnstile gates only the player page.
+const EMBED = "https://ythd.org";
 const MAX_WASM_BYTES = 1024 * 1024;
 const NONCE_BYTES = 12;
 const cache = createTtlCache<ResolvedStream>(10 * 60 * 1000);
@@ -43,13 +44,13 @@ function text(value: unknown) {
 // player's WebAssembly module decrypts in place.
 export function streamUrlsPayload(body: unknown): { urls: string[] } | { encrypted: string; wasmUrl: string; window: string } {
   if (!isRecord(body) || String(body.status_code ?? body.status ?? "200") !== "200" || !isRecord(body.data)) {
-    throw new Error("Videasy.ws has no stream.");
+    throw new Error("Vidru has no stream.");
   }
   const streams = body.data.stream_urls;
   if (Array.isArray(streams)) return { urls: streams.flatMap((url) => httpUrl(url) ?? []) };
   const vs = isRecord(body.vs) ? body.vs : {};
   const wasmUrl = httpUrl(vs.wasm_url);
-  if (typeof streams !== "string" || !wasmUrl) throw new Error("Videasy.ws has no stream.");
+  if (typeof streams !== "string" || !wasmUrl) throw new Error("Vidru has no stream.");
   return { encrypted: streams, wasmUrl, window: String(vs.w ?? wasmUrl) };
 }
 
@@ -58,13 +59,13 @@ function decryptor(wasmUrl: string, window: string) {
     const response = await fetchPublic(wasmUrl, { cache: "no-store", signal: AbortSignal.timeout(10_000) });
     if (!response.ok || Number(response.headers.get("content-length") ?? 0) > MAX_WASM_BYTES) {
       await response.body?.cancel();
-      throw new Error("Videasy.ws decryptor unavailable.");
+      throw new Error("Vidru decryptor unavailable.");
     }
     const bytes = await response.arrayBuffer();
-    if (bytes.byteLength > MAX_WASM_BYTES) throw new Error("Videasy.ws decryptor unavailable.");
+    if (bytes.byteLength > MAX_WASM_BYTES) throw new Error("Vidru decryptor unavailable.");
     const decryptModule = await WebAssembly.compile(bytes);
     // No imports means the module can only compute: no host access at all.
-    if (WebAssembly.Module.imports(decryptModule).length > 0) throw new Error("Unexpected Videasy.ws decryptor.");
+    if (WebAssembly.Module.imports(decryptModule).length > 0) throw new Error("Unexpected Vidru decryptor.");
     return decryptModule;
   });
 }
@@ -73,14 +74,14 @@ export async function decryptStreamUrls(decryptModule: WebAssembly.Module, encry
   const { exports } = await WebAssembly.instantiate(decryptModule, {});
   const { alloc, decrypt, memory } = exports;
   if (typeof alloc !== "function" || typeof decrypt !== "function" || !(memory instanceof WebAssembly.Memory)) {
-    throw new Error("Unexpected Videasy.ws decryptor.");
+    throw new Error("Unexpected Vidru decryptor.");
   }
   const input = Buffer.from(encrypted, "base64");
   const pointer = Number(alloc(input.length));
   new Uint8Array(memory.buffer, pointer, input.length).set(input);
   const length = Number(decrypt(pointer, input.length));
   if (!Number.isInteger(length) || length < 0 || length > input.length - NONCE_BYTES) {
-    throw new Error("Invalid Videasy.ws stream list.");
+    throw new Error("Invalid Vidru stream list.");
   }
   const plain = new TextDecoder().decode(new Uint8Array(memory.buffer, pointer + NONCE_BYTES, length));
   return plain.split("\n").flatMap((url) => httpUrl(url.trim()) ?? []);
@@ -103,7 +104,7 @@ export function parseHostToken(body: string): string | undefined {
 function hostToken(origin: string) {
   return hostTokens.get(origin, async () => {
     const token = parseHostToken(await fetchText(`${origin}/generate.php`));
-    if (!token) throw new Error("No Videasy.ws host token.");
+    if (!token) throw new Error("No Vidru host token.");
     return token;
   });
 }
@@ -123,16 +124,16 @@ async function streamUrls({ type, id, season, episode }: ResolveParams) {
   }
   const wrapper = await fetchJson(`${EMBED}/vs_src.php?${query}`, { referer: `${EMBED}/` });
   const landing = httpUrl(isRecord(wrapper) ? wrapper.src : undefined);
-  if (!landing) throw new Error("Videasy.ws has no player.");
+  if (!landing) throw new Error("Vidru has no player.");
   const host = `${new URL(landing).origin}/`;
 
   const landingConfig = pageConfig(await fetchText(landing, { referer: `${EMBED}/` }), "CFG");
   const playerPage = httpUrl(landingConfig?.playerUrl, landing);
-  if (!playerPage) throw new Error("Videasy.ws has no player.");
+  if (!playerPage) throw new Error("Vidru has no player.");
   const config = pageConfig(await fetchText(playerPage, { referer: host }), "CONFIG");
   const apiToken = text(config?.apiToken);
   const base = httpUrl(config?.api) ?? httpUrl(config?.streamBase);
-  if (!apiToken || !base) throw new Error("Videasy.ws has no stream.");
+  if (!apiToken || !base) throw new Error("Vidru has no stream.");
 
   const api = new URL(base);
   if (!config?.api) {
@@ -152,10 +153,10 @@ async function streamUrls({ type, id, season, episode }: ResolveParams) {
   return { urls, referer: host };
 }
 
-export function resolveVideasyWsStream(params: ResolveParams): Promise<ResolvedStream> {
-  const key = params.type === "tv" ? `tv:${params.id}:${params.season}:${params.episode}` : `movie:${params.id}`;
-  return cache.get(key, async () => {
+export function resolveVidruStream(params: ResolveParams): Promise<ResolvedStream> {
+  return cache.get(resolveKey(params), async () => {
     const { urls, referer } = await streamUrls(params);
+    // A host whose token fails only drops its own URLs.
     const url = await firstInOrder(
       urls.map(async (raw) => {
         const url = withHostToken(raw, await hostToken(new URL(raw).origin));

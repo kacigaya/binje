@@ -5,7 +5,7 @@ import {
   parseHostToken,
   streamUrlsPayload,
   withHostToken,
-} from "@/lib/videasyws";
+} from "@/lib/vidru";
 
 // alloc() -> 0 and decrypt(ptr, len) -> len - 12: an identity "cipher" with
 // the provider's export shape, so the plaintext is the input after its nonce.
