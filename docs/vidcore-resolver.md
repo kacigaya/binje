@@ -28,6 +28,22 @@ The service does not download media. b!nje checks the returned URL, probes a pla
 
 The service binds to `127.0.0.1:3040` by default. `VIDCORE_RESOLVER_HOST` and `VIDCORE_RESOLVER_PORT` can change that address. A container cannot reach the host through its own loopback address. For a container app, use a private interface reachable from that container and restrict access to the app. Keep the service off public interfaces. The existing b!nje Docker image does not contain the browser runtime.
 
+## Production on this host
+
+The website deploys automatically from `main` through Dokploy. Runtime values must be saved in Dokploy's application environment so later deployments keep them.
+
+1. Install the resolver script at `/opt/binje-vidcore-resolver/vidcore_resolver.py`.
+2. Store its private environment in `/etc/binje-vidcore-resolver/environment`. Set directory permissions to `0700` and file permissions to `0600`, owned by root.
+3. Set `VIDCORE_RESOLVER_HOST=172.18.0.1` in that file. This is the host address on `docker_gwbridge`. Keep port `3040`.
+4. Install [the systemd unit](../deploy/binje-vidcore-resolver.service) as `/etc/systemd/system/binje-vidcore-resolver.service`. Enable and start it.
+5. Permit TCP port `3040` only from `172.18.0.0/16` on `docker_gwbridge`, to destination `172.18.0.1`.
+6. Save `VIDCORE_RESOLVER_URL=http://172.18.0.1:3040` and the matching bearer secret in Dokploy's `binje` application. Preserve its other environment values.
+7. Let the normal commit-triggered deployment apply those settings. Verify `/api/sources`, `/api/resolve`, and actual playback on the public website.
+
+The resolver runs as user `ubuntu` with the installed browser runtime. It starts at boot and restarts after a failure. Gluetun remains a separate shared service.
+
+When the resolver script changes, install the updated script under `/opt/binje-vidcore-resolver` and restart this unit. A website deployment updates the app container; it does not replace this host service.
+
 ## Limits
 
 The endpoint accepts only movie IDs or TV IDs with season and episode numbers. Every request needs the bearer secret. Browser traffic can reach only the two Vidcore hosts. Other hosts, media downloads, subtitle searches, and service workers are blocked. Browser requests use a ten-second deadline and at most two pages at once. The app gives browser resolution and CDN probes one shared thirteen-second deadline. It caches successful resolves for five minutes.

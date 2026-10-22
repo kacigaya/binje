@@ -1,0 +1,26 @@
+[Unit]
+Description=b!nje Vidcore browser resolver
+Wants=network-online.target
+After=network-online.target docker.service gluetun.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/binje-vidcore-resolver
+EnvironmentFile=/etc/binje-vidcore-resolver/environment
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/home/ubuntu/.local/venvs/webskrap/bin/python /opt/binje-vidcore-resolver/vidcore_resolver.py
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+MemoryMax=1536M
+TasksMax=512
+
+[Install]
+WantedBy=multi-user.target
