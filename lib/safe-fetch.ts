@@ -1,7 +1,7 @@
 import type { LookupAddress } from "node:dns";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { Agent, ProxyAgent, type Dispatcher } from "undici";
+import { Agent } from "undici";
 import { allowStreamHost, streamCookie, streamUserAgent } from "@/lib/hls-hosts";
 
 // Provider URLs must never reach private networks, including through redirects or DNS rebinding.
@@ -122,22 +122,6 @@ const dispatcher = new Agent({
   },
 });
 
-// Atlantic serves decoys to datacenter IPs, so requests carrying its Referer leave through
-// STREAM_PROXY_URL (Gluetun's HTTP proxy). The proxy resolves DNS itself, so the lookup guard
-// above does not apply there; Gluetun's DNS drops private answers (DOT_PRIVATE_ADDRESS).
-const PROXIED_REFERER_ORIGINS = new Set(["https://atlantic.st"]);
-const streamProxy = process.env.STREAM_PROXY_URL ? new ProxyAgent(process.env.STREAM_PROXY_URL) : undefined;
-
-export function dispatcherFor(headers: HeadersInit | undefined, proxy: Dispatcher | undefined = streamProxy): Dispatcher {
-  const referer = new Headers(headers).get("referer");
-  if (!proxy || !referer) return dispatcher;
-  try {
-    return PROXIED_REFERER_ORIGINS.has(new URL(referer).origin) ? proxy : dispatcher;
-  } catch {
-    return dispatcher;
-  }
-}
-
 // Proxy redirects register hosts and rescope cookies for later segments.
 // Resolvers use trustRedirects: false to keep network checks without changing the proxy allowlist.
 export async function safeFetch(start: URL, init: RequestInit, { trustRedirects = true } = {}) {
@@ -147,7 +131,7 @@ export async function safeFetch(start: URL, init: RequestInit, { trustRedirects 
     const response = await fetch(current, {
       ...init,
       redirect: "manual",
-      dispatcher: dispatcherFor(init.headers),
+      dispatcher,
     } as RequestInit);
     if (response.status < 300 || response.status >= 400) return { response, finalUrl: current };
 
