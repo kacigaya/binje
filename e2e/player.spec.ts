@@ -180,6 +180,11 @@ for (const input of ["mouse", "touch"] as const) {
         await subtitles.click();
 
         const audio = page.getByRole("button", { name: "Audio", exact: true });
+        const audioBounds = (await audio.boundingBox())!;
+        const subtitleBounds = (await subtitles.boundingBox())!;
+        const cropBounds = (await page.getByRole("button", { name: "Crop black bars" }).boundingBox())!;
+        expect(subtitleBounds.x + subtitleBounds.width).toBeLessThanOrEqual(audioBounds.x);
+        expect(audioBounds.x + audioBounds.width).toBeLessThanOrEqual(cropBounds.x);
         if (input === "touch") await audio.tap();
         else await audio.click();
         await expect(page.getByRole("radio", { name: "Original audio", exact: true })).toBeChecked();
@@ -680,6 +685,8 @@ test("audio selector uses a language icon, switches sources, and restores keyboa
   await page.keyboard.press("Enter");
   const original = page.getByRole("radio", { name: "Original audio", exact: true });
   const french = page.getByRole("radio", { name: "French audio", exact: true });
+  await expect(original.locator("..").locator('svg[data-audio-flag="en"][aria-hidden="true"]')).toBeVisible();
+  await expect(french.locator("..").locator('svg[data-audio-flag="fr"][aria-hidden="true"]')).toBeVisible();
   await expect(original).toBeChecked();
   const resolvingFrench = page.waitForRequest((request) => {
     const url = new URL(request.url());

@@ -1027,6 +1027,14 @@ export default function Player({
                 onAutoSync={autoSync}
               />
             )}
+            <AudioMenu
+              container={containerRef}
+              value={shownAudio}
+              onSelect={setAudio}
+              pending={vfPending}
+              frenchUnavailable={vfUnavailable}
+              disabled={googleCasting}
+            />
             <ControlButton
               aria-label={t("Crop black bars")}
               aria-pressed={cropEnabled}
@@ -1059,14 +1067,6 @@ export default function Player({
                 <MorphIcon icon={isFullscreen ? Minimize : Maximize} reducedMotion="user" />
               </ControlButton>
             )}
-            <AudioMenu
-              container={containerRef}
-              value={shownAudio}
-              onSelect={setAudio}
-              pending={vfPending}
-              frenchUnavailable={vfUnavailable}
-              disabled={googleCasting}
-            />
             {qualities.length > 0 && (
               <Select
                 ariaLabel={t("Quality")}
