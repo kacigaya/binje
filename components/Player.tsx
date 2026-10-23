@@ -111,6 +111,7 @@ export default function Player({
   season,
   episode,
   poster,
+  originalLanguage,
 }: {
   tmdbId: number;
   title: string;
@@ -120,6 +121,7 @@ export default function Player({
   season?: number;
   episode?: number;
   poster?: string | null;
+  originalLanguage?: string;
 }) {
   const { t, locale } = useTranslations();
   const mediaKey = `${type}:${tmdbId}:${season ?? 1}:${episode ?? 1}`;
@@ -1028,6 +1030,7 @@ export default function Player({
               />
             )}
             <AudioMenu
+              originalLanguage={originalLanguage}
               container={containerRef}
               value={shownAudio}
               onSelect={setAudio}

@@ -675,6 +675,21 @@ test("a delay set during auto-sync wins over its late answer", async ({ page }) 
   await expect(page.locator("output")).toHaveText("+0.5 s");
 });
 
+for (const [media, path] of [
+  ["movie", "/en/watch/129"],
+  ["TV", "/en/watch/tv/312359?s=1&e=2"],
+] as const) {
+  test(`${media} original audio flag follows the title language`, async ({ page }) => {
+    await page.goto(path);
+    await page.getByRole("button", { name: "Audio", exact: true }).click();
+    const original = page.getByRole("radio", { name: "Original audio", exact: true });
+    const french = page.getByRole("radio", { name: "French audio", exact: true });
+    await expect(original).toBeChecked();
+    await expect(original.locator("..").locator('svg[data-audio-flag="ja"]')).toBeVisible();
+    await expect(french.locator("..").locator('svg[data-audio-flag="fr"]')).toBeVisible();
+  });
+}
+
 test("audio selector uses a language icon, switches sources, and restores keyboard focus", async ({ page }) => {
   await page.route("**/api/sources?*audio=vf", (route) => route.fulfill({
     json: { sources: ["frembed"] },

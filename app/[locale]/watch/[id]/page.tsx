@@ -169,6 +169,7 @@ async function WatchMoviePlayer({
       <Player
         tmdbId={movie.id}
         title={movie.original_title}
+        originalLanguage={movie.original_language}
         year={movie.release_date.slice(0, 4)}
         imdbId={movie.imdb_id}
         type="movie"

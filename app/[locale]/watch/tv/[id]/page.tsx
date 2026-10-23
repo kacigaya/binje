@@ -136,6 +136,7 @@ async function WatchTVPlayer({
         <TVPlayer
           showId={show.id}
           title={show.original_name}
+          originalLanguage={show.original_language}
           year={show.first_air_date.slice(0, 4)}
           imdbId={show.external_ids.imdb_id}
           season={season}

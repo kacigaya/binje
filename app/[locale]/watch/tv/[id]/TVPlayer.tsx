@@ -27,6 +27,7 @@ interface SeasonInfo {
 export default function TVPlayer({
   showId,
   title,
+  originalLanguage,
   year,
   imdbId,
   season: initialSeason,
@@ -38,6 +39,7 @@ export default function TVPlayer({
 }: {
   showId: number;
   title: string;
+  originalLanguage: string;
   year: string;
   imdbId: string | null;
   season: number;
@@ -145,6 +147,7 @@ export default function TVPlayer({
       <Player
         tmdbId={showId}
         title={title}
+        originalLanguage={originalLanguage}
         year={year}
         imdbId={imdbId}
         type="tv"
