@@ -124,3 +124,20 @@ test("Expo can parse and write plists with the fixed XML parser", () => {
   const value = { CFBundleName: "b!nje", Enabled: true, Count: 3 };
   assert.deepEqual({ ...plist.parse(plist.build(value)) }, value);
 });
+
+test("overrides match direct dependency ranges for npm-based EAS steps", () => {
+  const manifests = [
+    mobileLoad("../../package.json"),
+    mobileLoad("./package.json"),
+  ];
+  const { overrides } = manifests[0];
+  for (const manifest of manifests) {
+    for (const field of ["dependencies", "devDependencies", "optionalDependencies"]) {
+      for (const [name, range] of Object.entries(manifest[field] ?? {})) {
+        if (name in overrides) {
+          assert.equal(overrides[name], range, `${manifest.name} ${field}.${name}`);
+        }
+      }
+    }
+  }
+});
