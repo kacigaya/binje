@@ -57,7 +57,8 @@
       [
         "react-native-google-cast",
         {
-          "receiverAppId": "CC1AD845"
+          "receiverAppId": "CC1AD845",
+          "androidPlayServicesCastFrameworkVersion": "22.3.1"
         }
       ],
       "expo-font",
