@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isValidCastToken } from "@/lib/cast-token";
+import { allowCastHost, isValidCastToken } from "@/lib/cast-token";
 import { allowStreamHost, isAllowedStreamHost, streamReferer } from "@/lib/hls-hosts";
 import { getTargetUrl, isSafeHost, safeFetch } from "@/lib/safe-fetch";
+import { API_CSP } from "@/lib/security-headers";
 import { srtToVtt } from "@/lib/srt";
 import { unwrapTransportStream } from "@/lib/transport-stream";
 
@@ -15,13 +16,27 @@ const PLAYLIST_CACHE_CONTROL = "public, max-age=30";
 const MAX_SNIFF_BYTES = 32 * 1024 * 1024;
 // Feature-length SRT files are a few hundred KB.
 const MAX_SUBTITLE_BYTES = 4 * 1024 * 1024;
+
+function proxyError(error: string, status: number, headers: Headers) {
+  const responseHeaders = new Headers(headers);
+  for (const header of ["accept-ranges", "content-length", "content-range", "content-type"]) {
+    responseHeaders.delete(header);
+  }
+  responseHeaders.set("cache-control", "no-store");
+  return NextResponse.json({ error }, { status, headers: responseHeaders });
+}
+
 function proxiedUrl(
   url: string | URL,
   requestUrl: string,
   castToken: string | null,
+  parentUrl: URL,
   referer?: string,
 ) {
   allowStreamHost(url, referer);
+  if (castToken && !allowCastHost(castToken, new URL(requestUrl).host, parentUrl.host, new URL(url).host)) {
+    throw new Error("Invalid Cast target.");
+  }
   const proxyUrl = new URL("/api/hls", requestUrl);
   proxyUrl.searchParams.set("url", String(url));
   if (castToken) proxyUrl.searchParams.set("castToken", castToken);
@@ -42,38 +57,45 @@ function rewritePlaylist(
       if (!trimmed) return line;
       if (trimmed.startsWith("#")) {
         return line.replace(/URI="([^"]+)"/g, (_match, uri: string) => {
-          return `URI="${proxiedUrl(new URL(uri, targetUrl), requestUrl, castToken, referer)}"`;
+          return `URI="${proxiedUrl(new URL(uri, targetUrl), requestUrl, castToken, targetUrl, referer)}"`;
         });
       }
-      return proxiedUrl(new URL(trimmed, targetUrl), requestUrl, castToken, referer);
+      return proxiedUrl(new URL(trimmed, targetUrl), requestUrl, castToken, targetUrl, referer);
     })
     .join("\n");
 }
 
 // Bound chunked reads independently of content-length and enforce a body deadline.
 // The fetch timeout ends at headers; return null when either body limit is exceeded.
-async function readSubtitle(response: Response): Promise<string | null> {
+async function readBytes(response: Response, limit: number): Promise<Uint8Array<ArrayBuffer> | null> {
   const reader = response.body?.getReader();
-  if (!reader) return "";
+  if (!reader) return new Uint8Array();
   let timedOut = false;
   const timer = setTimeout(() => {
     timedOut = true;
     void reader.cancel();
   }, FETCH_TIMEOUT_MS);
-  const decoder = new TextDecoder();
-  let text = "";
+  const chunks: Uint8Array[] = [];
   let size = 0;
   try {
     for (;;) {
       const { done, value } = await reader.read();
       if (timedOut) return null;
-      if (done) return text + decoder.decode();
+      if (done) {
+        const bytes = new Uint8Array(size);
+        let offset = 0;
+        for (const chunk of chunks) {
+          bytes.set(chunk, offset);
+          offset += chunk.byteLength;
+        }
+        return bytes;
+      }
       size += value.byteLength;
-      if (size > MAX_SUBTITLE_BYTES) {
+      if (size > limit) {
         await reader.cancel();
         return null;
       }
-      text += decoder.decode(value, { stream: true });
+      chunks.push(value);
     }
   } catch {
     return null;
@@ -83,7 +105,8 @@ async function readSubtitle(response: Response): Promise<string | null> {
 }
 
 function getCastCorsHeaders(request: NextRequest, castToken: string | null) {
-  if (!castToken || !isValidCastToken(castToken)) return null;
+  const target = getTargetUrl(request.nextUrl.searchParams.get("url"));
+  if (!target || !castToken || !isValidCastToken(castToken, request.nextUrl.host, target.host)) return null;
   const origin = request.headers.get("origin");
   if (!origin) return new Headers();
 
@@ -107,25 +130,34 @@ export function OPTIONS(request: NextRequest) {
   const castToken = request.nextUrl.searchParams.get("castToken");
   const headers = getCastCorsHeaders(request, castToken);
   if (!targetUrl || !isAllowedStreamHost(targetUrl) || !headers) {
-    return new NextResponse(null, { status: 403 });
+    return new NextResponse(null, { status: 403, headers: {
+      "content-security-policy": API_CSP,
+      "x-content-type-options": "nosniff",
+    } });
   }
 
+  headers.set("content-security-policy", API_CSP);
+  headers.set("x-content-type-options", "nosniff");
   headers.set("access-control-allow-methods", "GET, OPTIONS");
   headers.set("access-control-allow-headers", "Accept-Encoding, Content-Type, Range");
-  headers.set("access-control-max-age", "600");
+  headers.set("access-control-max-age", "300");
   return new NextResponse(null, { status: 204, headers });
 }
 
 export async function GET(request: NextRequest) {
+  const responseHeaders = new Headers({
+    "content-security-policy": API_CSP,
+    "x-content-type-options": "nosniff",
+  });
   const targetUrl = getTargetUrl(request.nextUrl.searchParams.get("url"));
   const castToken = request.nextUrl.searchParams.get("castToken");
   const castHeaders = getCastCorsHeaders(request, castToken);
   if (castToken && !castHeaders) {
-    return NextResponse.json({ error: "Invalid Cast token." }, { status: 403 });
+    return proxyError("Invalid Cast token.", 403, responseHeaders);
   }
-  if (!targetUrl) return NextResponse.json({ error: "Invalid HLS URL." }, { status: 400 });
+  if (!targetUrl) return proxyError("Invalid HLS URL.", 400, responseHeaders);
   if (!isAllowedStreamHost(targetUrl) || !(await isSafeHost(targetUrl))) {
-    return NextResponse.json({ error: "Target host is not allowed." }, { status: 403 });
+    return proxyError("Target host is not allowed.", 403, responseHeaders);
   }
 
   const referer = streamReferer(targetUrl);
@@ -154,33 +186,36 @@ export async function GET(request: NextRequest) {
       signal: controller.signal,
     }));
   } catch {
-    return NextResponse.json({ error: "Upstream request failed." }, { status: 502 });
+    return proxyError("Upstream request failed.", 502, responseHeaders);
   } finally {
     clearTimeout(timeout);
   }
 
-  const contentType = response.headers.get("content-type") ?? "";
-  if (!response.ok && contentType.includes("text/html")) {
+  const contentType = (response.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+  if (castToken && !allowCastHost(castToken, request.nextUrl.host, targetUrl.host, finalUrl.host)) {
     await response.body?.cancel();
-    return NextResponse.json({ error: "Upstream request failed." }, { status: 502 });
+    return proxyError("Invalid Cast token.", 403, responseHeaders);
   }
-  const responseHeaders = new Headers({
-    "content-security-policy": "default-src 'none'; sandbox",
-    "x-content-type-options": "nosniff",
-  });
+  if (["text/html", "application/xhtml+xml", "image/svg+xml"].includes(contentType)) {
+    await response.body?.cancel();
+    return proxyError("Upstream request failed.", 502, responseHeaders);
+  }
+  if (!response.ok) {
+    await response.body?.cancel();
+    return proxyError("Upstream request failed.", 502, responseHeaders);
+  }
   if (castHeaders) {
     for (const [key, value] of castHeaders) responseHeaders.set(key, value);
   }
   // format=srt requests conversion to WebVTT for <track> and Cast.
   if (srt) {
-    if (!response.ok) await response.body?.cancel();
-    const text = response.ok ? await readSubtitle(response) : null;
-    if (text === null) {
-      return NextResponse.json({ error: "Upstream request failed." }, { status: 502 });
+    const bytes = await readBytes(response, MAX_SUBTITLE_BYTES);
+    if (bytes === null) {
+      return proxyError("Upstream request failed.", 502, responseHeaders);
     }
     responseHeaders.set("content-type", "text/vtt; charset=utf-8");
-    responseHeaders.set("cache-control", SEGMENT_CACHE_CONTROL);
-    return new NextResponse(srtToVtt(text), { headers: responseHeaders });
+    responseHeaders.set("cache-control", castToken ? "no-store" : SEGMENT_CACHE_CONTROL);
+    return new NextResponse(srtToVtt(new TextDecoder().decode(bytes)), { headers: responseHeaders });
   }
   for (const header of ["accept-ranges", "content-length", "content-range", "content-type"]) {
     const value = response.headers.get(header);
@@ -190,45 +225,66 @@ export async function GET(request: NextRequest) {
   // Upstream MIME types can disguise playlists as HTML or segments as images; inspect their bytes.
   const expectsPlaylist = contentType.includes("mpegurl") || /\.(?:m3u8|txt)$/i.test(finalUrl.pathname);
   const contentLength = Number(response.headers.get("content-length") ?? 0);
+  const allowedMedia = /^(?:video|audio)\/[a-z0-9.+-]+$/.test(contentType) || [
+    "application/octet-stream", "application/vnd.apple.mpegurl", "application/x-mpegurl",
+    "application/dash+xml", "text/vtt",
+  ].includes(contentType);
   const sniff =
     response.ok &&
-    !range &&
+    (!range || response.status === 200) &&
     contentLength <= MAX_SNIFF_BYTES &&
-    (expectsPlaylist || /^(?:text|image)\/|javascript|json/i.test(contentType));
+    (expectsPlaylist || !contentType || contentType === "application/octet-stream" || /^(?:text|image)\/|javascript|json/i.test(contentType));
   if (sniff) {
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const text = new TextDecoder().decode(bytes.subarray(0, 64)).replace(/^\uFEFF/, "").trimStart();
+    const bytes = await readBytes(response, MAX_SNIFF_BYTES);
+    if (!bytes) {
+      return proxyError("Upstream request failed.", 502, responseHeaders);
+    }
+    const text = new TextDecoder().decode(bytes.subarray(0, 512)).replace(/^\uFEFF/, "").trimStart();
     if (text.startsWith("#EXTM3U")) {
       responseHeaders.set("content-type", "application/vnd.apple.mpegurl");
-      responseHeaders.set("cache-control", PLAYLIST_CACHE_CONTROL);
+      responseHeaders.set("cache-control", castToken ? "no-store" : PLAYLIST_CACHE_CONTROL);
       responseHeaders.delete("content-length");
       const playlist = new TextDecoder().decode(bytes);
-      return new NextResponse(
-        rewritePlaylist(playlist, finalUrl, request.nextUrl.href, castToken, referer),
-        { status: response.status, headers: responseHeaders },
-      );
+      try {
+        return new NextResponse(
+          rewritePlaylist(playlist, finalUrl, request.nextUrl.href, castToken, referer),
+          { status: response.status, headers: responseHeaders },
+        );
+      } catch {
+        return proxyError("Invalid upstream playlist.", 502, responseHeaders);
+      }
     }
     const segment = unwrapTransportStream(bytes);
     if (segment) {
       responseHeaders.set("content-type", "video/mp2t");
       responseHeaders.set("content-length", String(segment.byteLength));
-      responseHeaders.set("cache-control", SEGMENT_CACHE_CONTROL);
+      responseHeaders.set("cache-control", castToken ? "no-store" : SEGMENT_CACHE_CONTROL);
       return new NextResponse(segment, {
         status: response.status,
         headers: responseHeaders,
       });
     }
-    // Never serve an upstream HTML page from this origin.
-    if (expectsPlaylist || contentType.includes("html")) {
-      return NextResponse.json({ error: "Invalid upstream playlist." }, { status: 502 });
+    if (!contentType && /^WEBVTT(?:\s|$)/.test(text)) {
+      responseHeaders.set("content-type", "text/vtt");
+      responseHeaders.set("cache-control", castToken ? "no-store" : SEGMENT_CACHE_CONTROL);
+      return new NextResponse(bytes, { status: response.status, headers: responseHeaders });
     }
-    responseHeaders.set("cache-control", SEGMENT_CACHE_CONTROL);
+    // Never serve an upstream HTML page from this origin.
+    if (expectsPlaylist || !allowedMedia || /^(?:<!doctype\b|<!--|<\?xml\b|<(?:html|head|body|script|iframe|svg)\b)/i.test(text)) {
+      return proxyError("Invalid upstream media.", 502, responseHeaders);
+    }
+    responseHeaders.set("cache-control", castToken ? "no-store" : SEGMENT_CACHE_CONTROL);
     return new NextResponse(bytes, { status: response.status, headers: responseHeaders });
+  }
+
+  if (!allowedMedia) {
+    await response.body?.cancel();
+    return proxyError("Invalid upstream media.", 502, responseHeaders);
   }
 
   // Never cache upstream errors under segment URLs.
   if (response.status === 200 || response.status === 206) {
-    responseHeaders.set("cache-control", SEGMENT_CACHE_CONTROL);
+    responseHeaders.set("cache-control", castToken ? "no-store" : SEGMENT_CACHE_CONTROL);
   }
 
   return new NextResponse(response.body, {

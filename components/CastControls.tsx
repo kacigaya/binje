@@ -13,6 +13,7 @@ import {
 import { PlayIcon, controlButtonClass } from "@/components/PlayerControls";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
+import { CAST_RENEWAL_MS, requestCastToken } from "@/lib/cast-client";
 
 type Track = { file: string; label?: string; format?: "srt" };
 type CastStatus = "disconnected" | "connecting" | "connected";
@@ -30,14 +31,6 @@ function castProxyUrl(url: string, token: string, format?: "srt") {
   proxyUrl.searchParams.set("castToken", token);
   if (format) proxyUrl.searchParams.set("format", format);
   return proxyUrl.href;
-}
-
-async function requestCastToken(signal: AbortSignal) {
-  const response = await fetch("/api/cast", { method: "POST", signal });
-  if (!response.ok) throw new Error("Cast authorization failed.");
-  const data = (await response.json()) as { token?: unknown };
-  if (typeof data.token !== "string") throw new Error("Invalid Cast authorization response.");
-  return data.token;
 }
 
 export default function CastControls({
@@ -64,6 +57,7 @@ export default function CastControls({
   const remoteControllerRef = useRef<RemotePlayerController | null>(null);
   const remoteSnapshotRef = useRef({ currentTime: 0, duration: 0, isPaused: true });
   const loadAbortRef = useRef<AbortController | null>(null);
+  const renewalRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastLoadedRef = useRef<{ key: string; mediaKey: string } | null>(null);
   const [googleAvailable, setGoogleAvailable] = useState(false);
   const [googleStatus, setGoogleStatus] = useState<CastStatus>("disconnected");
@@ -194,12 +188,16 @@ export default function CastControls({
     };
   }, [source, videoRef]);
 
-  const loadRemoteMedia = useCallback(async () => {
+  const loadRemoteMedia = useCallback(async function loadRemoteMedia(renew = false, retries = 2): Promise<void> {
     const api = apiRef.current;
     const session = api?.context.getCurrentSession();
     const video = videoRef.current;
     if (!api || !session || !video || !source) return;
-    if (lastLoadedRef.current?.key === loadKey) return;
+    if (renew && loadAbortRef.current) return;
+    if (!renew && lastLoadedRef.current?.key === loadKey) return;
+
+    if (renewalRetryRef.current) clearTimeout(renewalRetryRef.current);
+    renewalRetryRef.current = null;
 
     loadAbortRef.current?.abort();
     const controller = new AbortController();
@@ -208,12 +206,9 @@ export default function CastControls({
     const sameMedia = !previous || previous.mediaKey === mediaKey;
     const remotePlayer = remotePlayerRef.current;
     const remoteHasMedia = Boolean(remotePlayer?.isMediaLoaded);
-    const currentTime =
-      sameMedia && remoteHasMedia ? remotePlayer!.currentTime : sameMedia ? video.currentTime : 0;
-    const autoplay = remoteHasMedia ? !remotePlayer!.isPaused : !video.paused;
 
     try {
-      const token = await requestCastToken(controller.signal);
+      const token = await requestCastToken(source, tracks.map((track) => track.file), controller.signal);
       if (controller.signal.aborted) return;
       const mediaInfo = new api.chromeCast.media.MediaInfo(
         castProxyUrl(source, token),
@@ -239,9 +234,13 @@ export default function CastControls({
       }
 
       const request = new api.chromeCast.media.LoadRequest(mediaInfo);
-      request.autoplay = autoplay;
+      const currentTime =
+        sameMedia && remoteHasMedia ? remotePlayer!.currentTime : sameMedia ? video.currentTime : 0;
+      request.autoplay = remoteHasMedia ? !remotePlayer!.isPaused : !video.paused;
       request.currentTime = Number.isFinite(currentTime) ? currentTime : 0;
-      if (tracks.length > 0) request.activeTrackIds = [1];
+      if (tracks.length > 0) request.activeTrackIds = renew
+        ? session.getMediaSession()?.activeTrackIds ?? [1]
+        : [1];
       await session.loadMedia(request);
       if (controller.signal.aborted) return;
       lastLoadedRef.current = { key: loadKey, mediaKey };
@@ -249,6 +248,9 @@ export default function CastControls({
       setError(null);
     } catch (loadError: unknown) {
       if (controller.signal.aborted) return;
+      if (renew && retries > 0) {
+        renewalRetryRef.current = setTimeout(() => void loadRemoteMedia(true, retries - 1), 15_000);
+      }
       const message = loadError instanceof Error ? loadError.message : "Remote media load failed.";
       reportError(message);
     } finally {
@@ -259,6 +261,12 @@ export default function CastControls({
 
   useEffect(() => {
     if (googleStatus === "connected") void loadRemoteMedia();
+  }, [googleStatus, loadRemoteMedia]);
+
+  useEffect(() => {
+    if (googleStatus !== "connected") return;
+    const timer = window.setInterval(() => void loadRemoteMedia(true), CAST_RENEWAL_MS);
+    return () => window.clearInterval(timer);
   }, [googleStatus, loadRemoteMedia]);
 
   useEffect(() => {
@@ -280,8 +288,10 @@ export default function CastControls({
   useEffect(
     () => () => {
       loadAbortRef.current?.abort();
+      if (renewalRetryRef.current) clearTimeout(renewalRetryRef.current);
+      renewalRetryRef.current = null;
     },
-    [],
+    [loadKey, googleStatus],
   );
 
   const googleConnected = googleStatus === "connected";

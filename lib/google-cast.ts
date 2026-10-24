@@ -25,6 +25,7 @@ type CastLoadRequest = {
 
 type CastSession = {
   loadMedia(request: CastLoadRequest): Promise<void>;
+  getMediaSession(): { activeTrackIds: number[] | null } | null;
   getCastDevice(): { friendlyName?: string };
 };
 

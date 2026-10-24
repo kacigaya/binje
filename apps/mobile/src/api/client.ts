@@ -8,6 +8,7 @@ type ApiRequestOptions = {
   query?: Record<string, QueryValue>;
   timeoutMs?: number;
   signal?: AbortSignal;
+  body?: Record<string, unknown>;
 };
 
 export class ApiError extends Error {
@@ -58,8 +59,9 @@ export async function apiRequest<T>(
 
   try {
     const response = await fetch(url.toString(), {
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", ...(options.body ? { "Content-Type": "application/json" } : {}) },
       method: options.method ?? "GET",
+      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
       signal: controller.signal,
     });
 

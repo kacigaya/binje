@@ -50,13 +50,15 @@ describe("native Google Cast media", () => {
   test("requests and validates a cast token", async () => {
     apiRequest.mockResolvedValue({ token: "c".repeat(32) });
 
-    await expect(requestCastToken()).resolves.toBe("c".repeat(32));
+    await expect(requestCastToken("https://cdn.test/master.m3u8", [])).resolves.toBe("c".repeat(32));
     expect(apiRequest).toHaveBeenCalledWith("/api/cast", {
       method: "POST",
+      body: { url: "https://cdn.test/master.m3u8", subtitles: [] },
+      timeoutMs: 5000,
       signal: undefined,
     });
 
     apiRequest.mockResolvedValueOnce({ token: "bad" });
-    await expect(requestCastToken()).rejects.toThrow("Invalid Cast authorization response");
+    await expect(requestCastToken("https://cdn.test/master.m3u8", [])).rejects.toThrow("Invalid Cast authorization response");
   });
 });

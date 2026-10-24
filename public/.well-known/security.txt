@@ -1,0 +1,4 @@
+Contact: https://github.com/kacigaya/binje/issues
+Expires: 2027-10-01T00:00:00Z
+Preferred-Languages: en, fr
+Canonical: https://binje.duckdns.org/.well-known/security.txt

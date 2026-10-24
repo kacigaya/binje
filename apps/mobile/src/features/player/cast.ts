@@ -10,9 +10,13 @@ export function castProxyUrl(source: string, token: string, baseUrl = configured
   return url.toString();
 }
 
-export async function requestCastToken(signal?: AbortSignal) {
+export const CAST_RENEWAL_MS = 4 * 60 * 1000;
+
+export async function requestCastToken(source: string, tracks: CastTrack[], signal?: AbortSignal) {
   const response = await apiRequest<{ token?: unknown }>("/api/cast", {
     method: "POST",
+    body: { url: source, subtitles: tracks.map((track) => track.file) },
+    timeoutMs: 5000,
     signal,
   });
   if (typeof response.token !== "string" || !/^[A-Za-z0-9_-]{32}$/.test(response.token)) {

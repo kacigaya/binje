@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createCastToken } from "@/lib/cast-token";
+import { isAllowedStreamHost } from "@/lib/hls-hosts";
+import { getTargetUrl, isSafeHost } from "@/lib/safe-fetch";
 
 function isAllowedSender(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -18,7 +20,7 @@ function isAllowedSender(request: NextRequest) {
   }
 }
 
-export function POST(request: NextRequest) {
+export async function POST(request: NextRequest) {
   if (!isAllowedSender(request)) {
     return NextResponse.json(
       { error: "Cast sessions must be created from this site." },
@@ -26,8 +28,38 @@ export function POST(request: NextRequest) {
     );
   }
 
+  let body: unknown;
+  try {
+    if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
+      throw new Error("Invalid body.");
+    }
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "A JSON target URL is required." }, {
+      status: 400, headers: { "cache-control": "no-store" },
+    });
+  }
+  if (!body || typeof body !== "object" || !("url" in body) || typeof body.url !== "string" ||
+    ("subtitles" in body && (!Array.isArray(body.subtitles) || body.subtitles.length > 100 ||
+      body.subtitles.some((url: unknown) => typeof url !== "string")))) {
+    return NextResponse.json({ error: "Invalid Cast targets." }, {
+      status: 400, headers: { "cache-control": "no-store" },
+    });
+  }
+  const targets: unknown[] = [body.url, ...("subtitles" in body && Array.isArray(body.subtitles) ? body.subtitles : [])];
+  const hosts: string[] = [];
+  for (const value of targets) {
+    const target = getTargetUrl(typeof value === "string" ? value : null);
+    if (!target || !isAllowedStreamHost(target) || !(await isSafeHost(target))) {
+      return NextResponse.json({ error: "Target host is not allowed." }, {
+        status: 403, headers: { "cache-control": "no-store" },
+      });
+    }
+    hosts.push(target.host);
+  }
+
   return NextResponse.json(
-    { token: createCastToken() },
+    { token: createCastToken(request.nextUrl.host, hosts) },
     { headers: { "cache-control": "no-store" } },
   );
 }
