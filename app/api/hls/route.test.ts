@@ -1,10 +1,15 @@
-import { afterEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { NextRequest } from "next/server";
 import { createCastToken } from "@/lib/cast-token";
 import { allowStreamHost } from "@/lib/hls-hosts";
 import { GET, OPTIONS } from "./route";
 
 const originalFetch = globalThis.fetch;
+
+function expectIsolation(response: Response) {
+  expect(response.headers.get("content-security-policy")).toBe("default-src 'none'; sandbox");
+  expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+}
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
@@ -21,9 +26,42 @@ function castRequest(token: string, method = "GET") {
 }
 
 describe("Cast HLS access", () => {
+  test("rejects host mismatches and expired tokens on GET and preflight", async () => {
+    const clock = spyOn(Date, "now").mockReturnValue(1_800_300_000_000);
+    try {
+      allowStreamHost("https://203.0.113.10/master.m3u8");
+      const token = createCastToken("binje.test", ["203.0.113.10"]);
+      const otherTarget = new URL(castRequest(token).url);
+      otherTarget.searchParams.set("url", "https://203.0.113.41/en.vtt");
+      expect((await GET(new NextRequest(otherTarget))).status).toBe(403);
+      expect((await GET(new NextRequest(castRequest(token).url.replace("binje.test", "other.test")))).status).toBe(403);
+      clock.mockReturnValue(1_800_300_300_000);
+      expect((await GET(castRequest(token))).status).toBe(403);
+      expect(OPTIONS(castRequest(token, "OPTIONS")).status).toBe(403);
+    } finally { clock.mockRestore(); }
+  });
+
+  test("authorizes cross-host playlist children and validated redirects only", async () => {
+    allowStreamHost("https://203.0.113.10/master.m3u8");
+    const token = createCastToken("binje.test", ["203.0.113.10"]);
+    globalThis.fetch = mock(async (input: unknown) => {
+      const url = new URL(String(input));
+      if (url.host === "203.0.113.10") return new Response(null, { status: 302, headers: { location: "https://203.0.113.43/master.m3u8" } });
+      if (url.pathname.endsWith(".m3u8")) return new Response("#EXTM3U\nhttps://203.0.113.44/seg.ts\n", { headers: { "content-type": "application/vnd.apple.mpegurl" } });
+      return new Response(new Uint8Array([0x47]), { headers: { "content-type": "video/mp2t" } });
+    }) as unknown as typeof fetch;
+    const response = await GET(castRequest(token));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const child = new URL((await response.text()).trim().split("\n")[1], "https://binje.test");
+    expect((await GET(new NextRequest(child, { headers: { origin: "https://receiver.test" } }))).status).toBe(200);
+    child.searchParams.set("url", "https://203.0.113.45/unrelated.ts");
+    expect((await GET(new NextRequest(child))).status).toBe(403);
+  });
+
   test("permits token-bound receiver preflights only", () => {
     allowStreamHost("https://203.0.113.10/master.m3u8");
-    const token = createCastToken();
+    const token = createCastToken("binje.test", ["203.0.113.10"]);
 
     const allowed = OPTIONS(castRequest(token, "OPTIONS"));
     const denied = OPTIONS(castRequest("a".repeat(32), "OPTIONS"));
@@ -36,11 +74,13 @@ describe("Cast HLS access", () => {
       "Accept-Encoding, Content-Type, Range",
     );
     expect(denied.status).toBe(403);
+    expectIsolation(allowed);
+    expectIsolation(denied);
   });
 
   test("keeps receiver authorization on rewritten playlist resources", async () => {
     allowStreamHost("https://203.0.113.10/master.m3u8");
-    const token = createCastToken();
+    const token = createCastToken("binje.test", ["203.0.113.10"]);
     globalThis.fetch = mock(async () =>
       new Response(
         '#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="key.bin"\nsegment.ts\n',
@@ -54,6 +94,7 @@ describe("Cast HLS access", () => {
     const segmentUrl = new URL(playlist.trim().split("\n").at(-1)!, "https://binje.test");
 
     expect(response.status).toBe(200);
+    expectIsolation(response);
     expect(response.headers.get("access-control-allow-origin")).toBe(
       "https://receiver.test",
     );
@@ -69,7 +110,7 @@ test("rewrites mislabeled redirected playlists against the final URL and inherit
     seen.push(new Headers(init?.headers).get("referer") ?? "");
     return seen.length === 1
       ? new Response(null, { status: 302, headers: { location: "https://203.0.113.12/path/master" } })
-      : new Response("#EXTM3U\nvariant/index.m3u8\n", { headers: { "content-type": "text/html" } });
+      : new Response("#EXTM3U\nvariant/index.m3u8\n", { headers: { "content-type": "application/octet-stream" } });
   }) as unknown as typeof fetch;
   const result = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.11/opaque"));
   expect(result.status).toBe(200);
@@ -108,6 +149,137 @@ test("rejects HTML and redirects into private networks", async () => {
   expect((await GET(request)).status).toBe(502);
   globalThis.fetch = mock(async () => new Response(null, { status: 302, headers: { location: "http://127.0.0.1/private" } })) as unknown as typeof fetch;
   expect((await GET(request)).status).toBe(502);
+});
+
+test.each(["text/html", "application/xhtml+xml", "image/svg+xml", "Text/HTML; charset=UTF-8"])(
+  "rejects %s for every status, Range, and declared size", async (contentType) => {
+    allowStreamHost("https://203.0.113.24/segment.ts");
+    for (const status of [200, 206, 403, 500]) {
+      for (const range of [null, "bytes=0-100"]) {
+        for (const size of [64, 33 * 1024 * 1024]) {
+          let cancelled = false;
+          globalThis.fetch = mock(async () => new Response(new ReadableStream({
+            cancel() { cancelled = true; },
+          }), { status, headers: { "content-type": contentType, "content-length": String(size) } })) as unknown as typeof fetch;
+          const response = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.24/segment.ts", {
+            headers: range ? { range } : {},
+          }));
+          expect(response.status).toBe(502);
+          expectIsolation(response);
+          expect(cancelled).toBe(true);
+        }
+      }
+    }
+  },
+);
+
+test("rejects HTML disguised as octet-stream", async () => {
+  allowStreamHost("https://203.0.113.25/segment.ts");
+  for (const body of ["<!DOCTYPE html><html>blocked</html>", "\uFEFF  <script>alert(1)</script>"]) {
+    globalThis.fetch = mock(async () => new Response(body, { headers: { "content-type": "application/octet-stream" } })) as unknown as typeof fetch;
+    const response = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.25/segment.ts", {
+      headers: { range: "bytes=0-100" },
+    }));
+    expect(response.status).toBe(502);
+    expectIsolation(response);
+  }
+});
+
+test("recognizes bounded media signatures without MIME and rejects unknown bodies", async () => {
+  allowStreamHost("https://198.51.100.150/resource");
+  const segment = new Uint8Array(376);
+  segment[0] = segment[188] = 0x47;
+  for (const [bytes, expectedType] of [
+    [segment, "video/mp2t"],
+    [new TextEncoder().encode("#EXTM3U\nsegment.ts\n"), "application/vnd.apple.mpegurl"],
+    [new TextEncoder().encode("WEBVTT\n\n"), "text/vtt"],
+    [new TextEncoder().encode("<html>blocked</html>"), null],
+    [new TextEncoder().encode('{"error":"blocked"}'), null],
+  ] as const) {
+    globalThis.fetch = mock(async () => new Response(bytes)) as unknown as typeof fetch;
+    const response = await GET(new NextRequest("https://binje.test/api/hls?url=https://198.51.100.150/resource"));
+    expect(response.status).toBe(expectedType ? 200 : 502);
+    if (expectedType) expect(response.headers.get("content-type")).toBe(expectedType);
+    expectIsolation(response);
+  }
+});
+
+test.each(["application/json", "application/xml", "text/javascript", "text/plain", "image/png"])(
+  "rejects unrecognized %s bodies with and without Range", async (contentType) => {
+    allowStreamHost("https://203.0.113.26/resource");
+    for (const range of [null, "bytes=0-100"]) {
+      globalThis.fetch = mock(async () => new Response("untrusted", { headers: { "content-type": contentType } })) as unknown as typeof fetch;
+      const response = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.26/resource", {
+        headers: range ? { range } : {},
+      }));
+      expect(response.status).toBe(502);
+      expectIsolation(response);
+    }
+  },
+);
+
+test("streams a legitimate ranged TS segment with its range headers", async () => {
+  allowStreamHost("https://203.0.113.27/segment.ts");
+  const bytes = new Uint8Array([0x47, 1, 2, 3]);
+  const upstreamRanges: (string | null)[] = [];
+  globalThis.fetch = mock(async (_input: unknown, init?: RequestInit) => {
+    upstreamRanges.push(new Headers(init?.headers).get("range"));
+    return new Response(bytes, { status: 206, headers: {
+      "content-type": "video/mp2t", "content-range": "bytes 0-3/100", "content-length": "4",
+    } });
+  }) as unknown as typeof fetch;
+  const response = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.27/segment.ts", {
+    headers: { range: "bytes=0-3" },
+  }));
+  expect(response.status).toBe(206);
+  expect(upstreamRanges).toEqual(["bytes=0-3"]);
+  expect(response.headers.get("content-range")).toBe("bytes 0-3/100");
+  expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes);
+  expectIsolation(response);
+});
+
+test("isolates validation and upstream failure responses", async () => {
+  for (const query of ["", "?url=https://203.0.113.28/no", "?castToken=invalid"]) {
+    expectIsolation(await GET(new NextRequest(`https://binje.test/api/hls${query}`)));
+  }
+  allowStreamHost("https://203.0.113.28/no");
+  globalThis.fetch = mock(async () => { throw new Error("private upstream details"); }) as unknown as typeof fetch;
+  const response = await GET(new NextRequest("https://binje.test/api/hls?url=https://203.0.113.28/no"));
+  expect(response.status).toBe(502);
+  expectIsolation(response);
+  expect(await response.json()).toEqual({ error: "Upstream request failed." });
+});
+
+test("does not reuse upstream body headers or details on proxy errors", async () => {
+  allowStreamHost("https://198.51.100.151/resource");
+  globalThis.fetch = mock(async () => new Response('<html>private upstream details</html>', { headers: {
+    "content-type": "application/octet-stream", "content-length": "128",
+    "content-range": "bytes 0-127/128", "accept-ranges": "bytes",
+  } })) as unknown as typeof fetch;
+  const response = await GET(new NextRequest("https://binje.test/api/hls?url=https://198.51.100.151/resource"));
+  expect(response.status).toBe(502);
+  expect(response.headers.get("content-type")).toStartWith("application/json");
+  expect(response.headers.get("content-length")).toBeNull();
+  expect(response.headers.get("content-range")).toBeNull();
+  expect(response.headers.get("accept-ranges")).toBeNull();
+  expect(response.headers.get("cache-control")).toBe("no-store");
+  expect(await response.json()).toEqual({ error: "Invalid upstream media." });
+  expectIsolation(response);
+});
+
+test.each([403, 404, 416, 500])("replaces upstream %s media errors with generic uncached JSON", async (status) => {
+  allowStreamHost("https://198.51.100.152/segment.ts");
+  globalThis.fetch = mock(async () => new Response("private upstream stack trace", {
+    status, headers: { "content-type": "video/mp2t", "content-length": "128", "content-range": "bytes */128" },
+  })) as unknown as typeof fetch;
+  const response = await GET(new NextRequest("https://binje.test/api/hls?url=https://198.51.100.152/segment.ts"));
+  expect(response.status).toBe(502);
+  expect(response.headers.get("content-type")).toStartWith("application/json");
+  expect(response.headers.get("content-length")).toBeNull();
+  expect(response.headers.get("content-range")).toBeNull();
+  expect(response.headers.get("cache-control")).toBe("no-store");
+  expect(await response.json()).toEqual({ error: "Upstream request failed." });
+  expectIsolation(response);
 });
 
 test("rewrites playlists served as text and forwards the viewer's User-Agent to children", async () => {

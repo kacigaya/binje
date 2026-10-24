@@ -6,6 +6,8 @@ const LIMITS: [prefix: string, max: number][] = [
   ["/api/resolve", 20],
   // Each call resolves every provider for one title, so it is the costliest route.
   ["/api/sources", 20],
+  ["/api/search", 30],
+  ["/api/mobile", 60],
   // Audio sync decodes minutes of audio; match it before the broader /api/subtitles rule.
   ["/api/subtitles/sync", 3],
   // Each uncached title asks several providers for their subtitle lists.

@@ -24,6 +24,14 @@ loads the token-bound HLS proxy URL in Google's Default Media Receiver, and tran
 the current position and subtitle tracks. Remote progress continues updating local
 history. Disconnecting restores local playback at the last remote position.
 
+`POST /api/cast` requires `Content-Type: application/json` and a body with
+`url` for the stream and `subtitles` for subtitle URLs. The server checks every
+host against the stream allowlist and private-network rules. Tokens last five
+minutes. The sender renews them every four minutes by loading the same media
+at the current position with the current pause state and subtitle selection.
+The sender must remain active to renew. A suspended sender can let the token
+expire. Older native builds must be updated to use the new request body.
+
 ## Local state
 
 AsyncStorage repositories validate every decoded record. Watchlist is limited to 100 unique titles and history to 20. TV progress is keyed by title, season, and episode. Locale selection prefers a saved choice, then the device locale, then English.

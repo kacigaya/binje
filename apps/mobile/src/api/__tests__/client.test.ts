@@ -41,11 +41,15 @@ describe("API client", () => {
     await apiRequest("/api/cast", {
       baseUrl: "https://example.com",
       method: "POST",
+      body: { url: "https://cdn.test/master.m3u8", subtitles: [] },
     });
 
     expect(global.fetch).toHaveBeenCalledWith(
       "https://example.com/api/cast",
-      expect.objectContaining({ method: "POST" }),
+      expect.objectContaining({
+        method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify({ url: "https://cdn.test/master.m3u8", subtitles: [] }),
+      }),
     );
   });
 
@@ -59,6 +63,21 @@ describe("API client", () => {
     await expect(apiRequest("/api/search", { baseUrl: "https://example.com" })).rejects.toEqual(
       expect.objectContaining({ status: 429, code: "RATE_LIMITED", message: "Slow down." }),
     );
+  });
+
+  test("aborts a stalled Cast authorization at the configured five-second deadline", async () => {
+    jest.useFakeTimers();
+    const signals: AbortSignal[] = [];
+    global.fetch = jest.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      const signal = init.signal!;
+      signals.push(signal);
+      signal.addEventListener("abort", () => reject(new Error("request deadline")), { once: true });
+    })) as jest.Mock;
+    const pending = apiRequest("/api/cast", { baseUrl: "https://example.com", method: "POST", timeoutMs: 5000 });
+    const rejected = expect(pending).rejects.toThrow("request deadline");
+    await jest.advanceTimersByTimeAsync(5000);
+    await rejected;
+    expect(signals[0].aborted).toBe(true);
   });
 
   test("falls back when an error body is malformed", async () => {

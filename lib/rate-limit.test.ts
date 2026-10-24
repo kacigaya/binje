@@ -1,13 +1,37 @@
-import { describe, expect, test } from "bun:test";
-import { bucketFor, clientIp, isRateLimited } from "./rate-limit";
+import { describe, expect, spyOn, test } from "bun:test";
+import { bucketFor, clientIp, isRateLimited, retryAfterSeconds } from "./rate-limit";
 
 describe("rate-limit", () => {
   test("buckets routes by upstream cost", () => {
     expect(bucketFor("/api/hls?url=x")[1]).toBe(600);
     expect(bucketFor("/api/resolve?source=vidsu")[0]).toBe("/api/resolve");
-    expect(bucketFor("/api/search")[1]).toBe(bucketFor("/api/mobile/home")[1]);
+    expect(bucketFor("/api/search")).toEqual(["/api/search", 30]);
+    expect(bucketFor("/api/mobile/home")).toEqual(["/api/mobile", 60]);
     expect(bucketFor("/api/subtitles")[1]).toBeLessThan(bucketFor("/api/search")[1]);
     expect(bucketFor("/api/subtitles/sync")).toEqual(["/api/subtitles/sync", 3]);
+  });
+
+  test("shares the mobile bucket across routes and isolates search, playback, and clients", () => {
+    const clock = spyOn(Date, "now").mockReturnValue(1_800_000_000_000);
+    try {
+      const ip = "203.0.113.31";
+      for (let i = 0; i < 60; i++) {
+        expect(isRateLimited(ip, i % 2 ? "/api/mobile/home" : "/api/mobile/media/movie/1")).toBe(false);
+      }
+      expect(isRateLimited(ip, "/api/mobile/browse")).toBe(true);
+      for (let i = 0; i < 30; i++) expect(isRateLimited(ip, "/api/search")).toBe(false);
+      expect(isRateLimited(ip, "/api/search")).toBe(true);
+      expect(isRateLimited(ip, "/api/hls")).toBe(false);
+      expect(isRateLimited(ip, "/api/resolve")).toBe(false);
+      expect(isRateLimited(ip, "/api/cast")).toBe(false);
+      expect(isRateLimited("203.0.113.32", "/api/search")).toBe(false);
+      expect(retryAfterSeconds(ip, "/api/search")).toBe(60);
+      clock.mockReturnValue(1_800_000_060_001);
+      expect(isRateLimited(ip, "/api/search")).toBe(false);
+      expect(isRateLimited(ip, "/api/mobile/home")).toBe(false);
+    } finally {
+      clock.mockRestore();
+    }
   });
 
   test("blocks past the bucket limit and keeps buckets independent", () => {

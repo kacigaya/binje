@@ -1,25 +1,5 @@
 import type { NextConfig } from "next";
-
-// Next's dev overlay and HMR runtime need eval; production builds do not.
-const SCRIPT_SRC =
-  process.env.NODE_ENV === "production"
-    ? "script-src 'self' 'unsafe-inline' https://www.gstatic.com"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com";
-
-const CSP = [
-  "default-src 'self'",
-  SCRIPT_SRC,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://image.tmdb.org",
-  "connect-src 'self' blob: data: https:",
-  "media-src 'self' blob: data: https:",
-  "worker-src 'self' blob:",
-  "font-src 'self' data:",
-  "frame-ancestors 'self'",
-  "base-uri 'self'",
-  "object-src 'none'",
-  "form-action 'self'",
-].join("; ");
+import { API_CSP } from "./lib/security-headers";
 
 const isInstantTestBuild = process.env.NEXT_INSTANT_TEST === "1";
 
@@ -53,21 +33,16 @@ const nextConfig: NextConfig = {
       headers: [
         { key: "X-Frame-Options", value: "SAMEORIGIN" },
         { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
         { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
         // Nothing opens a popup or touches window.opener, so the strictest value is safe.
         { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
         { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-        { key: "Content-Security-Policy", value: CSP },
       ],
     },
     {
-      source: "/api/mobile/:path*",
-      headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
-    },
-    // Keep /api/hls same-origin so third-party pages cannot drive the segment proxy from a browser.
-    {
-      source: "/api/(search|resolve|sources|episodes)",
-      headers: [{ key: "Access-Control-Allow-Origin", value: "*" }],
+      source: "/api/:path*",
+      headers: [{ key: "Content-Security-Policy", value: API_CSP }],
     },
   ],
 };
