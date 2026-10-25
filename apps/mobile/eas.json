@@ -17,6 +17,12 @@
         "EXPO_PUBLIC_API_BASE_URL": "https://binje.duckdns.org"
       }
     },
+    "simulator": {
+      "extends": "preview",
+      "ios": {
+        "simulator": true
+      }
+    },
     "production": {
       "autoIncrement": true,
       "env": {
