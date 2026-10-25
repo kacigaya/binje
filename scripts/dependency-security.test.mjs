@@ -173,6 +173,16 @@ test("Expo can parse and write plists with the fixed XML parser", () => {
   assert.deepEqual({ ...plist.parse(plist.build(value)) }, value);
 });
 
+test("Expo can read entitlement templates with leading whitespace", () => {
+  const plist = expoCliLoad("@expo/plist").default;
+  const value = { CFBundleName: "  b!nje  ", Enabled: true };
+  const xml = plist.build(value);
+  for (const prefix of ["\n", "\r\n", "\uFEFF\n \t"]) {
+    assert.deepEqual({ ...plist.parse(prefix + xml) }, value);
+  }
+  assert.throws(() => plist.parse(xml.replace("<dict>", '<dict><?xml version="1.0"?>')));
+});
+
 test("overrides match direct dependency ranges for npm-based EAS steps", () => {
   const manifests = [
     mobileLoad("../../package.json"),
