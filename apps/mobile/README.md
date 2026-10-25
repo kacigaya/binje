@@ -24,6 +24,23 @@ npx eas-cli@latest build --platform ios --profile development
 
 EAS authentication and access to the owning Expo account are required. Store submission is not performed automatically.
 
+For test builds with the JavaScript bundle included:
+
+```bash
+cd apps/mobile
+npx eas-cli@latest build --platform android --profile preview
+npx eas-cli@latest build --platform ios --profile preview
+```
+
+The iOS preview profile needs Apple signing credentials and registered devices.
+To build for the iOS Simulator without signing credentials:
+
+```bash
+npx eas-cli@latest build --platform ios --profile simulator
+```
+
+Simulator builds run in the iOS Simulator on macOS. They cannot install on an iPhone.
+
 Google Cast uses the native sender SDK and Google's Default Media Receiver. After
 adding or upgrading `react-native-google-cast`, rebuild the development client before
 testing. The Cast button appears in the player when a compatible receiver is available
