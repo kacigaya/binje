@@ -1,7 +1,7 @@
 import { beforeEach, expect, jest, test } from '@jest/globals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setConsent } from './consent';
-import { formatPlaybackTime, formatPlaybackTimings, getPlayHistory, savePlayHistory, updatePlayHistoryProgress, upsertPlayHistory, type PlayHistoryItem } from './playHistory';
+import { formatPlaybackTime, formatPlaybackTimings, getPlayHistory, getResumePosition, savePlayHistory, updatePlayHistoryProgress, upsertPlayHistory, type PlayHistoryItem } from './playHistory';
 jest.mock('@react-native-async-storage/async-storage',()=>require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 const item=(id:number,watchedAt=id):PlayHistoryItem=>({type:'movie',id,title:`Movie ${id}`,poster_path:null,backdrop_path:null,date:'',vote_average:5,watchedAt});
 beforeEach(()=>AsyncStorage.clear());
@@ -9,3 +9,13 @@ test('does not persist before consent and caps at 20 unique media',async()=>{awa
 test('keys TV progress by episode and clamps progress',async()=>{await setConsent('accepted');await upsertPlayHistory({...item(7),type:'tv',season:2,episode:3});await updatePlayHistoryProgress({type:'tv',id:7,season:2,episode:3,positionSeconds:200,durationSeconds:100});expect((await getPlayHistory())[0]).toMatchObject({progress:1,positionSeconds:200});expect(await updatePlayHistoryProgress({type:'tv',id:7,season:2,episode:4,positionSeconds:10,durationSeconds:100})).toBe(false);});
 test('rejects corrupt arrays',async()=>{await AsyncStorage.setItem('binje:mobile:play-history:v1','[{"id":1}]');expect(await getPlayHistory()).toEqual([]);});
 test('formats playback timings and skips entries never played',()=>{expect(formatPlaybackTime(411)).toBe('6:51');expect(formatPlaybackTime(6628)).toBe('1:50:28');expect(formatPlaybackTime(-5)).toBe('0:00');expect(formatPlaybackTimings({positionSeconds:708.94,durationSeconds:7272})).toBe('11:48 / 2:01:12');expect(formatPlaybackTimings({positionSeconds:10,durationSeconds:0})).toBeNull();expect(formatPlaybackTimings({})).toBeNull();});
+
+test('restores only the matching episode and restarts completed titles', async () => {
+  await setConsent('accepted');
+  await upsertPlayHistory({ ...item(8), type: 'tv', season: 2, episode: 3 });
+  await updatePlayHistoryProgress({ type: 'tv', id: 8, season: 2, episode: 3, positionSeconds: 120, durationSeconds: 1000 });
+  expect(await getResumePosition({ type: 'tv', id: 8, season: 2, episode: 3 })).toBe(120);
+  expect(await getResumePosition({ type: 'tv', id: 8, season: 2, episode: 4 })).toBe(0);
+  await updatePlayHistoryProgress({ type: 'tv', id: 8, season: 2, episode: 3, positionSeconds: 950, durationSeconds: 1000 });
+  expect(await getResumePosition({ type: 'tv', id: 8, season: 2, episode: 3 })).toBe(0);
+});

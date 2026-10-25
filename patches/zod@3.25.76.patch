@@ -1,0 +1,174 @@
+diff --git a/v3/types.js b/v3/types.js
+--- a/v3/types.js
++++ b/v3/types.js
+@@ -1798,6 +1798,11 @@
+                 status.dirty();
+             }
+         }
++        // Reject oversized containers before spreading or parsing their elements.
++        if ((def.exactLength !== null && ctx.data.length > def.exactLength.value) ||
++            (def.maxLength !== null && ctx.data.length > def.maxLength.value)) {
++            return INVALID;
++        }
+         if (ctx.common.async) {
+             return Promise.all([...ctx.data].map((item, i) => {
+                 return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+@@ -2816,6 +2821,9 @@
+                 });
+                 status.dirty();
+             }
++        }
++        if (def.maxSize !== null && ctx.data.size > def.maxSize.value) {
++            return INVALID;
+         }
+         const valueType = this._def.valueType;
+         function finalizeSet(elements) {
+diff --git a/v3/types.cjs b/v3/types.cjs
+--- a/v3/types.cjs
++++ b/v3/types.cjs
+@@ -1819,6 +1819,11 @@
+                 status.dirty();
+             }
+         }
++        // Reject oversized containers before spreading or parsing their elements.
++        if ((def.exactLength !== null && ctx.data.length > def.exactLength.value) ||
++            (def.maxLength !== null && ctx.data.length > def.maxLength.value)) {
++            return parseUtil_js_1.INVALID;
++        }
+         if (ctx.common.async) {
+             return Promise.all([...ctx.data].map((item, i) => {
+                 return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+@@ -2845,6 +2850,9 @@
+                 });
+                 status.dirty();
+             }
++        }
++        if (def.maxSize !== null && ctx.data.size > def.maxSize.value) {
++            return parseUtil_js_1.INVALID;
+         }
+         const valueType = this._def.valueType;
+         function finalizeSet(elements) {
+diff --git a/v4/core/schemas.js b/v4/core/schemas.js
+--- a/v4/core/schemas.js
++++ b/v4/core/schemas.js
+@@ -613,6 +613,34 @@
+         return payload;
+     };
+ });
++// Gate leading upper bounds before child parsing; overwrite checks keep their original order.
++function capCollection(inst, sizeOf) {
++    const caps = [];
++    for (const check of inst._zod.def.checks ?? []) {
++        const def = check._zod.def;
++        if (!["max_length", "length_equals", "max_size", "size_equals", "min_length", "min_size"].includes(def.check)) break;
++        const maximum = def.maximum ?? def.length ?? def.size;
++        if (["max_length", "length_equals", "max_size", "size_equals"].includes(def.check)) caps.push([maximum, check]);
++    }
++    if (!caps.length) return;
++    (inst._zod.deferred ??= []).push(() => {
++        const run = inst._zod.run;
++        inst._zod.run = (payload, ctx) => {
++            const size = sizeOf(payload.value);
++            if (!ctx?.skipChecks) {
++                for (const [maximum, check] of caps) {
++                    if (size > maximum && (!check._zod.def.when || check._zod.def.when(payload))) {
++                        const start = payload.issues.length;
++                        check._zod.check(payload);
++                        for (let i = start; i < payload.issues.length; i++) payload.issues[i].continue = false;
++                        return payload;
++                    }
++                }
++            }
++            return run(payload, ctx);
++        };
++    });
++}
+ function handleArrayResult(result, final, index) {
+     if (result.issues.length) {
+         final.issues.push(...util.prefixIssues(index, result.issues));
+@@ -652,6 +680,7 @@
+         }
+         return payload; //handleArrayResultsAsync(parseResults, final);
+     };
++    capCollection(inst, value => Array.isArray(value) ? value.length : -1);
+ });
+ function handleObjectResult(result, final, key) {
+     // if(isOptional)
+@@ -1273,6 +1302,7 @@
+             return Promise.all(proms).then(() => payload);
+         return payload;
+     };
++    capCollection(inst, value => value instanceof Map ? value.size : -1);
+ });
+ function handleMapResult(keyResult, valueResult, final, key, input, inst, ctx) {
+     if (keyResult.issues.length) {
+@@ -1333,6 +1363,7 @@
+             return Promise.all(proms).then(() => payload);
+         return payload;
+     };
++    capCollection(inst, value => value instanceof Set ? value.size : -1);
+ });
+ function handleSetResult(result, final) {
+     if (result.issues.length) {
+diff --git a/v4/core/schemas.cjs b/v4/core/schemas.cjs
+--- a/v4/core/schemas.cjs
++++ b/v4/core/schemas.cjs
+@@ -644,6 +644,34 @@
+         return payload;
+     };
+ });
++// Gate leading upper bounds before child parsing; overwrite checks keep their original order.
++function capCollection(inst, sizeOf) {
++    const caps = [];
++    for (const check of inst._zod.def.checks ?? []) {
++        const def = check._zod.def;
++        if (!["max_length", "length_equals", "max_size", "size_equals", "min_length", "min_size"].includes(def.check)) break;
++        const maximum = def.maximum ?? def.length ?? def.size;
++        if (["max_length", "length_equals", "max_size", "size_equals"].includes(def.check)) caps.push([maximum, check]);
++    }
++    if (!caps.length) return;
++    (inst._zod.deferred ??= []).push(() => {
++        const run = inst._zod.run;
++        inst._zod.run = (payload, ctx) => {
++            const size = sizeOf(payload.value);
++            if (!ctx?.skipChecks) {
++                for (const [maximum, check] of caps) {
++                    if (size > maximum && (!check._zod.def.when || check._zod.def.when(payload))) {
++                        const start = payload.issues.length;
++                        check._zod.check(payload);
++                        for (let i = start; i < payload.issues.length; i++) payload.issues[i].continue = false;
++                        return payload;
++                    }
++                }
++            }
++            return run(payload, ctx);
++        };
++    });
++}
+ function handleArrayResult(result, final, index) {
+     if (result.issues.length) {
+         final.issues.push(...util.prefixIssues(index, result.issues));
+@@ -683,6 +711,7 @@
+         }
+         return payload; //handleArrayResultsAsync(parseResults, final);
+     };
++    capCollection(inst, value => Array.isArray(value) ? value.length : -1);
+ });
+ function handleObjectResult(result, final, key) {
+     // if(isOptional)
+@@ -1304,6 +1333,7 @@
+             return Promise.all(proms).then(() => payload);
+         return payload;
+     };
++    capCollection(inst, value => value instanceof Map ? value.size : -1);
+ });
+ function handleMapResult(keyResult, valueResult, final, key, input, inst, ctx) {
+     if (keyResult.issues.length) {
+@@ -1364,6 +1394,7 @@
+             return Promise.all(proms).then(() => payload);
+         return payload;
+     };
++    capCollection(inst, value => value instanceof Set ? value.size : -1);
+ });
+ function handleSetResult(result, final) {
+     if (result.issues.length) {

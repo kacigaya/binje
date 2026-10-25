@@ -18,6 +18,25 @@ package version labels to hide them.
 These packages are indirect dependencies of development and mobile build tools.
 No fixed npm release was available on 2026-10-22.
 
+## Zod collection limits
+
+`zod@3.25.76` matches [CVE-2023-54404 / GHSA-mrhx-c7xc-m3w5](https://osv.dev/vulnerability/GHSA-mrhx-c7xc-m3w5).
+Expo CLI requires Zod 3. Forcing Zod 4 would break that dependency contract.
+The local patch rejects oversized arrays and sets before parsing their elements.
+It also protects leading size bounds on the bundled Zod 4 array, map, and set entry points.
+A bound before a custom or overwrite check limits raw input size. A later bound
+keeps its original order because an earlier check can change the value.
+Oversized raw sets and maps now fail even if element transforms would merge entries.
+This deliberate change prevents work on input that exceeds the declared limit.
+CommonJS and ESM tests check early rejection, nested error paths, async parsing,
+and normal inputs. Zod 4 overwrite checks keep their original order.
+The approach follows the [upstream size-check fix](https://github.com/colinhacks/zod/commit/a0ebf970f2d752e5f58527cd2942ff48be4f46bd).
+
+The patch covers the compiled npm entry points used by this project.
+Do not enable the `@zod/source` condition without applying the same fix to its TypeScript source.
+Remove the patch when a compatible Expo CLI dependency passes these tests without it.
+OSV continues to report the original package version.
+
 ## Compatibility patch
 
 `query-string@7.1.3` loads `decode-uri-component@0.5.0`, which fixes

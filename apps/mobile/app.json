@@ -4,16 +4,12 @@
     "slug": "binje",
     "version": "1.0.0",
     "description": "Discover and stream trending movies and TV shows. VO/VF audio, continue watching, watchlist, English and French.",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "binje",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#050506",
     "primaryColor": "#e11d48",
-    "androidStatusBar": {
-      "barStyle": "light-content",
-      "backgroundColor": "#050506"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gayakaci.binje",
@@ -30,7 +26,8 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": true
+      "predictiveBackGestureEnabled": true,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "output": "static",

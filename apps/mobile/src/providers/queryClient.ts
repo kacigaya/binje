@@ -14,7 +14,7 @@ export function createQueryClient() {
         staleTime: 5 * 60 * 1_000,
         gcTime: 30 * 60 * 1_000,
         retry: shouldRetryRequest,
-        refetchOnWindowFocus: false,
+        refetchOnWindowFocus: true,
       },
     },
   });

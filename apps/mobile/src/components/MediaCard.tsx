@@ -1,3 +1,16 @@
-import Feather from '@expo/vector-icons/Feather'; import { Image } from 'expo-image'; import { router } from 'expo-router'; import { Pressable,StyleSheet,Text,View } from 'react-native'; import type { MobileMediaSummary } from '../types/api'; import { colors,fonts,radius,spacing } from '../theme';
-export function MediaCard({item,width=132}:{item:MobileMediaSummary;width?:number}){return <Pressable accessibilityRole="button" accessibilityLabel={`${item.title}, ${item.mediaType}`} onPress={()=>router.push(`/${item.mediaType}/${item.id}` as never)} style={({pressed})=>[{width},pressed&&{opacity:.7}]}><View style={[s.poster,{width,height:width*1.5}]}>{item.posterUrl?<Image source={item.posterUrl} alt={item.title} style={StyleSheet.absoluteFill} contentFit="cover" transition={150}/>:<Text style={s.missing}>b!nje</Text>}<View style={s.rating}><Feather name="star" size={11} color={colors.accent}/><Text style={s.ratingText}>{item.rating.toFixed(1)}</Text></View>{item.mediaType==='tv'?<View style={s.tv}><Text style={s.tvText}>TV</Text></View>:null}</View><Text numberOfLines={2} style={s.title}>{item.title}</Text><Text style={s.meta}>{item.date?.slice(0,4)||'—'}</Text></Pressable>}
-const s=StyleSheet.create({poster:{backgroundColor:colors.surface,borderRadius:radius.md,overflow:'hidden',alignItems:'center',justifyContent:'center'},missing:{color:colors.muted,fontFamily:fonts.heading},rating:{position:'absolute',top:8,right:8,flexDirection:'row',alignItems:'center',gap:4,backgroundColor:'rgba(0,0,0,0.6)',borderRadius:radius.pill,paddingHorizontal:8,paddingVertical:2},ratingText:{color:colors.accent,fontSize:12,fontFamily:fonts.bodySemiBold},tv:{position:'absolute',top:8,left:8,backgroundColor:'rgba(225,29,72,0.9)',borderRadius:radius.pill,paddingHorizontal:8,paddingVertical:2},tvText:{color:'#fff',fontSize:10,fontFamily:fonts.bodyBold,textTransform:'uppercase',letterSpacing:1},title:{color:colors.text,fontFamily:fonts.bodySemiBold,fontSize:14,marginTop:spacing.sm,minHeight:36},meta:{color:colors.muted,fontSize:12,fontFamily:fonts.body,marginTop:2}});
+import { Image } from 'expo-image';
+import { Link } from 'expo-router';
+import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import type { MobileMediaSummary } from '../types/api';
+import { colors, fonts, radius, spacing } from '../theme';
+export function MediaCard({ item, width = 132 }: { item: MobileMediaSummary; width?: number }) {
+  useColorScheme();
+  return <Link href={`/${item.mediaType}/${item.id}`} asChild><Pressable accessibilityRole="link" accessibilityLabel={item.title} style={({ pressed }) => [{ width }, pressed && { opacity: 0.7 }]}>
+    <View style={[styles.poster, { width, aspectRatio: 2 / 3 }]}>
+      {item.posterUrl ? <Image source={item.posterUrl} alt="" style={StyleSheet.absoluteFill} contentFit="cover" /> : <Text style={{ color: colors.muted }}>b!nje</Text>}
+      <View style={styles.rating}><Text style={{ color: colors.onMedia, fontVariant: ['tabular-nums'] }}>{item.rating.toFixed(1)}</Text></View>
+    </View>
+    <Text style={styles.title}>{item.title}</Text><Text style={styles.meta}>{item.date.slice(0, 4)}</Text>
+  </Pressable></Link>;
+}
+const styles = StyleSheet.create({ poster: { backgroundColor: colors.surface, borderRadius: radius.sm, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }, rating: { position: 'absolute', top: spacing.sm, right: spacing.sm, backgroundColor: 'rgba(0,0,0,0.8)', padding: spacing.xs, borderRadius: radius.sm }, title: { color: colors.text, fontFamily: fonts.bodyMedium, fontSize: 15, marginTop: spacing.sm }, meta: { color: colors.muted, fontSize: 13, marginTop: spacing.xs } });

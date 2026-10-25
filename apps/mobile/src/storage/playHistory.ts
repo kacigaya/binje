@@ -20,6 +20,15 @@ const store=createJsonStore(PLAY_HISTORY_STORAGE_KEY,valid,[]);
 const mediaKey=(v:Pick<PlayHistoryItem,'type'|'id'>)=>`${v.type}:${v.id}`;
 const episodeKey=(v:Pick<PlayHistoryItem,'type'|'id'|'season'|'episode'>)=>v.type==='movie'?mediaKey(v):`${mediaKey(v)}:${v.season??1}:${v.episode??1}`;
 export async function getPlayHistory(){return (await store.get()).sort((a,b)=>b.watchedAt-a.watchedAt).slice(0,PLAY_HISTORY_LIMIT);}
+export async function getResumePosition(input: Pick<PlayHistoryItem, 'type' | 'id' | 'season' | 'episode'>) {
+  const item = (await getPlayHistory()).find(value => episodeKey(value) === episodeKey(input));
+  const position = item?.positionSeconds;
+  const duration = item?.durationSeconds;
+  if (position === undefined || !Number.isFinite(position) || position <= 0) return 0;
+  // Completed titles restart rather than immediately returning to the credits.
+  if (duration !== undefined && duration > 0 && position / duration >= 0.95) return 0;
+  return position;
+}
 export async function savePlayHistory(items:PlayHistoryItem[]){if(await getConsent()!=='accepted')return false;const seen=new Set<string>();const clean=items.filter(isValidPlayHistoryItem).sort((a,b)=>b.watchedAt-a.watchedAt).filter(v=>{const k=mediaKey(v);if(seen.has(k))return false;seen.add(k);return true;}).slice(0,PLAY_HISTORY_LIMIT);await store.set(clean);return true;}
 export async function upsertPlayHistory(input:PlayHistoryInput){const items=await getPlayHistory();const old=items.find(v=>episodeKey(v)===episodeKey(input));const next:PlayHistoryItem={progress:old?.progress,positionSeconds:old?.positionSeconds,durationSeconds:old?.durationSeconds,...input,watchedAt:Date.now()};return savePlayHistory([next,...items.filter(v=>mediaKey(v)!==mediaKey(next))]);}
 export async function updatePlayHistoryProgress(input:PlayHistoryProgressInput){if(!Number.isFinite(input.positionSeconds)||!Number.isFinite(input.durationSeconds)||input.positionSeconds<0||input.durationSeconds<=0)return false;let changed=false;const items=(await getPlayHistory()).map(v=>{if(episodeKey(v)!==episodeKey(input))return v;changed=true;return {...v,progress:Math.min(1,Math.max(0,input.positionSeconds/input.durationSeconds)),positionSeconds:input.positionSeconds,durationSeconds:input.durationSeconds};});return changed?savePlayHistory(items):false;}

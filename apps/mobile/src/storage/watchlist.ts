@@ -25,5 +25,10 @@ export async function saveWatchlist(items: WatchlistItem[]) {
 export async function isInWatchlist(item: Pick<WatchlistItem, 'type'|'id'>) { return (await getWatchlist()).some(v => key(v) === key(item)); }
 export async function addToWatchlist(input: WatchlistInput) { const items = (await getWatchlist()).filter(v => key(v) !== key(input)); return saveWatchlist([{...input, addedAt: Date.now()}, ...items]); }
 export async function removeFromWatchlist(item: Pick<WatchlistItem,'type'|'id'>) { return saveWatchlist((await getWatchlist()).filter(v => key(v) !== key(item))); }
-export async function toggleWatchlist(input: WatchlistInput) { if (await isInWatchlist(input)) { await removeFromWatchlist(input); return false; } await addToWatchlist(input); return true; }
+export type WatchlistChange = 'added' | 'removed' | 'blocked';
+export async function toggleWatchlist(input: WatchlistInput): Promise<WatchlistChange> {
+  const saved = await isInWatchlist(input);
+  const changed = saved ? await removeFromWatchlist(input) : await addToWatchlist(input);
+  return changed ? (saved ? 'removed' : 'added') : 'blocked';
+}
 export const subscribeToWatchlist = store.subscribe;
