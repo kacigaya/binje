@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import test from "node:test";
 const mobileLoad = createRequire(new URL("../apps/mobile/package.json", import.meta.url));
 const jestLoad = createRequire(mobileLoad.resolve("jest/package.json"));
@@ -12,6 +14,39 @@ const expoCliLoad = createRequire(expoLoad.resolve("@expo/cli/package.json"));
 const forge = expoCliLoad("node-forge");
 const linkingLoad = createRequire(mobileLoad.resolve("expo-linking/package.json"));
 const queryString = linkingLoad("query-string");
+
+test("Zod rejects oversized collections before parsing children", async () => {
+  const root = dirname(expoCliLoad.resolve("zod/package.json"));
+  const variants = [
+    expoCliLoad("zod"),
+    expoCliLoad("zod/v4"),
+    await import(pathToFileURL(join(root, "index.js")).href),
+    await import(pathToFileURL(join(root, "v4/index.js")).href),
+  ];
+  for (const { z } of variants) {
+    let parsed = 0;
+    const element = z.string().refine(() => { parsed += 1; return true; });
+    const oversized = new Array(20_000);
+    Object.defineProperty(oversized, 0, { get() { throw new Error("element read before size check"); } });
+    for (const schema of [z.array(element).max(2), z.array(element).length(2)]) {
+      const result = schema.safeParse(oversized);
+      assert.equal(result.success, false);
+      assert.equal(result.error.issues[0].code, "too_big");
+      assert.equal((await schema.safeParseAsync(oversized)).success, false);
+    }
+    assert.equal(z.set(element).max(1).safeParse(new Set(["a", "b"])).success, false);
+    assert.equal(z.set(element).size(1).safeParse(new Set(["a", "b"])).success, false);
+    assert.equal(parsed, 0);
+    const nested = z.object({ titles: z.array(element).max(1) }).safeParse({ titles: ["a", "b"] });
+    assert.deepEqual(nested.error.issues[0].path, ["titles"]);
+    assert.deepEqual(z.array(element).max(2).parse(["a"]), ["a"]);
+    assert.equal(z.array(element).min(2).safeParse(["a"]).success, false);
+    assert.equal(parsed, 2);
+    if (z.array(z.number()).overwrite) {
+      assert.deepEqual(z.array(z.number()).overwrite(values => values.slice(0, 2)).max(2).parse([1, 2, 3]), [1, 2]);
+    }
+  }
+});
 
 test("braces rejects deep brace and parenthesis patterns before walking them", () => {
   for (const [open, close] of [["{", "}"], ["(", ")"], ["({", "})"]]) {
