@@ -43,6 +43,9 @@ test("Zod rejects oversized collections before parsing children", async () => {
     assert.equal(z.array(element).min(2).safeParse(["a"]).success, false);
     assert.equal(parsed, 2);
     if (z.array(z.number()).overwrite) {
+      assert.equal(z.set(z.string().transform(() => 'same')).max(1).safeParse(new Set(['a', 'b'])).success, false);
+      assert.equal(z.map(z.string().transform(() => 'same'), z.number()).check(z.maxSize(1)).safeParse(new Map([['a', 1], ['b', 2]])).success, false);
+      assert.deepEqual(z.array(z.number()).refine(values => { values.splice(2); return true; }).max(2).parse([1, 2, 3]), [1, 2]);
       assert.deepEqual(z.array(z.number()).overwrite(values => values.slice(0, 2)).max(2).parse([1, 2, 3]), [1, 2]);
     }
   }
