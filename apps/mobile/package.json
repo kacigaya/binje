@@ -3,10 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
-    "@expo-google-fonts/outfit": "^0.4.3",
-    "@expo-google-fonts/space-grotesk": "^0.4.1",
     "@expo/ui": "~57.0.26",
-    "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@tanstack/react-query": "^5.90.20",
     "expo": "~57.0.31",
@@ -14,7 +11,6 @@
     "expo-dev-client": "~57.0.20",
     "expo-font": "~57.0.4",
     "expo-image": "~57.0.5",
-    "expo-linear-gradient": "~57.0.2",
     "expo-linking": "~57.0.13",
     "expo-localization": "~57.0.2",
     "expo-router": "~57.0.29",
@@ -50,7 +46,12 @@
     "typecheck": "tsc --noEmit"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|decode-uri-component))",
+      "/node_modules/react-native-reanimated/plugin/",
+      "/node_modules/@react-native/babel-preset/"
+    ]
   },
   "private": true
 }

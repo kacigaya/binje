@@ -1,3 +1,12 @@
-import type { ReactNode } from 'react'; import { Pressable,StyleSheet,Text } from 'react-native'; import { colors,fonts,radius } from '../theme';
-export function Button({label,onPress,secondary=false,icon,accessibilityLabel}:{label:string;onPress:()=>void;secondary?:boolean;icon?:ReactNode;accessibilityLabel?:string}){return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel??label} onPress={onPress} style={({pressed})=>[s.base,secondary&&s.secondary,pressed&&s.pressed]}>{icon}<Text style={s.text}>{label}</Text></Pressable>}
-const s=StyleSheet.create({base:{height:48,flexDirection:'row',gap:8,backgroundColor:colors.accent,borderRadius:radius.pill,paddingHorizontal:32,alignItems:'center',justifyContent:'center'},secondary:{backgroundColor:'rgba(255,255,255,0.05)',borderWidth:1,borderColor:'rgba(255,255,255,0.2)'},pressed:{opacity:.75},text:{color:colors.text,fontFamily:fonts.bodySemiBold,fontSize:16}});
+import { Button as NativeButton, Host } from '@expo/ui';
+import { useColorScheme, type StyleProp, type ViewStyle } from 'react-native';
+import { colors } from '../theme';
+
+export function Button({ label, onPress, secondary = false, disabled = false, loading = false, style }: {
+  label: string; onPress: () => void; secondary?: boolean; disabled?: boolean; loading?: boolean; style?: StyleProp<ViewStyle>;
+}) {
+  const scheme = useColorScheme();
+  return <Host matchContents={{ vertical: true }} colorScheme={scheme} seedColor={colors.accent} style={[{ minHeight: 48, justifyContent: 'center' }, style]}>
+    <NativeButton label={loading ? `${label}…` : label} onPress={onPress} variant={secondary ? 'outlined' : 'filled'} disabled={disabled || loading} style={{ paddingVertical: 8, paddingHorizontal: 16 }} />
+  </Host>;
+}

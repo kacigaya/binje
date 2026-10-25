@@ -1,96 +1,45 @@
-import {
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_700Bold,
-} from "@expo-google-fonts/space-grotesk";
-import {
-  Outfit_400Regular,
-  Outfit_500Medium,
-  Outfit_600SemiBold,
-  Outfit_700Bold,
-} from "@expo-google-fonts/outfit";
-import { useFonts } from "expo-font";
-import { getLocales } from "expo-localization";
-import { Stack, type ErrorBoundaryProps } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { localeFromTags, translate } from "../i18n";
-import { AppProviders } from "../providers/AppProviders";
-import { colors, fonts, spacing } from "../theme";
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
+import { ThemeProvider, DarkTheme, DefaultTheme } from 'expo-router/react-navigation';
+import { getLocales } from 'expo-localization';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { Button, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { AppProviders } from '../providers/AppProviders';
+import { useLocale } from '../providers/LocaleProvider';
+import { localeFromTags, translate } from '../i18n';
+import { colors, spacing } from '../theme';
 
 void SplashScreen.preventAutoHideAsync();
+export const unstable_settings = { initialRouteName: '(tabs)' };
 
-/** This boundary renders outside AppProviders, so it must resolve its own locale. */
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
-  const locale = localeFromTags(
-    getLocales().map((item) => item.languageTag ?? item.languageCode),
-  );
-
-  return (
-    <View style={errorStyles.box}>
-      <Text style={errorStyles.title}>{translate(locale, "errorTitle")}</Text>
-      <Text style={errorStyles.body}>
-        {error.message || translate(locale, "errorBody")}
-      </Text>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => void retry()}
-        style={errorStyles.button}
-      >
-        <Text style={errorStyles.buttonText}>{translate(locale, "retry")}</Text>
-      </Pressable>
-    </View>
-  );
+  useColorScheme();
+  const locale = localeFromTags(getLocales().map(item => item.languageTag ?? item.languageCode));
+  useEffect(() => { void SplashScreen.hideAsync(); }, []);
+  return <View style={styles.error}>
+    <Text selectable style={{ color: colors.text }}>{error.message || translate(locale, 'errorBody')}</Text>
+    <Button title={translate(locale, 'retry')} onPress={() => void retry()} />
+  </View>;
 }
-
-const errorStyles = StyleSheet.create({
-  box: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    padding: spacing.xl,
-    backgroundColor: colors.background,
-  },
-  title: { color: colors.text, fontSize: 18, fontFamily: fonts.heading, textAlign: "center" },
-  body: { color: colors.muted, fontFamily: fonts.body, textAlign: "center" },
-  button: {
-    backgroundColor: colors.accent,
-    paddingHorizontal: 20,
-    minHeight: 44,
-    justifyContent: "center",
-    borderRadius: 99,
-    marginTop: 8,
-  },
-  buttonText: { color: "#fff", fontFamily: fonts.bodySemiBold },
-});
-
-export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_700Bold,
-    Outfit_400Regular,
-    Outfit_500Medium,
-    Outfit_600SemiBold,
-    Outfit_700Bold,
-  });
-
-  useEffect(() => {
-    if (fontsLoaded) void SplashScreen.hideAsync();
-  }, [fontsLoaded]);
-
-  if (!fontsLoaded) return null;
-
-  return (
-    <AppProviders>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-        }}
-      />
-    </AppProviders>
-  );
+function Navigation() {
+  const scheme = useColorScheme();
+  const { isLoading, t } = useLocale();
+  useEffect(() => { if (!isLoading) void SplashScreen.hideAsync(); }, [isLoading]);
+  if (isLoading) return null;
+  return <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <StatusBar style="auto" />
+    <Stack screenOptions={{ contentStyle: { backgroundColor: colors.background }, headerTintColor: colors.accent, headerBackButtonDisplayMode: 'minimal' }}>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="privacy" options={{ title: t('privacyPolicy') }} />
+      <Stack.Screen name="settings" options={{ title: t('settings') }} />
+      <Stack.Screen name="watch/movie/[id]" options={{ title: t('watchNow'), orientation: 'all' }} />
+      <Stack.Screen name="watch/tv/[id]" options={{ title: t('watchNow'), orientation: 'all' }} />
+      <Stack.Screen name="movie/[id]" options={{ title: t('details') }} />
+      <Stack.Screen name="tv/[id]" options={{ title: t('details') }} />
+    </Stack>
+  </ThemeProvider>;
 }
+export default function RootLayout() { return <AppProviders><Navigation /></AppProviders>; }
+const styles = StyleSheet.create({ error: { flex: 1, justifyContent: 'center', padding: spacing.lg, gap: spacing.md, backgroundColor: colors.background } });

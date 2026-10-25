@@ -8,7 +8,7 @@ const LocaleContext = createContext<LocaleContextValue | null>(null);
 export function LocaleProvider({ children }: PropsWithChildren) {
   const [locale, updateLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [isLoading, setLoading] = useState(true);
-  useEffect(() => { let active=true; resolveLocale().then(value => { if(active){updateLocale(value);setLoading(false);} }); return () => {active=false;}; }, []);
+  useEffect(() => { let active=true; resolveLocale().then(value => { if (active) updateLocale(value); }).catch(() => {}).finally(() => { if (active) setLoading(false); }); return () => {active=false;}; }, []);
   const setLocale = useCallback(async (value: Locale) => { await setLocalePreference(value); updateLocale(value); }, []);
   const value = useMemo(() => ({ locale, isLoading, setLocale, t: (key: TranslationKey) => translate(locale, key) }), [locale, isLoading, setLocale]);
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;

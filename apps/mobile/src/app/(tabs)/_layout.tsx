@@ -1,5 +1,18 @@
-import Feather from '@expo/vector-icons/Feather'; import { Tabs } from 'expo-router'; import { Text,type ColorValue } from 'react-native'; import { useSafeAreaInsets } from 'react-native-safe-area-context'; import { ConsentBanner } from '../../components/ConsentBanner'; import { useLocale } from '../../providers/LocaleProvider'; import { colors,fonts } from '../../theme';
-type IconName=keyof typeof Feather.glyphMap;
-const icon=(name:IconName)=>{const TabIcon=({color}:{color:ColorValue})=><Feather name={name} size={20} color={color}/>;TabIcon.displayName=`TabIcon(${name})`;return TabIcon};
-const tabLabel=({color,children}:{color:ColorValue;children:string})=><Text style={{color,fontFamily:fonts.bodyMedium,fontSize:11,lineHeight:16,marginTop:4}}>{children}</Text>;
-export default function TabsLayout(){const {t}=useLocale();const insets=useSafeAreaInsets();return <><Tabs screenOptions={{headerShown:false,tabBarActiveTintColor:colors.accent,tabBarInactiveTintColor:colors.muted,tabBarLabelPosition:'below-icon',tabBarLabel:tabLabel,tabBarStyle:{backgroundColor:colors.surface,borderTopColor:colors.border,height:80+insets.bottom,paddingTop:10,paddingBottom:insets.bottom+16},sceneStyle:{backgroundColor:colors.background}}}><Tabs.Screen name="index" options={{title:t('home'),tabBarIcon:icon('home')}}/><Tabs.Screen name="browse" options={{title:t('browse'),tabBarIcon:icon('grid')}}/><Tabs.Screen name="search" options={{title:t('search'),tabBarIcon:icon('search')}}/><Tabs.Screen name="library" options={{title:t('library'),tabBarIcon:icon('bookmark')}}/><Tabs.Screen name="settings" options={{title:t('settings'),tabBarIcon:icon('settings')}}/></Tabs><ConsentBanner/></>}
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { ConsentBanner } from '../../components/ConsentBanner';
+import { useLocale } from '../../providers/LocaleProvider';
+import { colors } from '../../theme';
+export const unstable_settings = { initialRouteName: '(home)' };
+export default function TabsLayout() {
+  const { t } = useLocale();
+  return <>
+    <NativeTabs tintColor={colors.accent}>
+      <NativeTabs.Trigger name="(home)"><NativeTabs.Trigger.Icon sf="house.fill" md="home" /><NativeTabs.Trigger.Label>{t('home')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(browse)"><NativeTabs.Trigger.Icon sf="square.grid.2x2" md="grid_view" /><NativeTabs.Trigger.Label>{t('browse')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(library)"><NativeTabs.Trigger.Icon sf="bookmark.fill" md="bookmarks" /><NativeTabs.Trigger.Label>{t('library')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(settings)"><NativeTabs.Trigger.Icon sf="gearshape.fill" md="settings" /><NativeTabs.Trigger.Label>{t('settings')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+      <NativeTabs.Trigger name="(search)" role="search"><NativeTabs.Trigger.Icon sf="magnifyingglass" md="search" /><NativeTabs.Trigger.Label>{t('search')}</NativeTabs.Trigger.Label></NativeTabs.Trigger>
+    </NativeTabs>
+    <ConsentBanner />
+  </>;
+}
