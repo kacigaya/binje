@@ -57,7 +57,6 @@
   "overrides": {
     "@babel/core": "^7.29.6",
     "@hono/node-server": "^1.19.15",
-    "brace-expansion": "1.1.21",
     "fast-uri": "^3.1.8",
     "hono": "^4.13.7",
     "ip-address": "^10.7.4",

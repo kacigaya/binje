@@ -15,6 +15,16 @@ const forge = expoCliLoad("node-forge");
 const linkingLoad = createRequire(mobileLoad.resolve("expo-linking/package.json"));
 const queryString = linkingLoad("query-string");
 
+test("Expo fingerprint and legacy glob callers can expand braces", () => {
+  const fingerprintLoad = createRequire(expoLoad.resolve("@expo/fingerprint/package.json"));
+  const modern = fingerprintLoad("minimatch").minimatch;
+  const legacy = jestCoreLoad("minimatch");
+  for (const match of [modern, legacy]) {
+    assert.equal(match("app/home.tsx", "app/{home,search}.tsx"), true);
+    assert.equal(match("app/player.tsx", "app/{home,search}.tsx"), false);
+  }
+});
+
 test("Zod rejects oversized collections before parsing children", async () => {
   const root = dirname(expoCliLoad.resolve("zod/package.json"));
   const variants = [

@@ -39,6 +39,11 @@ OSV continues to report the original package version.
 
 ## Compatibility patch
 
+Keep `brace-expansion` on each caller's requested major version. A global override
+to version 1 breaks the named `expand` export used by Expo fingerprint's
+`minimatch` 10 dependency. The lockfile selects fixed releases for both legacy
+and modern callers. A regression test checks brace patterns through both APIs.
+
 `query-string@7.1.3` loads `decode-uri-component@0.5.0`, which fixes
 [CVE-2026-45822](https://osv.dev/vulnerability/GHSA-vcc3-ghjq-m6fr).
 The decoder now uses ESM. The patch selects its default export in the CommonJS
