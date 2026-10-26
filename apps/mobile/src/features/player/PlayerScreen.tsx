@@ -6,10 +6,10 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getMediaDetails, getSeason } from "../../api/media";
 import { BackButton } from "../../components/BackButton";
 import { Button } from "../../components/Button";
-import { RtRating, TmdbRating } from "../../components/Badges";
 import { useLocale } from "../../providers/LocaleProvider";
 import { getResumePosition, upsertPlayHistory, updatePlayHistoryProgress } from "../../storage/playHistory";
 import { colors, fonts, spacing } from "../../theme";
@@ -31,6 +31,7 @@ function forMedia<T>(state: Keyed<T> | null, key: string): T | undefined { retur
 
 export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type: MobileMediaType; id: number; initialSeason?: number; initialEpisode?: number }) {
   const { locale, t } = useLocale();
+  const insets = useSafeAreaInsets();
   const [season, setSeason] = useState(initialSeason ?? 1);
   const [episode, setEpisode] = useState(initialEpisode ?? 1);
   const [attempt, setAttempt] = useState(0);
@@ -176,48 +177,9 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   return (
     <View style={styles.screen}>
     <BackButton />
-    <ScrollView style={styles.fill} contentContainerStyle={styles.content}>
+    {/* Clear the floating back button: inset + its 16 pt offset + 36 pt height + a gap. */}
+    <ScrollView style={styles.fill} contentContainerStyle={[styles.content, { paddingTop: insets.top + 64 }]}>
       {details.isError ? <Text accessibilityRole="alert" style={styles.error}>{t('refreshFailed')}</Text> : null}
-      <Pressable
-        accessibilityRole="link"
-        accessibilityLabel={details.data.title}
-        onPress={() => router.push(`/${type}/${id}` as never)}
-        style={({ pressed }) => [styles.titleLink, pressed && { opacity: 0.7 }]}
-      >
-        {details.data.logoUrl ? (
-          <Image
-            source={details.data.logoUrl}
-            alt={details.data.title}
-            style={styles.titleLogo}
-            contentFit="contain"
-            contentPosition="left center"
-            transition={200}
-          />
-        ) : (
-          <Text style={styles.title}>{details.data.title}</Text>
-        )}
-      </Pressable>
-      {details.data.genres.length ? (
-        <View style={styles.genres}>
-          {details.data.genres.map((genre) => (
-            <View key={genre.id} style={styles.genre}><Text style={styles.genreText}>{genre.name}</Text></View>
-          ))}
-        </View>
-      ) : null}
-      <View style={styles.metaRow}>
-        <TmdbRating rating={details.data.rating.toFixed(1)} />
-        {details.data.rottenTomatoesScore != null ? <RtRating score={details.data.rottenTomatoesScore} /> : null}
-        {details.data.contentRating ? <Text style={styles.rated}>{details.data.contentRating}</Text> : null}
-        {details.data.runtime ? (
-          <Text style={styles.metaText}>
-            {Math.floor(details.data.runtime / 60) > 0 ? `${Math.floor(details.data.runtime / 60)}h ` : ""}{details.data.runtime % 60}m
-          </Text>
-        ) : null}
-        {details.data.date ? <Text style={styles.metaText}>{details.data.date.slice(0, 4)}</Text> : null}
-      </View>
-      {details.data.overview ? (
-        <Text numberOfLines={4} style={styles.overview}>{details.data.overview}</Text>
-      ) : null}
       <View style={styles.videoShell}>
         <VideoView
           player={player}
@@ -284,10 +246,28 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
       </View>
       {streamError ? <Text accessibilityRole="alert" style={styles.error}>{streamError}</Text> : null}
       {exhausted ? <Pressable accessibilityRole="button" onPress={() => { setAvailable(null); setFailed(null); setPlaying(null); setStream(null); setAttempt(value => value + 1); }} style={styles.navButton}><Text style={styles.navButtonText}>{t('retry')}</Text></Pressable> : null}
+      <View style={styles.body}>
+      {details.data.logoUrl ? (
+        <Image source={details.data.logoUrl} alt={details.data.title} style={styles.titleLogo} contentFit="contain" contentPosition="left center" transition={200} />
+      ) : (
+        <Text accessibilityRole="header" style={styles.title}>{details.data.title}</Text>
+      )}
+      <View style={styles.metaRow}>
+        {details.data.date ? <View style={styles.metaItem}><Ionicons name="calendar-outline" size={15} color={colors.muted} /><Text style={styles.metaText}>{details.data.date.slice(0, 4)}</Text></View> : null}
+        {details.data.runtime ? (
+          <View style={styles.metaItem}><Ionicons name="time-outline" size={15} color={colors.muted} /><Text style={styles.metaText}>
+            {Math.floor(details.data.runtime / 60) > 0 ? `${Math.floor(details.data.runtime / 60)} h ` : ""}{details.data.runtime % 60} m
+          </Text></View>
+        ) : null}
+      </View>
+      <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.push(`/${type}/${id}` as never)} style={({ pressed }) => [styles.detailsLink, pressed && { opacity: 0.7 }]}>
+        <Ionicons name="information-circle-outline" size={16} color={colors.muted} />
+        <Text style={styles.detailsLinkText}>{t("details")}</Text>
+      </Pressable>
       {type === "tv" ? (
         <>
           <View style={styles.controlsRow}>
-            <Text style={styles.controlLabel}>{t("season").toUpperCase()}</Text>
+            <Text style={styles.controlLabel}>{t("season")}</Text>
             <Pressable
               accessibilityRole="button"
               accessibilityState={{ expanded: seasonPickerOpen }}
@@ -315,7 +295,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
           ) : null}
           <View style={styles.nowPlayingRow}>
             <View style={styles.fillMin}>
-              <Text style={styles.controlLabel}>{t("nowWatching").toUpperCase()}</Text>
+              <Text style={styles.controlLabel}>{t("nowWatching")}</Text>
               <Text numberOfLines={1} style={styles.nowPlayingText}>{seasonName}, {t("episode")} {episode}</Text>
             </View>
           </View>
@@ -374,7 +354,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
                     <View style={styles.episodeContent}>
                       <View style={styles.episodeTitleRow}>
                         {isActive ? (
-                          <View style={styles.watchingBadge}><Text style={styles.watchingBadgeText}>{t("watching").toUpperCase()}</Text></View>
+                          <View style={styles.watchingBadge}><Text style={styles.watchingBadgeText}>{t("watching")}</Text></View>
                         ) : null}
                         <Text numberOfLines={2} style={styles.episodeTitle}>{item.episodeNumber}. {item.name}</Text>
                       </View>
@@ -396,6 +376,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
           )}
         </>
       ) : null}
+      </View>
     </ScrollView>
     </View>
   );
@@ -405,19 +386,17 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   fill: { flex: 1 },
   fillMin: { flexShrink: 1, minWidth: 0 },
-  content: { padding: spacing.md, paddingTop: 96, gap: spacing.md },
+  content: { paddingBottom: spacing.xl, gap: spacing.md },
+  body: { paddingHorizontal: spacing.md, gap: spacing.md },
+  metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  detailsLink: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
+  detailsLinkText: { color: colors.muted, fontSize: 14, fontFamily: fonts.bodyMedium },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
   title: { color: colors.text, fontSize: 26, fontFamily: fonts.heading, letterSpacing: -0.5 },
-  titleLink: { alignSelf: "flex-start" },
-  titleLogo: { width: 280, maxWidth: "100%", height: 84 },
-  genres: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  genre: { borderWidth: 1, borderColor: "rgba(255,255,255,0.15)", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  genreText: { color: "rgba(240,240,240,0.8)", fontSize: 12, fontFamily: fonts.body },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  titleLogo: { width: 240, maxWidth: "100%", height: 56 },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, flexWrap: "wrap" },
   metaText: { color: colors.muted, fontSize: 14, fontFamily: fonts.body },
-  rated: { color: colors.accentText, fontSize: 14, fontFamily: fonts.bodySemiBold },
-  overview: { color: "rgba(240,240,240,0.7)", fontSize: 14, lineHeight: 21, fontFamily: fonts.body },
-  videoShell: { aspectRatio: 16 / 9, backgroundColor: "#000", borderRadius: 12, overflow: "hidden" },
+  videoShell: { aspectRatio: 16 / 9, backgroundColor: "#000", overflow: "hidden" },
   video: { flex: 1 },
   overlay: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center", backgroundColor: "#0008" },
   playerControls: { position: "absolute", top: 8, right: 8, alignItems: "flex-end" },
@@ -431,8 +410,8 @@ const styles = StyleSheet.create({
   qualityItemActive: { color: colors.accentText },
   error: { color: colors.destructive, textAlign: "center", padding: spacing.md },
   row: { flexDirection: "row", gap: 10 },
-  controlsRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  controlLabel: { color: colors.muted, fontSize: 11, fontFamily: fonts.bodySemiBold, letterSpacing: 1.8 },
+  controlsRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  controlLabel: { color: colors.muted, fontSize: 13, fontFamily: fonts.bodyMedium },
   seasonSelect: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40, borderRadius: 999, borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: "rgba(255,255,255,0.05)", paddingHorizontal: 16 },
   seasonSelectText: { color: colors.text, fontSize: 14, fontFamily: fonts.bodyMedium },
   seasonOption: { minHeight: 40, borderRadius: 999, borderWidth: 1, borderColor: colors.border, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" },
@@ -452,7 +431,7 @@ const styles = StyleSheet.create({
   episodeContent: { position: "absolute", left: 0, right: 0, bottom: 0, padding: 12, gap: 3 },
   episodeTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   watchingBadge: { backgroundColor: colors.accent, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  watchingBadgeText: { color: "#fff", fontSize: 9, fontFamily: fonts.bodyBold, letterSpacing: 0.8 },
+  watchingBadgeText: { color: "#fff", fontSize: 11, fontFamily: fonts.bodySemiBold },
   episodeTitle: { flexShrink: 1, color: "#fff", fontSize: 14, lineHeight: 18, fontFamily: fonts.bodySemiBold },
   episodeMetaRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   episodeRuntime: { color: "rgba(255,255,255,0.6)", fontSize: 11, fontFamily: fonts.body },
