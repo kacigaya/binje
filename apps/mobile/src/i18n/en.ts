@@ -32,5 +32,9 @@ export const en = {
   similarMovies: 'Similar Movies',
   similarShows: 'Similar Shows',
   all: 'All',
+  readMore: 'Read more',
+  showLess: 'Show less',
+  pauseFeatured: 'Pause featured titles',
+  resumeFeatured: 'Resume featured titles',
   qualityFailed: "Could not change quality. Try again.",
 } as const;

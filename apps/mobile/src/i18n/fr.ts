@@ -34,5 +34,9 @@ export const fr: Record<keyof typeof en, string> = {
   similarMovies: 'Films similaires',
   similarShows: 'Séries similaires',
   all: 'Tout',
+  readMore: 'Lire la suite',
+  showLess: 'Réduire',
+  pauseFeatured: 'Mettre en pause les titres à la une',
+  resumeFeatured: 'Reprendre les titres à la une',
   qualityFailed: "Impossible de changer la qualité. Réessayez.",
 };
