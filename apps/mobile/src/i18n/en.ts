@@ -29,5 +29,7 @@ export const en = {
   emptyHistory: 'Nothing watched yet',
   emptyHistoryBody: 'Titles you start watching appear here.',
   notAvailable: 'N/A',
+  similarMovies: 'Similar Movies',
+  similarShows: 'Similar Shows',
   qualityFailed: "Could not change quality. Try again.",
 } as const;

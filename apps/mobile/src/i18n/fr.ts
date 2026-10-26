@@ -31,5 +31,7 @@ export const fr: Record<keyof typeof en, string> = {
   emptyHistory: 'Rien regardé pour le moment',
   emptyHistoryBody: 'Les titres que vous commencez apparaissent ici.',
   notAvailable: 'N/D',
+  similarMovies: 'Films similaires',
+  similarShows: 'Séries similaires',
   qualityFailed: "Impossible de changer la qualité. Réessayez.",
 };
