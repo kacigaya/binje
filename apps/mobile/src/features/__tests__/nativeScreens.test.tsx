@@ -11,7 +11,7 @@ import BrowseScreen from '../browse/BrowseScreen';
 import SearchScreen from '../search/SearchScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-jest.mock('../../api/media', () => ({ getHome: jest.fn(), getMediaDetails: jest.fn(), browseMedia: jest.fn(), searchMedia: jest.fn() }));
+jest.mock('../../api/media', () => ({ ...jest.requireActual('../../api/media'), getHome: jest.fn(), getMediaDetails: jest.fn(), browseMedia: jest.fn(), searchMedia: jest.fn() }));
 jest.mock('../../providers/LocaleProvider', () => ({ useLocale: () => ({ locale: 'en', t: (key: string) => key }) }));
 const mockShow = jest.fn();
 jest.mock('../../providers/ToastProvider', () => ({ useToast: () => ({ show: (...args: unknown[]) => mockShow(...args) }) }));
