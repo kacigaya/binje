@@ -105,3 +105,9 @@ test('keeps cached search results visible after a refresh failure', async () => 
   await waitFor(() => expect(screen.getByText('refreshFailed')).toBeTruthy());
   expect(screen.getByText('Saved title')).toBeTruthy();
 });
+
+test('guides the user before a search starts', () => {
+  render(<QueryClientProvider client={client()}><SearchScreen /></QueryClientProvider>);
+  expect(screen.getByText('searchPrompt')).toBeTruthy();
+  expect(searchMedia).not.toHaveBeenCalled();
+});
