@@ -1,6 +1,6 @@
 export const en = {
   home: 'Home', movies: 'Movies', tvShows: 'TV Shows', watchlist: 'Watchlist', search: 'Search', settings: 'Settings',
-  trending: 'Trending', tvSeries: 'TV Series', related: 'More like this', browse: 'Browse', library: 'Library', popular: 'Popular',
+  trending: 'Trending', movie: 'Movie', tvSeries: 'TV Series', related: 'More like this', browse: 'Browse', library: 'Library', popular: 'Popular',
   trendingMovies: 'Trending Movies', trendingTV: 'Trending TV Shows', popularMovies: 'Popular Movies', popularTV: 'Popular TV Shows',
   topRated: 'Top Rated', nowPlaying: 'Now Playing', upcoming: 'Upcoming', airingToday: 'Airing Today', onTheAir: 'On The Air',
   continueWatching: 'Continue Watching', director: 'Director', createdBy: 'Created by', watchNow: 'Watch Now', details: 'Details', overview: 'Overview', cast: 'Cast', seasons: 'Seasons', episodes: 'Episodes',

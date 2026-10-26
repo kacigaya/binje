@@ -2,7 +2,7 @@ import type { en } from './en';
 
 export const fr: Record<keyof typeof en, string> = {
   home: 'Accueil', movies: 'Films', tvShows: 'Séries', watchlist: 'Ma liste', search: 'Rechercher', settings: 'Réglages',
-  trending: 'Tendance', tvSeries: 'Série', related: 'Similaires', browse: 'Parcourir', library: 'Bibliothèque', popular: 'Populaires',
+  trending: 'Tendance', movie: 'Film', tvSeries: 'Série', related: 'Similaires', browse: 'Parcourir', library: 'Bibliothèque', popular: 'Populaires',
   trendingMovies: 'Films tendance', trendingTV: 'Séries tendance', popularMovies: 'Films populaires', popularTV: 'Séries populaires',
   topRated: 'Les mieux notés', nowPlaying: 'Actuellement au cinéma', upcoming: 'Prochainement', airingToday: 'Diffusées aujourd’hui', onTheAir: 'En cours de diffusion',
   continueWatching: 'Continuer à regarder', director: 'Réalisation', createdBy: 'Créé par', watchNow: 'Regarder', details: 'Détails', overview: 'Synopsis', cast: 'Distribution', seasons: 'Saisons', episodes: 'Épisodes',
