@@ -46,6 +46,17 @@ adding or upgrading `react-native-google-cast`, rebuild the development client b
 testing. The Cast button appears in the player when a compatible receiver is available
 on the same network.
 
+## Appearance and retained fixes
+
+The app uses its original dark theme, Space Grotesk and Outfit fonts, artwork
+layouts, custom tabs, buttons, and selectors. Expo UI controls are removed.
+Rebuild native clients after this dependency change. Earlier download links
+still contain the native UI redesign.
+
+The rollback keeps storage error handling, playback resume, ordered source
+changes, quality recovery, locale loading, and the security and EAS build fixes.
+The player can enter landscape fullscreen. Other screens stay in portrait.
+
 ## Validation
 
 ```bash
@@ -64,34 +75,3 @@ Language preference, consent, watchlist, and playback history are stored on the 
 ## Security boundary
 
 Only `EXPO_PUBLIC_API_BASE_URL` is public. Never add TMDB, OMDb, resolver, or provider credentials to an `EXPO_PUBLIC_*` variable because Expo embeds these values in the application bundle.
-
-## Native UI
-
-The app uses native tabs and navigation headers. Expo UI provides SwiftUI controls
-on iOS and Compose controls on Android. Rebuild the development client after this
-change. An older binary does not contain the Expo UI native module.
-
-The app follows the system appearance and uses system fonts. Catalog columns
-adapt to window width and text size. Native pickers include platform labels for
-VoiceOver and TalkBack. React Native views display media artwork and text.
-The consent sheet uses `RNHostView` to host its React Native scroll content.
-
-Consent-sheet dismissal keeps storage disabled. Failed writes keep the screen
-open and show an error. Watchlist actions show success only after a saved write.
-Turning storage off preserves existing entries and blocks future list/history writes.
-Language preference is saved separately.
-
-Playback restores the matching episode position. Titles at 95 percent completion
-restart from the beginning. Native source replacements run in order. A failed
-quality change restores the previous source and selection.
-
-Home shows the first featured title. Automatic hero rotation was removed so that
-content stays stable while the user reads or uses a screen reader.
-
-### Device verification
-
-Automated tests check storage, cached-content recovery, save failures, and source
-replacement ordering. Bundle exports do not prove native rendering or gestures.
-Before release, test a rebuilt iOS and Android client with large text, screen readers,
-light/dark appearance, back gestures, consent dismissal, fullscreen video, Picture
-in Picture, and Cast. Check tablet split view and narrow phone layouts.

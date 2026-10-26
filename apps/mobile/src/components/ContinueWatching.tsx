@@ -1,45 +1,6 @@
-import { Image } from 'expo-image';
-import { Link } from 'expo-router';
-import { useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
-import { usePlayHistory } from '../hooks/usePlayHistory';
-import { formatPlaybackTimings, type PlayHistoryItem } from '../storage/playHistory';
-import { useLocale } from '../providers/LocaleProvider';
-import { Button } from './Button';
-import { colors, radius, spacing, typography } from '../theme';
-function Card({ item, onRemove }: { item: PlayHistoryItem; onRemove: () => Promise<boolean> }) {
-  useColorScheme();
-  const { t } = useLocale();
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState('');
-  const busy = useRef(false);
-  const image = item.backdrop_path ?? item.poster_path;
-  async function remove() {
-    if (busy.current) return;
-    busy.current = true; setPending(true); setError('');
-    try { if (!await onRemove()) setError(t('storageRequired')); }
-    catch { setError(t('saveFailed')); }
-    finally { busy.current = false; setPending(false); }
-  }
-  const href = item.type === 'tv' ? { pathname: '/watch/tv/[id]' as const, params: { id: item.id, season: item.season ?? 1, episode: item.episode ?? 1 } } : { pathname: '/watch/movie/[id]' as const, params: { id: item.id } };
-  return <View style={{ width: 240, gap: spacing.sm }}>
-    <Link href={href} asChild><Pressable accessibilityRole="link" accessibilityLabel={item.title} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
-      <View style={styles.card}>{image ? <Image source={image} alt="" style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
-        <Text style={styles.timing}>{formatPlaybackTimings(item)}</Text>
-        <View style={styles.track}><View style={{ height: 4, backgroundColor: colors.accent, width: `${Math.round((item.progress ?? 0) * 100)}%` }} /></View>
-      </View><Text style={styles.title}>{item.title}</Text>
-    </Pressable></Link>
-    <Button secondary label={t('removeHistory')} loading={pending} onPress={() => void remove()} />
-    {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive }}>{error}</Text> : null}
-  </View>;
-}
-export function ContinueWatching() {
-  useColorScheme();
-  const { t } = useLocale(); const history = usePlayHistory();
-  if (!history.items.length) return null;
-  return <View style={{ marginTop: spacing.lg, gap: spacing.md }}>
-    <Text accessibilityRole="header" style={styles.heading}>{t('continueWatching')}</Text>
-    <FlatList horizontal data={history.items} keyExtractor={item => `${item.type}-${item.id}`} renderItem={({ item }) => <Card item={item} onRemove={() => history.remove(item)} />} contentContainerStyle={{ paddingHorizontal: spacing.md, gap: spacing.md }} />
-  </View>;
-}
-const styles = StyleSheet.create({ heading: { ...typography.heading, color: colors.text, paddingHorizontal: spacing.md }, card: { aspectRatio: 16 / 9, borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.mediaBackground, justifyContent: 'flex-end' }, title: { color: colors.text, fontSize: 16, marginTop: spacing.sm }, timing: { color: colors.onMedia, backgroundColor: 'rgba(0,0,0,0.75)', padding: spacing.xs, fontVariant: ['tabular-nums'] }, track: { height: 4, backgroundColor: 'rgba(255,255,255,0.3)' } });
+import { useToast } from '../providers/ToastProvider'; import Feather from '@expo/vector-icons/Feather'; import { Image } from 'expo-image'; import { router } from 'expo-router'; import { FlatList,Pressable,StyleSheet,Text,View } from 'react-native'; import { usePlayHistory } from '../hooks/usePlayHistory'; import { formatPlaybackTimings, type PlayHistoryItem } from '../storage/playHistory'; import { useLocale } from '../providers/LocaleProvider'; import { colors,fonts,radius,spacing } from '../theme';
+const CARD_WIDTH=200;
+function watchHref(item:PlayHistoryItem){const query=item.type==='tv'?`?season=${item.season??1}&episode=${item.episode??1}`:'';return `/watch/${item.type}/${item.id}${query}`}
+function Card({item,onRemove}:{item:PlayHistoryItem;onRemove:()=>void}){const {t}=useLocale();const image=item.backdrop_path??item.poster_path;const timings=formatPlaybackTimings(item);return <View style={{width:CARD_WIDTH}}><View><Pressable accessibilityRole="button" accessibilityLabel={item.title} onPress={()=>router.push(watchHref(item) as never)} style={({pressed})=>[s.card,pressed&&{opacity:.7}]}>{image?<Image source={image} alt={item.title} style={StyleSheet.absoluteFill} contentFit="cover" transition={150}/>:null}{item.type==='tv'&&item.season?<View style={s.episodePill}><Text style={s.episodePillText}>S{item.season}E{item.episode??1}</Text></View>:null}{timings?<View style={s.timeBadge}><Text style={s.timeBadgeText}>{timings}</Text></View>:null}<View style={s.track}><View style={[s.bar,{width:`${Math.round((item.progress??0)*100)}%`}]}/></View></Pressable><Pressable accessibilityRole="button" accessibilityLabel={t('removeHistory')} onPress={onRemove} hitSlop={8} style={s.remove}><Feather name="x" size={14} color="#fff"/></Pressable></View><Text numberOfLines={1} style={s.title}>{item.title}</Text></View>}
+export function ContinueWatching(){const {t}=useLocale();const h=usePlayHistory();const toast=useToast();async function remove(item:PlayHistoryItem){try{if(!await h.remove(item))toast.show({message:t('storageRequired')})}catch{toast.show({message:t('saveFailed')})}}if(!h.items.length)return null;return <View style={s.section}><Text accessibilityRole="header" style={s.heading}>{t('continueWatching')}</Text><FlatList horizontal data={h.items} keyExtractor={i=>`${i.type}-${i.id}`} renderItem={({item})=><Card item={item} onRemove={()=>void remove(item)}/>} contentContainerStyle={s.list} ItemSeparatorComponent={()=><View style={{width:12}}/>} showsHorizontalScrollIndicator={false}/></View>}
+const s=StyleSheet.create({section:{marginTop:spacing.lg},heading:{color:colors.text,fontSize:20,fontFamily:fonts.heading,paddingHorizontal:spacing.md,marginBottom:spacing.md},list:{paddingHorizontal:spacing.md},card:{width:CARD_WIDTH,height:CARD_WIDTH*9/16,borderRadius:radius.md,overflow:'hidden',backgroundColor:colors.surfaceAlt,justifyContent:'flex-end'},remove:{position:'absolute',top:6,right:6,width:24,height:24,borderRadius:12,backgroundColor:'rgba(0,0,0,0.6)',alignItems:'center',justifyContent:'center'},episodePill:{position:'absolute',top:6,left:6,backgroundColor:'rgba(0,0,0,0.6)',borderRadius:radius.pill,paddingHorizontal:8,paddingVertical:2},episodePillText:{color:'#fff',fontSize:11,fontFamily:fonts.bodySemiBold},timeBadge:{position:'absolute',bottom:10,right:6,backgroundColor:'rgba(0,0,0,0.7)',borderRadius:radius.sm,paddingHorizontal:6,paddingVertical:2},timeBadgeText:{color:'#fff',fontSize:11,fontFamily:fonts.bodySemiBold,fontVariant:['tabular-nums']},track:{height:4,backgroundColor:'rgba(255,255,255,0.2)'},bar:{height:4,backgroundColor:colors.accent},title:{color:colors.text,fontFamily:fonts.bodySemiBold,fontSize:13,marginTop:spacing.sm}});

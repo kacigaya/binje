@@ -1,39 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
-import { Image } from 'expo-image';
-import { router } from 'expo-router';
-import { RefreshControl, StyleSheet, Text, View, useColorScheme } from 'react-native';
-import { getHome } from '../../api/media';
-import { useLocale } from '../../providers/LocaleProvider';
-import { Screen } from '../../components/Screen';
-import { TmdbRating, RtRating } from '../../components/Badges';
-import { Button } from '../../components/Button';
-import { ContinueWatching } from '../../components/ContinueWatching';
-import { MediaRow } from '../../components/MediaRow';
-import { ErrorState, LoadingState, EmptyState } from '../../components/States';
-import { colors, spacing, typography } from '../../theme';
-
-export default function HomeScreen() {
-  useColorScheme();
-  const { locale, t } = useLocale();
-  const q = useQuery({ queryKey: ['home', locale], queryFn: ({ signal }) => getHome(locale, signal) });
-  if (!q.data) return <Screen title={t('home')}>{q.isError ? <ErrorState onRetry={() => void q.refetch()} /> : <LoadingState />}</Screen>;
-  const hero = q.data.featured[0];
-  return <Screen title={t('home')} refreshControl={<RefreshControl refreshing={q.isRefetching} onRefresh={() => void q.refetch()} />}>
-    {q.isError ? <ErrorState body={t('refreshFailed')} onRetry={() => void q.refetch()} /> : null}
-    {hero ? <>
-      {hero.backdropUrl ? <Image source={hero.backdropUrl} alt={hero.title} style={{ width: '100%', aspectRatio: 16 / 9 }} contentFit="cover" /> : null}
-      <View style={styles.copy}>
-        <Text accessibilityRole="header" style={styles.title}>{hero.title}</Text>
-        <View style={styles.meta}><TmdbRating rating={hero.rating.toFixed(1)} />{hero.rottenTomatoesScore != null ? <RtRating score={hero.rottenTomatoesScore} /> : null}<Text style={styles.body}>{hero.date.slice(0, 4)}</Text></View>
-        <Text style={styles.body}>{hero.overview}</Text>
-        <Button label={t('watchNow')} onPress={() => router.push(`/watch/${hero.mediaType}/${hero.id}`)} />
-        <Button secondary label={t('details')} onPress={() => router.push(`/${hero.mediaType}/${hero.id}`)} />
-      </View>
-    </> : null}
-    <ContinueWatching />
-    <MediaRow title={t('trendingMovies')} items={q.data.trendingMovies} />
-    <MediaRow title={t('trendingTV')} items={q.data.trendingTV} />
-    {!hero && !q.data.trendingMovies.length && !q.data.trendingTV.length ? <EmptyState title={t('noResults')} actionLabel={t('browse')} onAction={() => router.push('/browse')} /> : null}
-  </Screen>;
-}
-const styles = StyleSheet.create({ copy: { padding: spacing.md, gap: spacing.md }, title: { ...typography.title, color: colors.text }, body: { ...typography.body, color: colors.muted }, meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.md } });
+import Feather from '@expo/vector-icons/Feather'; import Ionicons from '@expo/vector-icons/Ionicons'; import { useQuery } from '@tanstack/react-query'; import { Image } from 'expo-image'; import { LinearGradient } from 'expo-linear-gradient'; import { router } from 'expo-router'; import { useEffect,useState } from 'react'; import { StyleSheet,Text,View } from 'react-native'; import { getHome } from '../../api/media'; import { useLocale } from '../../providers/LocaleProvider'; import { Screen } from '../../components/Screen'; import { Logo } from '../../components/Logo'; import { RtRating,TmdbRating } from '../../components/Badges'; import { Button } from '../../components/Button'; import { ContinueWatching } from '../../components/ContinueWatching'; import { MediaRow } from '../../components/MediaRow'; import { HeroSkeleton,RowSkeleton } from '../../components/Skeletons'; import { ErrorState } from '../../components/States'; import { colors,fonts,spacing } from '../../theme';
+const HERO_ROTATION_MS=15_000;
+export default function HomeScreen(){const {locale,t}=useLocale();const [heroIndex,setHeroIndex]=useState(0);const q=useQuery({queryKey:['home',locale],queryFn:({signal})=>getHome(locale,signal)});const featured=q.data?.featured??[];useEffect(()=>{if(featured.length<=1)return;const timer=setInterval(()=>setHeroIndex(i=>(i+1)%featured.length),HERO_ROTATION_MS);return()=>clearInterval(timer)},[featured.length]);if(q.isLoading)return <Screen><HeroSkeleton/><RowSkeleton/><RowSkeleton/></Screen>;if(!q.data)return <Screen><ErrorState body={t('errorBody')} onRetry={()=>void q.refetch()}/></Screen>;const hero=featured[featured.length?heroIndex%featured.length:0];return <Screen>{q.isError?<ErrorState body={t('refreshFailed')} onRetry={()=>void q.refetch()}/>:null}{hero?<View style={s.hero}>{hero.backdropUrl?<Image key={hero.id} source={hero.backdropUrl} alt={hero.title} style={StyleSheet.absoluteFill} contentFit="cover" transition={300}/>:null}<LinearGradient colors={['rgba(5,5,6,0.5)','rgba(5,5,6,0)','rgba(5,5,6,0.6)',colors.background]} locations={[0,0.35,0.7,1]} style={StyleSheet.absoluteFill}/><View style={s.brand}><Logo/></View><View style={s.copy}>{hero.logoUrl?<Image source={hero.logoUrl} alt={hero.title} style={s.heroLogo} contentFit="contain" contentPosition="left center" transition={300}/>:<Text numberOfLines={2} style={s.heroTitle}>{hero.title}</Text>}<View style={s.metaRow}><TmdbRating rating={hero.rating.toFixed(1)}/>{hero.rottenTomatoesScore!=null?<RtRating score={hero.rottenTomatoesScore}/>:null}{hero.contentRating?<Text style={s.rated}>{hero.contentRating}</Text>:null}{hero.date?<Text style={s.year}>{hero.date.slice(0,4)}</Text>:null}</View><Text numberOfLines={3} style={s.overview}>{hero.overview}</Text><View style={s.actions}><Button label={t('watchNow')} icon={<Ionicons name="play" size={20} color={colors.text}/>} onPress={()=>router.push(`/watch/${hero.mediaType}/${hero.id}` as never)}/><Button secondary label={t('details')} icon={<Feather name="info" size={20} color={colors.text}/>} onPress={()=>router.push(`/${hero.mediaType}/${hero.id}` as never)}/></View></View></View>:<View style={{padding:spacing.md}}><Logo/></View>}<ContinueWatching/><MediaRow title={t('trendingMovies')} items={q.data.trendingMovies}/><MediaRow title={t('trendingTV')} items={q.data.trendingTV}/></Screen>}
+const s=StyleSheet.create({hero:{height:480,backgroundColor:colors.surface,justifyContent:'flex-end'},brand:{position:'absolute',top:spacing.md,left:spacing.md},copy:{padding:spacing.md,paddingBottom:spacing.lg,gap:12},heroTitle:{color:colors.text,fontSize:36,fontFamily:fonts.heading,letterSpacing:-0.5,lineHeight:40},heroLogo:{width:'80%',maxWidth:300,height:96,alignSelf:'flex-start'},rated:{color:colors.accent,fontSize:14,fontFamily:fonts.bodySemiBold},metaRow:{flexDirection:'row',alignItems:'center',gap:10,flexWrap:'wrap'},year:{color:colors.muted,fontSize:14,fontFamily:fonts.body},overview:{color:'rgba(240,240,240,0.7)',fontSize:15,lineHeight:23,fontFamily:fonts.body},actions:{flexDirection:'row',gap:12,marginTop:4}});

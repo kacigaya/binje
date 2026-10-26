@@ -154,7 +154,7 @@ export default function NativeCastControls({
         accessibilityLabel={client ? t("stopCasting") : t("castToDevice")}
         accessibilityRole="button"
         style={styles.button}
-        tintColor={colors.accent}
+        tintColor={client ? colors.accent : colors.text}
       />
       {error ? (
         <Text accessibilityLiveRegion="polite" numberOfLines={2} style={styles.error}>
@@ -167,10 +167,10 @@ export default function NativeCastControls({
 
 const styles = StyleSheet.create({
   container: { alignItems: "flex-end" },
-  button: { width: 48, height: 48 },
+  button: { width: 38, height: 30 },
   error: {
     position: "absolute",
-    top: 52,
+    top: 34,
     right: 0,
     width: 210,
     color: colors.destructive,

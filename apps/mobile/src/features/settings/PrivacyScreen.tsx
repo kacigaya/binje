@@ -1,17 +1,2 @@
-import { StyleSheet, Text, useColorScheme } from 'react-native';
-import { Screen } from '../../components/Screen';
-import { useLocale } from '../../providers/LocaleProvider';
-import { colors, spacing, typography } from '../../theme';
-export default function PrivacyScreen() {
-  useColorScheme();
-  const { t } = useLocale();
-  return <Screen title={t('privacyPolicy')}>
-    <Text accessibilityRole="header" style={styles.heading}>{t('privacyDataTitle')}</Text>
-    <Text selectable style={styles.body}>{t('privacyDataBody')}</Text>
-    <Text accessibilityRole="header" style={styles.heading}>{t('privacyTrackingTitle')}</Text>
-    <Text selectable style={styles.body}>{t('privacyTrackingBody')}</Text>
-    <Text accessibilityRole="header" style={styles.heading}>{t('privacyControlsTitle')}</Text>
-    <Text selectable style={styles.body}>{t('privacyControlsBody')}</Text>
-  </Screen>;
-}
-const styles = StyleSheet.create({ heading: { ...typography.heading, color: colors.text, paddingHorizontal: spacing.md, marginTop: spacing.lg }, body: { ...typography.body, color: colors.muted, paddingHorizontal: spacing.md, marginTop: spacing.sm } });
+import { StyleSheet,Text } from 'react-native'; import { Screen } from '../../components/Screen'; import { useLocale } from '../../providers/LocaleProvider'; import { colors,fonts,spacing } from '../../theme';
+export default function PrivacyScreen(){const {t}=useLocale();return <Screen back title={t('privacyPolicy')}><Text style={s.heading}>{t('privacyDataTitle')}</Text><Text style={s.body}>{t('privacyDataBody')}</Text><Text style={s.heading}>{t('privacyTrackingTitle')}</Text><Text style={s.body}>{t('privacyTrackingBody')}</Text><Text style={s.heading}>{t('privacyControlsTitle')}</Text><Text style={s.body}>{t('privacyControlsBody')}</Text></Screen>};const s=StyleSheet.create({heading:{color:colors.text,fontSize:20,fontFamily:fonts.heading,paddingHorizontal:spacing.md,marginTop:spacing.lg},body:{color:colors.muted,fontSize:16,lineHeight:24,paddingHorizontal:spacing.md,marginTop:8}});

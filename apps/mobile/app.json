@@ -7,9 +7,13 @@
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "binje",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "backgroundColor": "#050506",
     "primaryColor": "#e11d48",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#050506"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gayakaci.binje",
@@ -26,8 +30,7 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": true,
-      "softwareKeyboardLayoutMode": "resize"
+      "predictiveBackGestureEnabled": true
     },
     "web": {
       "output": "static",
