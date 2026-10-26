@@ -31,5 +31,6 @@ export const en = {
   notAvailable: 'N/A',
   similarMovies: 'Similar Movies',
   similarShows: 'Similar Shows',
+  all: 'All',
   qualityFailed: "Could not change quality. Try again.",
 } as const;

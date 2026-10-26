@@ -33,5 +33,6 @@ export const fr: Record<keyof typeof en, string> = {
   notAvailable: 'N/D',
   similarMovies: 'Films similaires',
   similarShows: 'Séries similaires',
+  all: 'Tout',
   qualityFailed: "Impossible de changer la qualité. Réessayez.",
 };
