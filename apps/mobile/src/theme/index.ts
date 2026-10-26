@@ -6,6 +6,8 @@ export const colors = {
   muted: '#8a8a8a',
   accent: '#e11d48',
   accentPressed: '#be123c',
+  /** Small accent text. Brand accent is 4.3:1 on the background, under WCAG AA. */
+  accentText: '#f43f5e',
   destructive: '#ef4444',
   border: 'rgba(255,255,255,0.08)',
   borderStrong: 'rgba(255,255,255,0.15)',

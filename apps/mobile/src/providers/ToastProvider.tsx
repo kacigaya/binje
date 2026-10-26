@@ -107,5 +107,5 @@ const styles = StyleSheet.create({
   },
   message: { flexShrink: 1, color: colors.text, fontFamily: fonts.body, fontSize: 14 },
   action: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
-  actionText: { color: colors.accent, fontFamily: fonts.bodySemiBold, fontSize: 14 },
+  actionText: { color: colors.accentText, fontFamily: fonts.bodySemiBold, fontSize: 14 },
 });
