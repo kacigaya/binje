@@ -22,6 +22,8 @@ export const fonts = {
   bodyBold: 'Outfit_700Bold',
 } as const;
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 } as const;
+/** Tab bar height above the bottom safe-area inset. Floating UI must clear it. */
+export const layout = { tabBarHeight: 80 } as const;
 export const radius = { sm: 8, md: 12, lg: 20, xl: 32, pill: 999 } as const;
 export const typography = {
   title: { fontSize: 30, fontFamily: fonts.heading },

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import { AccessibilityInfo, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius, spacing } from '../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, layout, radius, spacing } from '../theme';
 
 type Toast = { message: string; actionLabel?: string; onAction?: () => void };
 type ToastContextValue = { show(toast: Toast): void };
@@ -24,6 +25,7 @@ export function ToastProvider({ children }: PropsWithChildren) {
   const [opacity] = useState(() => new Animated.Value(0));
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reduceMotion = useReducedMotion();
+  const insets = useSafeAreaInsets();
   const fadeDuration = reduceMotion ? 0 : 150;
 
   const hide = useCallback(() => {
@@ -60,7 +62,7 @@ export function ToastProvider({ children }: PropsWithChildren) {
       {toast ? (
         <Animated.View
           pointerEvents="box-none"
-          style={[styles.wrapper, { opacity }]}
+          style={[styles.wrapper, { bottom: layout.tabBarHeight + insets.bottom + spacing.sm, opacity }]}
           accessibilityLiveRegion="polite"
           accessibilityRole="alert"
         >
@@ -89,7 +91,7 @@ export function useToast(): ToastContextValue {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { position: 'absolute', left: 0, right: 0, bottom: 90, alignItems: 'center', paddingHorizontal: spacing.md },
+  wrapper: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: spacing.md },
   toast: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -99,6 +101,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: radius.lg,
+    borderCurve: 'continuous',
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
   },
