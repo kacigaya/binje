@@ -28,5 +28,6 @@ export const en = {
   emptyWatchlistBody: 'Save movies and shows to find them here later.',
   emptyHistory: 'Nothing watched yet',
   emptyHistoryBody: 'Titles you start watching appear here.',
+  notAvailable: 'N/A',
   qualityFailed: "Could not change quality. Try again.",
 } as const;

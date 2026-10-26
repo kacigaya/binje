@@ -30,5 +30,6 @@ export const fr: Record<keyof typeof en, string> = {
   emptyWatchlistBody: 'Enregistrez des films et des séries pour les retrouver ici.',
   emptyHistory: 'Rien regardé pour le moment',
   emptyHistoryBody: 'Les titres que vous commencez apparaissent ici.',
+  notAvailable: 'N/D',
   qualityFailed: "Impossible de changer la qualité. Réessayez.",
 };
