@@ -25,5 +25,8 @@ export const en = {
   privacyTrackingBody: "The app does not use advertising identifiers or analytics trackers. Browsing, search, and playback send media requests to the b!nje service.",
   privacyControlsTitle: "Your controls",
   privacyControlsBody: "You can clear playback history in Settings. Turning off local storage stops future watchlist and history writes. It does not delete existing entries.",
+  emptyWatchlistBody: 'Save movies and shows to find them here later.',
+  emptyHistory: 'Nothing watched yet',
+  emptyHistoryBody: 'Titles you start watching appear here.',
   qualityFailed: "Could not change quality. Try again.",
 } as const;

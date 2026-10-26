@@ -27,5 +27,8 @@ export const fr: Record<keyof typeof en, string> = {
   privacyTrackingBody: "L’application n’utilise ni identifiants publicitaires ni outils de suivi. La navigation, la recherche et la lecture envoient des requêtes au service b!nje.",
   privacyControlsTitle: "Vos commandes",
   privacyControlsBody: "Vous pouvez effacer l’historique dans les réglages. Désactiver le stockage local bloque les prochains enregistrements de la liste et de l’historique. Les entrées existantes restent disponibles.",
+  emptyWatchlistBody: 'Enregistrez des films et des séries pour les retrouver ici.',
+  emptyHistory: 'Rien regardé pour le moment',
+  emptyHistoryBody: 'Les titres que vous commencez apparaissent ici.',
   qualityFailed: "Impossible de changer la qualité. Réessayez.",
 };
