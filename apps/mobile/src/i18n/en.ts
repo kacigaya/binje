@@ -37,4 +37,7 @@ export const en = {
   pauseFeatured: 'Pause featured titles',
   resumeFeatured: 'Resume featured titles',
   qualityFailed: "Could not change quality. Try again.",
+  play: 'Play', pause: 'Pause', back10: 'Back 10 seconds', forward10: 'Forward 10 seconds',
+  seek: 'Seek', showControls: 'Show controls', cropBars: 'Crop black bars',
+  pictureInPicture: 'Picture-in-picture', enterFullscreen: 'Enter fullscreen',
 } as const;

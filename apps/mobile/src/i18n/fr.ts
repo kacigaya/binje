@@ -39,4 +39,7 @@ export const fr: Record<keyof typeof en, string> = {
   pauseFeatured: 'Mettre en pause les titres à la une',
   resumeFeatured: 'Reprendre les titres à la une',
   qualityFailed: "Impossible de changer la qualité. Réessayez.",
+  play: 'Lecture', pause: 'Pause', back10: 'Reculer de 10 secondes', forward10: 'Avancer de 10 secondes',
+  seek: 'Position', showControls: 'Afficher les commandes', cropBars: 'Rogner les bandes noires',
+  pictureInPicture: 'Image dans l’image', enterFullscreen: 'Plein écran',
 };

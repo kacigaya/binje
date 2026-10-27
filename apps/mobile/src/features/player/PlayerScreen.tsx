@@ -6,6 +6,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
+import { PlayerControls } from "./PlayerControls";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getMediaDetails, getSeason } from "../../api/media";
 import { BackButton } from "../../components/BackButton";
@@ -46,6 +47,8 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   const [qualityPending, setQualityPending] = useState(false);
   const [message, setMessage] = useState('');
   const [casting, setCasting] = useState(false);
+  const [crop, setCrop] = useState(false);
+  const videoRef = useRef<VideoView>(null);
   const castingRef = useRef(false);
   const loadedKey = useRef<string | null>(null);
   const qualityBusy = useRef(false);
@@ -67,7 +70,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   const source = selectPlaybackSource(availableList, forMedia(failed, mediaKey) ?? [], forMedia(playing, mediaKey));
   const exhausted = source === null && availableList !== undefined;
   const currentStream = forMedia(stream, mediaKey);
-  const player = useVideoPlayer(null, instance => { instance.loop = false; instance.timeUpdateEventInterval = 1; instance.keepScreenOnWhilePlaying = true; });
+  const player = useVideoPlayer(null, instance => { instance.loop = false; instance.timeUpdateEventInterval = 0.5; instance.keepScreenOnWhilePlaying = true; });
   const loader = useMemo(() => createPlaybackLoader(player), [player]);
   const progressWriter = useMemo(() => createProgressWriter((positionSeconds, durationSeconds) => updatePlayHistoryProgress({ type, id, season, episode, positionSeconds, durationSeconds })), [type, id, season, episode]);
   const handleCastingChange = useCallback((active: boolean) => { castingRef.current = active; setCasting(active); }, []);
@@ -184,16 +187,23 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
         <VideoView
           player={player}
           style={styles.video}
-          nativeControls={!casting}
-          contentFit="contain"
+          ref={videoRef}
+          nativeControls={false}
+          contentFit={crop ? "cover" : "contain"}
           allowsPictureInPicture
           fullscreenOptions={{ enable: true, orientation: "landscape" }}
         />
         {resolving || (source === null && !exhausted) ? (
           <View style={styles.overlay}><ActivityIndicator color="#fff" size="large" /></View>
         ) : null}
-        <View style={styles.playerControls}>
-          <View style={styles.playerPillGroup}>
+        <PlayerControls
+          player={player}
+          disabled={casting}
+          crop={crop}
+          onCrop={() => setCrop((value) => !value)}
+          onFullscreen={() => void videoRef.current?.enterFullscreen()}
+          onPip={() => void videoRef.current?.startPictureInPicture()}
+          toolbar={<>
             {currentStream ? <NativeCastControls
               player={player}
               mediaKey={mediaKey}
@@ -223,26 +233,26 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
                 <Ionicons name={qualityMenuOpen ? "chevron-up" : "chevron-down"} size={13} color={colors.text} />
               </Pressable>
             ) : null}
+          </>}
+        />
+        {qualityMenuOpen ? (
+          <View style={styles.qualityMenu}>
+            {[0, ...qualityHeights].map((height) => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: qualityHeight === height }}
+                key={height || "auto"}
+                disabled={qualityPending || resolving}
+                onPress={() => void changeQuality(height)}
+                style={styles.qualityItem}
+              >
+                <Text style={[styles.playerPillText, qualityHeight === height && styles.qualityItemActive]}>
+                  {height === 0 ? t("auto") : `${height}p`}
+                </Text>
+              </Pressable>
+            ))}
           </View>
-          {qualityMenuOpen ? (
-            <View style={styles.qualityMenu}>
-              {[0, ...qualityHeights].map((height) => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: qualityHeight === height }}
-                  key={height || "auto"}
-                  disabled={qualityPending || resolving}
-                  onPress={() => void changeQuality(height)}
-                  style={styles.qualityItem}
-                >
-                  <Text style={[styles.playerPillText, qualityHeight === height && styles.qualityItemActive]}>
-                    {height === 0 ? t("auto") : `${height}p`}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-        </View>
+        ) : null}
       </View>
       {streamError ? <Text accessibilityRole="alert" style={styles.error}>{streamError}</Text> : null}
       {exhausted ? <Pressable accessibilityRole="button" onPress={() => { setAvailable(null); setFailed(null); setPlaying(null); setStream(null); setAttempt(value => value + 1); }} style={styles.navButton}><Text style={styles.navButtonText}>{t('retry')}</Text></Pressable> : null}
@@ -399,13 +409,11 @@ const styles = StyleSheet.create({
   videoShell: { aspectRatio: 16 / 9, backgroundColor: "#000", overflow: "hidden" },
   video: { flex: 1 },
   overlay: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center", backgroundColor: "#0008" },
-  playerControls: { position: "absolute", top: 8, right: 8, alignItems: "flex-end" },
-  playerPillGroup: { flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "rgba(12,12,15,0.85)", borderRadius: 999, padding: 3 },
   playerPill: { flexDirection: "row", alignItems: "center", gap: 3, minHeight: 30, borderRadius: 999, paddingHorizontal: 12, justifyContent: "center" },
   playerPillActive: { backgroundColor: colors.accent },
   playerPillText: { color: colors.text, fontSize: 13, fontFamily: fonts.bodySemiBold },
   playerPillTextDim: { color: "rgba(240,240,240,0.6)" },
-  qualityMenu: { marginTop: 4, backgroundColor: "rgba(12,12,15,0.92)", borderRadius: 14, paddingVertical: 4, minWidth: 88 },
+  qualityMenu: { position: "absolute", top: 52, right: 8, backgroundColor: "rgba(12,12,15,0.92)", borderRadius: 14, paddingVertical: 4, minWidth: 88 },
   qualityItem: { paddingHorizontal: 14, paddingVertical: 8, alignItems: "center" },
   qualityItemActive: { color: colors.accentText },
   error: { color: colors.destructive, textAlign: "center", padding: spacing.md },
