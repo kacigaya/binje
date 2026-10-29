@@ -1,21 +1,20 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { FlatList } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getHome, getMediaDetails } from '../../api/media';
+import { browseMedia, getHome, getMediaDetails, searchMedia } from '../../api/media';
 import { setConsent } from '../../storage/consent';
 import type { MobileHomeResponse, MobileMediaDetails, MobileMediaSummary } from '../../types/api';
 import HomeScreen from '../home/HomeScreen';
 import DetailsScreen from '../details/DetailsScreen';
+import BrowseScreen from '../browse/BrowseScreen';
+import SearchScreen from '../search/SearchScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-jest.mock('../../api/media', () => ({ getHome: jest.fn(), getMediaDetails: jest.fn() }));
+jest.mock('../../api/media', () => ({ ...jest.requireActual('../../api/media'), getHome: jest.fn(), getMediaDetails: jest.fn(), browseMedia: jest.fn(), searchMedia: jest.fn() }));
 jest.mock('../../providers/LocaleProvider', () => ({ useLocale: () => ({ locale: 'en', t: (key: string) => key }) }));
 const mockShow = jest.fn();
 jest.mock('../../providers/ToastProvider', () => ({ useToast: () => ({ show: (...args: unknown[]) => mockShow(...args) }) }));
-jest.mock('@expo/ui', () => {
-  const { View } = require('react-native');
-  return { Host: View, Column: View, ListItem: View };
-});
 jest.mock('../../components/Screen', () => {
   const { View } = require('react-native');
   return { Screen: View };
@@ -26,7 +25,16 @@ jest.mock('../../components/Button', () => ({
     return <Button title={label} onPress={onPress} disabled={disabled || loading} />;
   },
 }));
+jest.mock('../../components/BackButton', () => ({ BackButton: () => null }));
+jest.mock('@expo/vector-icons/Feather', () => 'Feather');
+jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('../../components/ContinueWatching', () => ({ ContinueWatching: () => null }));
+jest.mock('../../components/MediaCard', () => ({
+  MediaCard: ({ item }: { item: MobileMediaSummary }) => {
+    const { Text } = require('react-native');
+    return <Text>{item.title}</Text>;
+  },
+}));
 jest.mock('../../components/MediaRow', () => ({
   MediaRow: ({ items }: { items: MobileMediaSummary[] }) => {
     const { Text } = require('react-native');
@@ -70,4 +78,36 @@ test('shows blocked and failed saves without success, then permits retry', async
   await user.press(screen.getByText('addToWatchlist'));
   await waitFor(() => expect(mockShow).toHaveBeenCalledWith(expect.objectContaining({ message: 'addedToWatchlist' })));
   await waitFor(() => expect(screen.getByText('removeFromWatchlist')).toBeTruthy());
+});
+
+test('keeps loaded browse titles after a next-page failure', async () => {
+  const queryClient = client();
+  queryClient.setQueryDefaults(['browse'], { staleTime: Infinity });
+  queryClient.setQueryData(['browse', 'movie', 'popular', 'en'], {
+    pages: [{ page: 1, items: [title] }], pageParams: [1],
+  });
+  jest.mocked(browseMedia).mockRejectedValue(new Error('offline'));
+  render(<QueryClientProvider client={queryClient}><BrowseScreen /></QueryClientProvider>);
+  fireEvent(screen.UNSAFE_getAllByType(FlatList)[1], 'endReached');
+  await waitFor(() => expect(screen.getByText('errorBody')).toBeTruthy());
+  expect(screen.getByText('Saved title')).toBeTruthy();
+});
+
+test('keeps cached search results visible after a refresh failure', async () => {
+  const queryClient = client();
+  queryClient.setQueryData(['search', 'Saved', 'en'], {
+    results: [{ id: 1, media_type: 'movie', title: 'Saved title' }],
+  });
+  jest.mocked(searchMedia).mockRejectedValue(new Error('offline'));
+  const user = userEvent.setup();
+  render(<QueryClientProvider client={queryClient}><SearchScreen /></QueryClientProvider>);
+  await user.type(screen.getByLabelText('search'), 'Saved');
+  await waitFor(() => expect(screen.getByText('refreshFailed')).toBeTruthy());
+  expect(screen.getByText('Saved title')).toBeTruthy();
+});
+
+test('guides the user before a search starts', () => {
+  render(<QueryClientProvider client={client()}><SearchScreen /></QueryClientProvider>);
+  expect(screen.getByText('searchPrompt')).toBeTruthy();
+  expect(searchMedia).not.toHaveBeenCalled();
 });

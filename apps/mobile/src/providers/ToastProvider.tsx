@@ -1,8 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
-import { AccessibilityInfo, Animated, StyleSheet, Text, View, useColorScheme } from 'react-native';
-import { colors, fonts, radius, spacing } from '../theme';
-import { Button } from '../components/Button';
+import { AccessibilityInfo, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, fonts, layout, radius, spacing } from '../theme';
 
 type Toast = { message: string; actionLabel?: string; onAction?: () => void };
 type ToastContextValue = { show(toast: Toast): void };
@@ -22,16 +21,16 @@ function useReducedMotion() {
 }
 
 export function ToastProvider({ children }: PropsWithChildren) {
-  useColorScheme();
-  const insets = useSafeAreaInsets();
   const [toast, setToast] = useState<Toast | null>(null);
   const [opacity] = useState(() => new Animated.Value(0));
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reduceMotion = useReducedMotion();
+  const insets = useSafeAreaInsets();
   const fadeDuration = reduceMotion ? 0 : 150;
 
   const hide = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
     Animated.timing(opacity, {
       toValue: 0,
       duration: fadeDuration,
@@ -63,15 +62,20 @@ export function ToastProvider({ children }: PropsWithChildren) {
       {toast ? (
         <Animated.View
           pointerEvents="box-none"
-          style={[styles.wrapper, { opacity, top: insets.top + spacing.md }]}
+          style={[styles.wrapper, { bottom: layout.tabBarHeight + insets.bottom + spacing.sm, opacity }]}
           accessibilityLiveRegion="polite"
           accessibilityRole="alert"
         >
           <View style={styles.toast}>
-            <Text style={styles.message}>{toast.message}</Text>
+            <Text style={styles.message} numberOfLines={2}>{toast.message}</Text>
             {toast.actionLabel && toast.onAction ? (
-              <Button secondary label={toast.actionLabel}
-                onPress={() => { const action = toast.onAction; hide(); action?.(); }} />
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => { hide(); toast.onAction?.(); }}
+                style={styles.action}
+              >
+                <Text style={styles.actionText}>{toast.actionLabel}</Text>
+              </Pressable>
             ) : null}
           </View>
         </Animated.View>
@@ -89,15 +93,19 @@ export function useToast(): ToastContextValue {
 const styles = StyleSheet.create({
   wrapper: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: spacing.md },
   toast: {
-    alignItems: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
     maxWidth: 520,
     backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.borderStrong,
     borderRadius: radius.lg,
+    borderCurve: 'continuous',
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
   },
   message: { flexShrink: 1, color: colors.text, fontFamily: fonts.body, fontSize: 14 },
+  action: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 8 },
+  actionText: { color: colors.accentText, fontFamily: fonts.bodySemiBold, fontSize: 14 },
 });

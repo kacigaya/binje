@@ -13,9 +13,3 @@
   On ARM Linux, use `expo export --no-bytecode` because the supplied Hermes compiler is x64.
 - The web production build prerenders TMDB pages and requires `TMDB_API_KEY`.
   CI checks web lint, tests, and types without copying deployment credentials.
-
-- Native controls use `@expo/ui` 57.0.26. Rebuild development clients after native
-  module changes. SDK 57 native tabs use `expo-router/unstable-native-tabs`.
-- The universal Picker has no native label prop in this version. Keep labeled
-  implementations in `NativePicker.ios.tsx` and `NativePicker.android.tsx`.
-- Wrap React Native sheet content in `RNHostView` for native-window layout and touch handling.

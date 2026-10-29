@@ -39,6 +39,11 @@ OSV continues to report the original package version.
 
 ## Compatibility patch
 
+Keep `brace-expansion` on each caller's requested major version. A global override
+to version 1 breaks the named `expand` export used by Expo fingerprint's
+`minimatch` 10 dependency. The lockfile selects fixed releases for both legacy
+and modern callers. A regression test checks brace patterns through both APIs.
+
 `query-string@7.1.3` loads `decode-uri-component@0.5.0`, which fixes
 [CVE-2026-45822](https://osv.dev/vulnerability/GHSA-vcc3-ghjq-m6fr).
 The decoder now uses ESM. The patch selects its default export in the CommonJS
@@ -50,5 +55,8 @@ The `image-size@1.2.1` patch is obsolete. The override now installs `image-size`
 
 The XML parser override installs `@xmldom/xmldom` 0.9.12 for both plist callers.
 The `@expo/plist@0.8.1` patch passes the XML MIME type that this parser requires.
-Remove this patch when Expo's plist caller supplies the MIME type itself.
-The tests check an Expo plist round trip. Native exports check asset processing.
+It also removes whitespace before an XML declaration. Expo's generated entitlement
+template starts with a newline, which the stricter parser rejects. Content inside
+plist values stays unchanged. Invalid embedded XML declarations still fail.
+Remove this patch when Expo's plist caller supplies the MIME type and accepts
+the generated entitlement template without it. Tests check both cases.

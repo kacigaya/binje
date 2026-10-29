@@ -15,6 +15,16 @@ const forge = expoCliLoad("node-forge");
 const linkingLoad = createRequire(mobileLoad.resolve("expo-linking/package.json"));
 const queryString = linkingLoad("query-string");
 
+test("Expo fingerprint and legacy glob callers can expand braces", () => {
+  const fingerprintLoad = createRequire(expoLoad.resolve("@expo/fingerprint/package.json"));
+  const modern = fingerprintLoad("minimatch").minimatch;
+  const legacy = jestCoreLoad("minimatch");
+  for (const match of [modern, legacy]) {
+    assert.equal(match("app/home.tsx", "app/{home,search}.tsx"), true);
+    assert.equal(match("app/player.tsx", "app/{home,search}.tsx"), false);
+  }
+});
+
 test("Zod rejects oversized collections before parsing children", async () => {
   const root = dirname(expoCliLoad.resolve("zod/package.json"));
   const variants = [
@@ -161,6 +171,16 @@ test("Expo can parse and write plists with the fixed XML parser", () => {
   const plist = expoCliLoad("@expo/plist").default;
   const value = { CFBundleName: "b!nje", Enabled: true, Count: 3 };
   assert.deepEqual({ ...plist.parse(plist.build(value)) }, value);
+});
+
+test("Expo can read entitlement templates with leading whitespace", () => {
+  const plist = expoCliLoad("@expo/plist").default;
+  const value = { CFBundleName: "  b!nje  ", Enabled: true };
+  const xml = plist.build(value);
+  for (const prefix of ["\n", "\r\n", "\uFEFF\n \t"]) {
+    assert.deepEqual({ ...plist.parse(prefix + xml) }, value);
+  }
+  assert.throws(() => plist.parse(xml.replace("<dict>", '<dict><?xml version="1.0"?>')));
 });
 
 test("overrides match direct dependency ranges for npm-based EAS steps", () => {
