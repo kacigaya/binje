@@ -7,6 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { PlayerControls } from "./PlayerControls";
+import { playlistQualities, type Quality } from "./qualities";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getMediaDetails, getSeason } from "../../api/media";
 import { BackButton } from "../../components/BackButton";
@@ -42,6 +43,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   const [playing, setPlaying] = useState<Keyed<PlaybackSource> | null>(null);
   const [stream, setStream] = useState<Keyed<StreamResponse> | null>(null);
   const [qualityHeight, setQualityHeight] = useState(0);
+  const [variants, setVariants] = useState<Keyed<Quality[]> | null>(null);
   const [qualityMenuOpen, setQualityMenuOpen] = useState(false);
   const [seasonPickerOpen, setSeasonPickerOpen] = useState(false);
   const [qualityPending, setQualityPending] = useState(false);
@@ -83,6 +85,14 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
     });
     return () => { subscription.remove(); void progressWriter.flush().catch(() => {}); };
   }, [player, progressWriter, mediaKey]);
+  // Tracks can arrive after the load resolves. A single variant reports one track, which keeps the list.
+  useEffect(() => {
+    const subscription = player.addListener('sourceLoad', ({ availableVideoTracks }) => {
+      const list = playlistQualities(availableVideoTracks);
+      if (list.length && loadedKey.current === mediaKey) setVariants({ key: mediaKey, value: list });
+    });
+    return () => subscription.remove();
+  }, [player, mediaKey]);
   useEffect(() => {
     if (!streamMedia) return;
     let active = true;
@@ -111,6 +121,8 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
       const loaded = await loader.load(proxiedHlsUrl(result.url), position, () => !castingRef.current);
       if (!loaded || cancelled || request.current !== token) return;
       loadedKey.current = mediaKey;
+      const list = playlistQualities(player.availableVideoTracks ?? []);
+      if (list.length) setVariants({ key: mediaKey, value: list });
       setStream({ key: mediaKey, value: result });
       setPlaying({ key: mediaKey, value: source });
     })().catch(failure).finally(() => { if (!cancelled) setResolving(false); });
@@ -120,25 +132,32 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   async function changeQuality(height: number) {
     setQualityMenuOpen(false);
     if (!currentStream || qualityBusy.current || height === qualityHeight || loadedKey.current !== mediaKey) return;
-    const file = height === 0 ? currentStream.url : currentStream.sources?.find(value => value.height === height)?.file;
-    if (!file) return;
+    const url = qualityUrl(height);
+    if (!url) return;
     const token = request.current;
     const position = player.currentTime;
     const resume = player.playing;
-    const oldFile = qualityHeight === 0 ? currentStream.url : currentStream.sources?.find(value => value.height === qualityHeight)?.file ?? currentStream.url;
+    const oldUrl = qualityUrl(qualityHeight) ?? proxiedHlsUrl(currentStream.url);
     qualityBusy.current = true; setQualityPending(true); setMessage('');
     try {
-      const loaded = await loader.load(proxiedHlsUrl(file), position, () => resume && !castingRef.current);
+      const loaded = await loader.load(url, position, () => resume && !castingRef.current);
       if (loaded && request.current === token) setQualityHeight(height);
     } catch {
       if (request.current === token) {
         setMessage('qualityFailed');
-        try { await loader.load(proxiedHlsUrl(oldFile), position, () => resume && !castingRef.current); }
+        try { await loader.load(oldUrl, position, () => resume && !castingRef.current); }
         catch { if (request.current === token) { setStream(null); setFailed(previous => ({ key: mediaKey, value: [...(forMedia(previous, mediaKey) ?? []), ...(source ? [source] : [])] })); } }
       }
     } finally { if (request.current === token) { qualityBusy.current = false; setQualityPending(false); } }
   }
-  const qualityHeights = [...new Set((currentStream?.sources ?? []).map(source => source.height))].sort((a, b) => b - a);
+  // Prefer the separate files from the API; otherwise offer the variants of the HLS playlist.
+  const apiQualities: Quality[] = (currentStream?.sources ?? []).map(item => ({ height: item.height, url: proxiedHlsUrl(item.file) }));
+  const qualities = apiQualities.length ? apiQualities : forMedia(variants, mediaKey) ?? [];
+  const qualityHeights = [...new Set(qualities.map(item => item.height))].sort((a, b) => b - a);
+  function qualityUrl(height: number) {
+    if (!currentStream) return undefined;
+    return height === 0 ? proxiedHlsUrl(currentStream.url) : qualities.find(item => item.height === height)?.url;
+  }
   const streamError = message ? t(message === "saveFailed" ? "saveFailed" : "qualityFailed") : exhausted ? t("streamUnavailable") : null;
   const seasonList = (details.data?.seasons ?? []).filter((item) => item.seasonNumber > 0);
   const currentSeason = seasonList.find((item) => item.seasonNumber === season);
