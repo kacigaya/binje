@@ -2,7 +2,7 @@ import type { en } from './en';
 
 export const fr: Record<keyof typeof en, string> = {
   home: 'Accueil', movies: 'Films', tvShows: 'Séries', watchlist: 'Ma liste', search: 'Rechercher', settings: 'Réglages',
-  trending: 'Tendance', tvSeries: 'Série', related: 'Similaires', browse: 'Parcourir', library: 'Bibliothèque', popular: 'Populaires',
+  trending: 'Tendance', movie: 'Film', tvSeries: 'Série', related: 'Similaires', browse: 'Parcourir', library: 'Bibliothèque', popular: 'Populaires',
   trendingMovies: 'Films tendance', trendingTV: 'Séries tendance', popularMovies: 'Films populaires', popularTV: 'Séries populaires',
   topRated: 'Les mieux notés', nowPlaying: 'Actuellement au cinéma', upcoming: 'Prochainement', airingToday: 'Diffusées aujourd’hui', onTheAir: 'En cours de diffusion',
   continueWatching: 'Continuer à regarder', director: 'Réalisation', createdBy: 'Créé par', watchNow: 'Regarder', details: 'Détails', overview: 'Synopsis', cast: 'Distribution', seasons: 'Saisons', episodes: 'Épisodes',
@@ -27,5 +27,19 @@ export const fr: Record<keyof typeof en, string> = {
   privacyTrackingBody: "L’application n’utilise ni identifiants publicitaires ni outils de suivi. La navigation, la recherche et la lecture envoient des requêtes au service b!nje.",
   privacyControlsTitle: "Vos commandes",
   privacyControlsBody: "Vous pouvez effacer l’historique dans les réglages. Désactiver le stockage local bloque les prochains enregistrements de la liste et de l’historique. Les entrées existantes restent disponibles.",
+  emptyWatchlistBody: 'Enregistrez des films et des séries pour les retrouver ici.',
+  emptyHistory: 'Rien regardé pour le moment',
+  emptyHistoryBody: 'Les titres que vous commencez apparaissent ici.',
+  notAvailable: 'N/D',
+  similarMovies: 'Films similaires',
+  similarShows: 'Séries similaires',
+  all: 'Tout',
+  readMore: 'Lire la suite',
+  showLess: 'Réduire',
+  pauseFeatured: 'Mettre en pause les titres à la une',
+  resumeFeatured: 'Reprendre les titres à la une',
   qualityFailed: "Impossible de changer la qualité. Réessayez.",
+  play: 'Lecture', pause: 'Pause', back10: 'Reculer de 10 secondes', forward10: 'Avancer de 10 secondes',
+  seek: 'Position', showControls: 'Afficher les commandes', cropBars: 'Rogner les bandes noires',
+  pictureInPicture: 'Image dans l’image', enterFullscreen: 'Plein écran',
 };

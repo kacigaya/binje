@@ -1,5 +1,5 @@
 import * as client from "../client";
-import { browseMedia, getHome, getMediaDetails, getSeason, searchMedia } from "../media";
+import { browseMedia, getHome, getMediaDetails, getSeason, searchMedia, toSearchSummary } from "../media";
 
 jest.mock("../client", () => ({ apiRequest: jest.fn() }));
 const request = client.apiRequest as jest.Mock;
@@ -34,6 +34,12 @@ describe("media API", () => {
     await searchMedia("Dune Part Two", 2, "en");
     expect(request).toHaveBeenCalledWith("/api/search", {
       query: { q: "Dune Part Two", page: 2, lang: "en" },
+    });
+  });
+
+  test("builds full image URLs for raw search results", () => {
+    expect(toSearchSummary({ id: 1, media_type: "tv", name: "Show", poster_path: "/p.jpg", backdrop_path: null, first_air_date: "2021-01-08" })).toEqual({
+      id: 1, mediaType: "tv", title: "Show", overview: "", posterUrl: "https://image.tmdb.org/t/p/w500/p.jpg", backdropUrl: null, date: "2021-01-08", rating: 0,
     });
   });
 });
