@@ -34,4 +34,6 @@ The workflow needs the `EXPO_TOKEN` repository secret. EAS increments the Androi
 
 The IPA is not signed. Install it with AltStore or SideStore, which sign it with your Apple ID. With a free Apple ID, refresh the app every 7 days.
 
+To add the IPA to an existing release, run the `Release apps` workflow by hand with its tag.
+
 A pull request that edits `.github/workflows/release.yml` builds the IPA as a check. It does not use EAS and does not upload files.
