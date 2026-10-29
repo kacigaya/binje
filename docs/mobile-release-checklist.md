@@ -20,3 +20,13 @@
 - [ ] Verify no secrets exist in public Expo config or exported bundles
 - [ ] Build internal preview binaries
 - [ ] Obtain explicit approval before store submission
+
+## Publish an Android release
+
+1. Set `expo.version` in `apps/mobile/app.json` and `version` in `package.json` to the new version.
+2. Merge the change to `main`.
+3. Publish a GitHub release with tag `vX.Y.Z` that matches `expo.version`.
+4. The `Release Android APK` workflow builds the APK on EAS with the `preview` profile.
+5. The workflow attaches `binje-vX.Y.Z.apk` and its SHA-256 file to the release.
+
+The workflow needs the `EXPO_TOKEN` repository secret. EAS increments the Android version code for each build.
