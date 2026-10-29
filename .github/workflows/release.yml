@@ -1,0 +1,116 @@
+name: Release apps
+
+# Publish a GitHub release (tag vX.Y.Z) to build the Android APK and the unsigned iOS IPA and attach them.
+# A pull request that edits this file builds the IPA as a check, without EAS and without upload.
+on:
+  release:
+    types: [published]
+  pull_request:
+    paths: [.github/workflows/release.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  TAG: ${{ github.event.release.tag_name || 'v0.0.0-check' }}
+
+jobs:
+  android:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      - name: Check tag matches app version
+        working-directory: apps/mobile
+        run: |
+          version=$(node -p "require('./app.json').expo.version")
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match app.json version $version"
+            exit 1
+          fi
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Build APK on EAS
+        working-directory: apps/mobile
+        run: |
+          eas build --platform android --profile preview --non-interactive --wait --json > "$RUNNER_TEMP/build.json"
+          url=$(node -p "require(process.argv[1])[0].artifacts.buildUrl" "$RUNNER_TEMP/build.json")
+          curl -fsSL "$url" -o "$RUNNER_TEMP/binje-$TAG.apk"
+          cd "$RUNNER_TEMP" && sha256sum "binje-$TAG.apk" > "binje-$TAG.apk.sha256"
+      - name: Attach APK to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" "$RUNNER_TEMP/binje-$TAG.apk" "$RUNNER_TEMP/binje-$TAG.apk.sha256" --clobber
+
+  # Unsigned build for AltStore or SideStore, which sign the app with the user's Apple ID on install.
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      EXPO_PUBLIC_API_BASE_URL: https://binje.duckdns.org
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name || github.sha }}
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: bun install --frozen-lockfile
+      - name: Check tag matches app version
+        if: github.event_name == 'release'
+        working-directory: apps/mobile
+        run: |
+          version=$(node -p "require('./app.json').expo.version")
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match app.json version $version"
+            exit 1
+          fi
+      - name: Generate the iOS project
+        working-directory: apps/mobile
+        run: bunx expo prebuild --platform ios --clean
+      - name: Build without signing
+        working-directory: apps/mobile/ios
+        run: |
+          workspace=$(ls -d *.xcworkspace | head -n 1)
+          xcodebuild build \
+            -workspace "$workspace" \
+            -scheme "${workspace%.xcworkspace}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination generic/platform=iOS \
+            -derivedDataPath "$RUNNER_TEMP/derived" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            | tail -n 200
+          exit "${PIPESTATUS[0]}"
+      - name: Package IPA
+        run: |
+          cd "$RUNNER_TEMP"
+          mkdir Payload
+          cp -R derived/Build/Products/Release-iphoneos/*.app Payload/
+          zip -qry "binje-$TAG.ipa" Payload
+          shasum -a 256 "binje-$TAG.ipa" > "binje-$TAG.ipa.sha256"
+          ls -lh "binje-$TAG.ipa"
+      - name: Attach IPA to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" "$RUNNER_TEMP/binje-$TAG.ipa" "$RUNNER_TEMP/binje-$TAG.ipa.sha256" --clobber
