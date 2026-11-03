@@ -6,7 +6,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { Loader2, Search } from "lucide-react";
 import { Menu as MenuNode, Search as SearchNode, X as XNode } from "lucide";
 import { MorphIcon } from "morphicons/react";
-import { ArrowRightIcon } from "@/components/ui/arrow-right";
 import { BookmarkIcon } from "@/components/ui/bookmark";
 import { ClapIcon } from "@/components/ui/clap";
 import { TvIcon } from "@/components/ui/tv";
@@ -122,7 +121,9 @@ export default function Navbar() {
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [submitIcon, submitFeedback] = useAnimatedIcon();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
 
   const { suggestions, loading } = useSearchSuggestions({
     query,
@@ -143,18 +144,31 @@ export default function Navbar() {
   const close = useCallback(() => {
     setOpen(false);
     setQuery("");
+    setActiveSuggestionIndex(-1);
   }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
+        if (open) searchTriggerRef.current?.focus();
+        else if (menuOpen) menuTriggerRef.current?.focus();
+        close();
+        setMenuOpen(false);
+      }
+    }
+    function onPointerDown(event: PointerEvent) {
+      if (event.target instanceof Node && !panelRef.current?.contains(event.target)) {
         close();
         setMenuOpen(false);
       }
     }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [close]);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [close, open, menuOpen]);
 
   function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -194,11 +208,11 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 z-50">
-      <div className="mx-auto max-w-7xl rounded-[2rem] bg-background/70 backdrop-blur-md border border-white/10 shadow-lg shadow-black/30">
+      <div ref={panelRef} className="mx-auto max-w-7xl rounded-[2rem] bg-background/70 backdrop-blur-md border border-white/10 shadow-lg shadow-black/30">
         <div className="flex items-center justify-between px-4 sm:px-6 h-16">
         <Link
           href={localizedHref(locale, "/")}
-          onClick={() => setMenuOpen(false)}
+          onClick={() => { close(); setMenuOpen(false); }}
           className="flex items-center text-xl font-bold tracking-tight text-foreground"
           style={{ fontFamily: "var(--font-heading)" }}
         >
@@ -246,6 +260,7 @@ export default function Navbar() {
           {!open && (
             <button
               type="button"
+              ref={menuTriggerRef}
               onClick={() => setMenuOpen((v) => !v)}
               className="relative flex md:hidden items-center justify-center size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
               aria-label={menuOpen ? t("Close menu") : t("Open menu")}
@@ -274,125 +289,9 @@ export default function Navbar() {
           >
             <HideOnSearchRoute locale={locale}>
             <div className="flex items-center gap-2">
-              {open && (
-                <form onSubmit={handleSubmit} className="flex items-center">
-                  <div className="relative">
-                    <Search
-                      aria-hidden="true"
-                      className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
-                    />
-                    <input
-                      ref={inputRef}
-                      type="search"
-                      name="q"
-                      autoComplete="off"
-                      // Movie titles trigger misleading spelling errors.
-                      spellCheck={false}
-                      enterKeyHint="search"
-                      required
-                      minLength={MIN_SUGGESTION_QUERY_LENGTH}
-                      disabled={pending}
-                      placeholder={t("Search movies & TV…")}
-                      aria-label={t("Search movies & TV…")}
-                      role="combobox"
-                      aria-autocomplete="list"
-                      aria-expanded={suggestions.length > 0}
-                      aria-controls={
-                        suggestions.length > 0
-                          ? "navbar-search-suggestions"
-                          : undefined
-                      }
-                      value={query}
-                      onChange={(event) => {
-                        setQuery(event.target.value);
-                        setActiveSuggestionIndex(-1);
-                      }}
-                      onKeyDown={onSearchKeyDown}
-                      className="h-9 w-56 sm:w-72 rounded-full bg-white/8 border border-white/15 pl-9 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition disabled:opacity-60"
-                    />
-                    <button
-                      type="submit"
-                      disabled={pending || query.trim().length < MIN_SUGGESTION_QUERY_LENGTH}
-                      {...submitFeedback}
-                      aria-label={t("Search movies & TV…")}
-                      className="absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:opacity-40 disabled:pointer-events-none"
-                    >
-                      {pending ? (
-                        <Loader2
-                          aria-hidden="true"
-                          className="size-4 animate-spin motion-reduce:animate-none"
-                        />
-                      ) : (
-                        <ArrowRightIcon ref={submitIcon} size={16} />
-                      )}
-                    </button>
-                    <span role="status" aria-live="polite" className="sr-only">
-                      {pending ? t("Searching…") : loading ? t("Searching…") : ""}
-                    </span>
-                    {suggestions.length > 0 && (
-                      <ul
-                        id="navbar-search-suggestions"
-                        aria-label={t("Results")}
-                        className="absolute right-0 top-12 w-72 overflow-hidden overscroll-contain rounded-xl border border-white/10 bg-background/95 shadow-2xl shadow-black/40"
-                      >
-                        {suggestions.map((suggestion, index) => {
-                          const title =
-                            suggestion.title ?? suggestion.name ?? t("Untitled");
-                          const date =
-                            suggestion.release_date ?? suggestion.first_air_date;
-                          const year = date ? new Date(date).getFullYear() : null;
-
-                          return (
-                            <li key={`${suggestion.media_type}-${suggestion.id}`}>
-                            {/* Keep link semantics for modified clicks and Tab navigation; `role="option"` would remove them. */}
-                            <IntentPrefetchLink
-                              href={localizedHref(locale, suggestionHref(suggestion))}
-                              onMouseEnter={() => setActiveSuggestionIndex(index)}
-                              onFocus={() => setActiveSuggestionIndex(index)}
-                              onClick={() => close()}
-                              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-red/60 ${
-                                index === normalizedSuggestionIndex ? "bg-white/8" : ""
-                              }`}
-                            >
-                              <span className="relative h-12.5 w-8.5 shrink-0 overflow-hidden rounded bg-white/8">
-                                {suggestion.poster_path ? (
-                                  <Image
-                                    src={`https://image.tmdb.org/t/p/w92${suggestion.poster_path}`}
-                                    alt={title}
-                                    fill
-                                    className="object-cover"
-                                    sizes="34px"
-                                  />
-                                ) : (
-                                  <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-muted-foreground">
-                                    {suggestion.media_type === "tv" ? "TV" : "M"}
-                                  </span>
-                                )}
-                              </span>
-                              <span className="min-w-0">
-                                <span className="block truncate font-medium text-foreground">
-                                  {title}
-                                </span>
-                                {year && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {year}
-                                  </span>
-                                )}
-                              </span>
-                              <span className="ml-auto shrink-0 rounded-full bg-accent-red/15 px-2 py-0.5 text-xs font-semibold text-accent-red-text">
-                                {t(suggestion.media_type === "tv" ? "TV" : "Movie")}
-                              </span>
-                            </IntentPrefetchLink>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                </form>
-              )}
               <button
                 type="button"
+                ref={searchTriggerRef}
                 onClick={() => {
                   if (open) {
                     close();
@@ -401,17 +300,153 @@ export default function Navbar() {
                   setOpen(true);
                   setMenuOpen(false);
                 }}
-                className="flex items-center justify-center size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors cursor-pointer"
+                className="flex items-center justify-center size-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/8 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 cursor-pointer"
                 aria-label={t(open ? "Close search" : "Open search")}
                 aria-expanded={open}
+                aria-controls="navbar-search-panel"
               >
                 <MorphIcon icon={open ? XNode : SearchNode} size={20} reducedMotion="user" />
               </button>
+              {open && (
+                <button
+                  type="submit"
+                  form="navbar-search"
+                  disabled={pending || query.trim().length < MIN_SUGGESTION_QUERY_LENGTH}
+                  aria-label={t("Search movies & TV…")}
+                  className="flex size-9 items-center justify-center rounded-full text-muted-foreground hover:bg-white/8 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 disabled:opacity-40"
+                >
+                  {pending ? <Loader2 aria-hidden="true" className="size-5 animate-spin motion-reduce:animate-none" /> : <Search aria-hidden="true" className="size-5" />}
+                </button>
+              )}
             </div>
             </HideOnSearchRoute>
           </Suspense>
         </div>
         </div>
+
+        {open && (
+          <div id="navbar-search-panel">
+            <form id="navbar-search" onSubmit={handleSubmit} className="px-4 pb-3 sm:px-6">
+              <div className="relative">
+                <Search
+                  aria-hidden="true"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
+                />
+                <input
+                  ref={inputRef}
+                  type="search"
+                  name="q"
+                  autoComplete="off"
+                  // Movie titles trigger misleading spelling errors.
+                  spellCheck={false}
+                  enterKeyHint="search"
+                  required
+                  minLength={MIN_SUGGESTION_QUERY_LENGTH}
+                  disabled={pending}
+                  placeholder={t("Search movies & TV…")}
+                  aria-label={t("Search movies & TV…")}
+                  aria-describedby="navbar-search-status"
+                  aria-controls={
+                    suggestions.length > 0
+                      ? "navbar-search-suggestions"
+                      : undefined
+                  }
+                  value={query}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setActiveSuggestionIndex(-1);
+                  }}
+                  onKeyDown={onSearchKeyDown}
+                  className="h-11 w-full rounded-full bg-white/8 border border-white/15 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50 focus-visible:border-accent-red/50 transition disabled:opacity-60"
+                />
+              </div>
+              <span id="navbar-search-status" role="status" aria-live="polite" className="sr-only">
+                {pending || loading ? t("Searching…") : activeSuggestion ? activeSuggestion.title ?? activeSuggestion.name : ""}
+              </span>
+              {suggestions.length > 0 && (
+                <ul
+                  id="navbar-search-suggestions"
+                  aria-label={t("Results")}
+                  className="mt-3 max-h-[min(24rem,calc(100dvh-12rem))] overflow-y-auto overscroll-contain"
+                >
+                  {suggestions.map((suggestion, index) => {
+                    const title =
+                      suggestion.title ?? suggestion.name ?? t("Untitled");
+                    const date =
+                      suggestion.release_date ?? suggestion.first_air_date;
+                    const year = date ? new Date(date).getFullYear() : null;
+
+                    return (
+                      <li key={`${suggestion.media_type}-${suggestion.id}`}>
+                        {/* Keep link semantics for modified clicks and Tab navigation; `role="option"` would remove them. */}
+                        <IntentPrefetchLink
+                          href={localizedHref(locale, suggestionHref(suggestion))}
+                          onMouseEnter={() => setActiveSuggestionIndex(index)}
+                          onFocus={() => setActiveSuggestionIndex(index)}
+                          onClick={() => close()}
+                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent-red/60 ${
+                            index === normalizedSuggestionIndex ? "bg-white/8" : ""
+                          }`}
+                        >
+                          <span className="relative h-12.5 w-8.5 shrink-0 overflow-hidden rounded bg-white/8">
+                            {suggestion.poster_path ? (
+                              <Image
+                                src={`https://image.tmdb.org/t/p/w92${suggestion.poster_path}`}
+                                alt=""
+                                fill
+                                className="object-cover"
+                                sizes="34px"
+                              />
+                            ) : (
+                              <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-muted-foreground">
+                                {suggestion.media_type === "tv" ? "TV" : "M"}
+                              </span>
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-medium text-foreground">
+                              {title}
+                            </span>
+                            {year && (
+                              <span className="text-xs text-muted-foreground">
+                                {year}
+                              </span>
+                            )}
+                          </span>
+                          <span className="ml-auto shrink-0 rounded-full px-2 py-0.5 text-xs text-muted-foreground">
+                            {t(suggestion.media_type === "tv" ? "TV" : "Movie")}
+                          </span>
+                        </IntentPrefetchLink>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </form>
+
+            {query.trim().length < MIN_SUGGESTION_QUERY_LENGTH && (
+              <div className="flex flex-col gap-1 px-4 pb-3 sm:px-6">
+                {NAV_LINKS.map((link) => (
+                  <NavLink
+                    key={link.href}
+                    href={localizedHref(locale, link.href)}
+                    icon={link.icon}
+                    iconSize={20}
+                    onClick={close}
+                    className="flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-white/8 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+                  >
+                    {t(link.label)}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+            {query.trim().length >= MIN_SUGGESTION_QUERY_LENGTH && suggestions.length === 0 && (
+              <p role="status" className="px-7 pb-6 text-sm text-muted-foreground">
+                {loading ? t("Searching…") : t("No results found")}
+              </p>
+            )}
+          </div>
+        )}
 
         <div
           id="mobile-menu"
@@ -421,6 +456,7 @@ export default function Navbar() {
               : "grid-rows-[0fr] -translate-y-2 opacity-0 pointer-events-none"
           }`}
           aria-hidden={!menuOpen}
+          inert={!menuOpen}
         >
           <div className="min-h-0 overflow-hidden">
             <div className="flex flex-col gap-1 px-4 py-3 sm:px-6">
