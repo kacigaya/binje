@@ -64,17 +64,17 @@ test('TV remote seeks with media keys, seeks with arrows only while hidden, wake
   const view = renderControls(player);
   try {
     expect(screen.getByLabelText('pause').props.hasTVPreferredFocus).toBe(true);
-    act(() => mockRemoteHandler?.({ eventType: 'left', eventKeyAction: 0 }));
+    act(() => mockRemoteHandler?.({ eventType: 'left', eventKeyAction: 1 }));
     expect(player.currentTime).toBe(4);
-    act(() => mockRemoteHandler?.({ eventType: 'right', eventKeyAction: 1 }));
+    act(() => mockRemoteHandler?.({ eventType: 'right', eventKeyAction: 0 }));
     expect(player.currentTime).toBe(4);
-    act(() => mockRemoteHandler?.({ eventType: 'fastForward', eventKeyAction: 0 }));
+    act(() => mockRemoteHandler?.({ eventType: 'fastForward', eventKeyAction: 1 }));
     expect(player.currentTime).toBe(14);
-    act(() => mockRemoteHandler?.({ eventType: 'playPause', eventKeyAction: 0 }));
+    act(() => mockRemoteHandler?.({ eventType: 'playPause', eventKeyAction: 1 }));
     expect(player.pause).toHaveBeenCalledTimes(1);
     act(() => jest.advanceTimersByTime(3000));
     expect(screen.queryByLabelText('pause')).toBeNull();
-    act(() => mockRemoteHandler?.({ eventType: 'left', eventKeyAction: 0 }));
+    act(() => mockRemoteHandler?.({ eventType: 'left', eventKeyAction: 1 }));
     expect(player.currentTime).toBe(4);
     expect(screen.getByLabelText('pause')).toBeTruthy();
     act(() => { expect(back?.(backEvent)).toBe(true); });

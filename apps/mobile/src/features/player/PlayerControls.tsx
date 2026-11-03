@@ -74,7 +74,7 @@ export function PlayerControls({ player, toolbar, crop, onCrop, onFullscreen, on
   };
 
   const handleRemote = (event: HWEvent) => {
-    if (!Platform.isTV || event.eventType === 'blur' || event.eventType === 'focus' || event.eventType === 'menu' || event.eventKeyAction === 1) return;
+    if (!Platform.isTV || event.eventType === 'blur' || event.eventType === 'focus' || event.eventType === 'menu' || event.eventKeyAction === 0) return;
     const wasHidden = !visible;
     setVisible(true);
     setInteraction(value => value + 1);

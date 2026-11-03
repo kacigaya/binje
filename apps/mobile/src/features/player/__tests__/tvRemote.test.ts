@@ -8,20 +8,20 @@ afterEach(() => { if (originalTV) Object.defineProperty(Platform, 'isTV', origin
 test.each([
   ['left', 'rewind'], ['right', 'forward'], ['rewind', 'rewind'],
   ['fastForward', 'forward'], ['playPause', 'toggle'], ['play', 'play'], ['pause', 'pause'],
-])('maps TV key %s to %s once on key down', (key, action) => {
+])('maps TV key %s to %s once on key up', (key, action) => {
   Platform.isTV = true;
-  expect(tvPlaybackAction(key, 0)).toBe(action);
-  expect(tvPlaybackAction(key, 1)).toBeNull();
-  Platform.isTV = false;
+  expect(tvPlaybackAction(key, 1)).toBe(action);
   expect(tvPlaybackAction(key, 0)).toBeNull();
+  Platform.isTV = false;
+  expect(tvPlaybackAction(key, 1)).toBeNull();
 });
 
 test('arrows move focus instead of seeking while controls are visible', () => {
   Platform.isTV = true;
-  expect(tvPlaybackAction('left', 0, true)).toBeNull();
-  expect(tvPlaybackAction('right', 0, true)).toBeNull();
-  expect(tvPlaybackAction('rewind', 0, true)).toBe('rewind');
-  expect(tvPlaybackAction('fastForward', 0, true)).toBe('forward');
+  expect(tvPlaybackAction('left', 1, true)).toBeNull();
+  expect(tvPlaybackAction('right', 1, true)).toBeNull();
+  expect(tvPlaybackAction('rewind', 1, true)).toBe('rewind');
+  expect(tvPlaybackAction('fastForward', 1, true)).toBe('forward');
 });
 
 test('leaves select to Pressable and back to navigation', () => {
