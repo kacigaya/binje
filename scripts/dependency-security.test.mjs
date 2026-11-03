@@ -199,3 +199,98 @@ test("overrides match direct dependency ranges for npm-based EAS steps", () => {
     }
   }
 });
+
+test("deepmerge preserves prototypes when either input has an own __proto__ key", async () => {
+  const root = dirname(expoCliLoad.resolve("deepmerge/package.json"));
+  const variants = [
+    expoCliLoad("deepmerge"),
+    createRequire(join(root, "index.js"))(join(root, "dist/umd.js")),
+  ];
+  const payload = JSON.parse('{"__proto__":{"admin":true},"nested":{"value":1}}');
+  for (const merge of variants) {
+    for (const result of [merge({}, payload), merge(payload, {}), merge(Object.create(null), payload)]) {
+      assert.equal(Object.getPrototypeOf(result), Object.prototype);
+      assert.equal(result.admin, undefined);
+      assert.deepEqual(result.nested, { value: 1 });
+    }
+    const key = Symbol("setting");
+    assert.deepEqual(merge({ [key]: { first: 1 } }, { [key]: { second: 2 } })[key], { first: 1, second: 2 });
+  }
+});
+
+test("modern minimatch bounds preprocessing in both module formats", async () => {
+  const fingerprintLoad = createRequire(expoLoad.resolve("@expo/fingerprint/package.json"));
+  const root = dirname(fingerprintLoad.resolve("minimatch/package.json"));
+  const variants = [fingerprintLoad("minimatch"), await import(pathToFileURL(join(root, "dist/esm/index.js")).href)];
+  for (const { Minimatch } of variants) {
+    const pattern = new Minimatch("x", { optimizationLevel: 2, braceExpandMax: 64 });
+    const expanded = pattern.firstPhasePreProcess([Array(12).fill("**/../a/b").join("/").split("/")]);
+    assert.equal(expanded.length, 64);
+    const large = new Minimatch("{x,*}/{0..999}", { optimizationLevel: 2 });
+    assert.equal(large.set.length, 2000);
+    assert.equal(large.match("y/999"), true);
+    const small = new Minimatch("**/../a/b/**/../c/d", { optimizationLevel: 2 });
+    assert.equal(small.set.length, 4);
+    assert.equal(small.match("../a/b/../c/d"), true);
+  }
+  // Version 3 has no firstPhasePreProcess or optimizationLevel expansion.
+  const legacy = jestCoreLoad("minimatch");
+  const pattern = new legacy.Minimatch(Array(30).fill("**/../a/b").join("/"), { optimizationLevel: 2 });
+  assert.equal(pattern.globParts.length, 1);
+  assert.equal(pattern.firstPhasePreProcess, undefined);
+});
+
+test("glob stops directory reads after cancellation in both module formats", async () => {
+  const fs = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const root = dirname(expoCliLoad.resolve("glob/package.json"));
+  const variants = [expoCliLoad("glob"), await import(pathToFileURL(join(root, "dist/esm/index.min.js")).href)];
+  const directory = fs.mkdtempSync(join(tmpdir(), "binje-glob-"));
+  try {
+    fs.mkdirSync(join(directory, "a/b/c"), { recursive: true });
+    fs.writeFileSync(join(directory, "a/b/c/file.txt"), "test");
+    for (const { glob } of variants) {
+      assert.deepEqual(await glob("**/*.txt", { cwd: directory }), ["a/b/c/file.txt"]);
+      const controller = new AbortController();
+      const reason = new Error("cancel walk");
+      let reads = 0;
+      const pending = glob("**/*", {
+        cwd: directory,
+        signal: controller.signal,
+        fs: {
+          readdir(path, options, callback) {
+            reads += 1;
+            fs.readdir(path, options, (error, entries) => {
+              controller.abort(reason);
+              callback(error, entries);
+            });
+          },
+        },
+      });
+      await assert.rejects(pending, (error) => error === reason);
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.equal(reads, 1);
+    }
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("the Hono adapter retains the MCP server contract", async () => {
+  const sdkLoad = createRequire(expoCliLoad.resolve("@modelcontextprotocol/sdk/package.json"));
+  const { Hono } = sdkLoad("hono");
+  const { createAdaptorServer } = sdkLoad("@hono/node-server");
+  const app = new Hono();
+  app.get("/health", (context) => context.json({ ok: true }));
+  const server = createAdaptorServer({ fetch: app.fetch });
+  try {
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const address = server.address();
+    assert.ok(address && typeof address === "object");
+    const response = await fetch(`http://127.0.0.1:${address.port}/health`);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { ok: true });
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
