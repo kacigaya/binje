@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { TVPressable as Pressable } from '../../components/TVPressable'; import { Platform, useWindowDimensions, ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -14,7 +14,7 @@ import { BackButton } from "../../components/BackButton";
 import { Button } from "../../components/Button";
 import { useLocale } from "../../providers/LocaleProvider";
 import { getResumePosition, upsertPlayHistory, updatePlayHistoryProgress } from "../../storage/playHistory";
-import { colors, fonts, spacing } from "../../theme";
+import { colors, fonts, spacing ,screenPadding} from "../../theme";
 import { createPlaybackLoader } from "./playbackLoader";
 import { createProgressWriter } from "./progressWriter";
 import {
@@ -34,6 +34,7 @@ function forMedia<T>(state: Keyed<T> | null, key: string): T | undefined { retur
 export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type: MobileMediaType; id: number; initialSeason?: number; initialEpisode?: number }) {
   const { locale, t } = useLocale();
   const insets = useSafeAreaInsets();
+  const window = useWindowDimensions();
   const [season, setSeason] = useState(initialSeason ?? 1);
   const [episode, setEpisode] = useState(initialEpisode ?? 1);
   const [attempt, setAttempt] = useState(0);
@@ -203,7 +204,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
     {/* Clear the floating back button: inset + its 16 pt offset + 36 pt height + a gap. */}
     <ScrollView style={styles.fill} contentContainerStyle={[styles.content, { paddingTop: insets.top + 64 }]}>
       {details.isError ? <Text accessibilityRole="alert" style={styles.error}>{t('refreshFailed')}</Text> : null}
-      <View style={styles.videoShell}>
+      <View style={[styles.videoShell, Platform.isTV && { aspectRatio: undefined, height: Math.max(240, window.height - insets.top - insets.bottom - 64) }]}>
         <VideoView
           player={player}
           style={styles.video}
@@ -224,7 +225,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
           onFullscreen={() => void videoRef.current?.enterFullscreen()}
           onPip={() => void videoRef.current?.startPictureInPicture()}
           toolbar={<>
-            {currentStream ? <NativeCastControls
+            {currentStream && !Platform.isTV ? <NativeCastControls
               player={player}
               mediaKey={mediaKey}
               source={currentStream
@@ -417,7 +418,7 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   fillMin: { flexShrink: 1, minWidth: 0 },
   content: { paddingBottom: spacing.xl, gap: spacing.md },
-  body: { paddingHorizontal: spacing.md, gap: spacing.md },
+  body: { paddingHorizontal: screenPadding, gap: spacing.md },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   detailsLink: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
   detailsLinkText: { color: colors.muted, fontSize: 14, fontFamily: fonts.bodyMedium },

@@ -17,6 +17,7 @@
 - [ ] Verify consent, watchlist, history, and clear-data behavior
 - [ ] Verify English and French layouts
 - [ ] Verify Android back navigation and iOS gestures
+- [ ] Install a `preview_tv` build on an Android TV device or emulator. Verify that the launcher banner shows, D-pad focus is visible on all screens, search opens the keyboard, and the remote controls playback
 - [ ] Verify no secrets exist in public Expo config or exported bundles
 - [ ] Build internal preview binaries
 - [ ] Obtain explicit approval before store submission

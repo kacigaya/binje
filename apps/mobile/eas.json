@@ -8,6 +8,12 @@
       "developmentClient": true,
       "distribution": "internal"
     },
+    "development_tv": {
+      "extends": "development",
+      "env": {
+        "EXPO_TV": "1"
+      }
+    },
     "preview": {
       "distribution": "internal",
       "autoIncrement": true,
@@ -15,6 +21,13 @@
         "buildType": "apk"
       },
       "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://binje.duckdns.org"
+      }
+    },
+    "preview_tv": {
+      "extends": "preview",
+      "env": {
+        "EXPO_TV": "1",
         "EXPO_PUBLIC_API_BASE_URL": "https://binje.duckdns.org"
       }
     },

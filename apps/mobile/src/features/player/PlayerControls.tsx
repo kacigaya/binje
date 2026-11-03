@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View, type GestureResponderEvent } from "react-native";
+import { useFocusEffect } from 'expo-router';
+import { tvPlaybackAction, seekPosition } from './tvRemote';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { TVPressable as Pressable } from '../../components/TVPressable'; import { BackHandler, Platform, useTVEventHandler, StyleSheet, Text, View, type HWEvent, type GestureResponderEvent } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import type { VideoPlayer } from "expo-video";
 import { useLocale } from "../../providers/LocaleProvider";
-import { colors, fonts } from "../../theme";
+import { colors, fonts, screenPadding } from "../../theme";
 
 export const SEEK_STEP = 10;
 const HIDE_AFTER_MS = 3000;
@@ -36,6 +38,8 @@ export function PlayerControls({ player, toolbar, crop, onCrop, onFullscreen, on
   const [time, setTime] = useState(player.currentTime);
   const [duration, setDuration] = useState(player.duration);
   const [buffering, setBuffering] = useState(false);
+  const [interaction, setInteraction] = useState(0);
+  const playButton = useRef<View>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -47,27 +51,50 @@ export function PlayerControls({ player, toolbar, crop, onCrop, onFullscreen, on
     return () => subs.forEach((sub) => sub.remove());
   }, [player]);
 
+  const hideActivity = Platform.isTV ? interaction : time;
+
   // Keep controls up while paused; hide them after a short delay while playing, like the web player.
   useEffect(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
     if (visible && playing) hideTimer.current = setTimeout(() => setVisible(false), HIDE_AFTER_MS);
     return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
-  }, [visible, playing, time]);
+  }, [visible, playing, hideActivity]);
 
   const skip = (forward: boolean) => {
-    const target = player.currentTime + (forward ? SEEK_STEP : -SEEK_STEP);
-    const next = Math.max(0, duration > 0 ? Math.min(target, duration) : target);
+    const next = seekPosition(player.currentTime, duration, forward ? SEEK_STEP : -SEEK_STEP);
     seekTo(player, next);
     setTime(next);
   };
   const toggle = () => { if (player.playing) player.pause(); else player.play(); };
 
+  const handleBack = () => {
+    if (!visible) return false;
+    setVisible(false);
+    return true;
+  };
+
+  const handleRemote = (event: HWEvent) => {
+    if (!Platform.isTV || event.eventType === 'blur' || event.eventType === 'focus' || event.eventType === 'menu' || event.eventKeyAction === 1) return;
+    const wasHidden = !visible;
+    setVisible(true);
+    setInteraction(value => value + 1);
+    if (wasHidden) requestAnimationFrame(() => playButton.current?.requestTVFocus());
+    if (disabled) return;
+    const action = tvPlaybackAction(event.eventType, event.eventKeyAction, !wasHidden);
+    if (action === 'rewind') skip(false);
+    if (action === 'forward') skip(true);
+    if (action === 'toggle') toggle();
+    if (action === 'play') player.play();
+    if (action === 'pause') player.pause();
+  };
+
   if (!visible) {
-    return <Pressable accessibilityRole="button" accessibilityLabel={t("showControls")} onPress={() => setVisible(true)} style={StyleSheet.absoluteFill} />;
+    return <>{Platform.isTV ? <TVRemoteEvents onEvent={handleRemote} onBack={handleBack} /> : null}<Pressable hasTVPreferredFocus={Platform.isTV} accessibilityRole="button" accessibilityLabel={t("showControls")} onPress={() => setVisible(true)} style={StyleSheet.absoluteFill} /></>;
   }
   return (
     <View style={StyleSheet.absoluteFill}>
-      <Pressable accessibilityElementsHidden importantForAccessibility="no" onPress={() => setVisible(false)} style={StyleSheet.absoluteFill} />
+      {Platform.isTV ? <TVRemoteEvents onEvent={handleRemote} onBack={handleBack} /> : null}
+      <Pressable focusable={Platform.isTV ? false : undefined} accessibilityElementsHidden importantForAccessibility="no" onPress={() => setVisible(false)} style={StyleSheet.absoluteFill} />
       <LinearGradient pointerEvents="none" colors={["rgba(0,0,0,0.6)", "transparent"]} style={[styles.shade, styles.shadeTop]} />
       <LinearGradient pointerEvents="none" colors={["transparent", "rgba(0,0,0,0.8)"]} style={[styles.shade, styles.shadeBottom]} />
       <View style={styles.toolbar}>
@@ -81,7 +108,7 @@ export function PlayerControls({ player, toolbar, crop, onCrop, onFullscreen, on
       {disabled ? null : (
         <View pointerEvents="box-none" style={styles.center}>
           <IconButton label={t("back10")} onPress={() => skip(false)} icon="play-back" round />
-          <IconButton label={playing ? t("pause") : t("play")} onPress={toggle} icon={playing ? "pause" : "play"} round large busy={buffering} />
+          <IconButton buttonRef={playButton} preferredFocus={Platform.isTV} label={playing ? t("pause") : t("play")} onPress={toggle} icon={playing ? "pause" : "play"} round large busy={buffering} />
           <IconButton label={t("forward10")} onPress={() => skip(true)} icon="play-forward" round />
         </View>
       )}
@@ -96,7 +123,18 @@ export function PlayerControls({ player, toolbar, crop, onCrop, onFullscreen, on
   );
 }
 
-function IconButton({ label, icon, onPress, selected, disabled, round, large, busy }: {
+function TVRemoteEvents({onEvent,onBack}:{onEvent:(event:HWEvent)=>void;onBack:()=>boolean}) {
+  const active = useRef(false);
+  useFocusEffect(useCallback(() => {
+    active.current = true;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBack);
+    return () => { active.current = false; subscription.remove(); };
+  }, [onBack]));
+  useTVEventHandler(event => { if (active.current) onEvent(event); });
+  return null;
+}
+
+function IconButton({ label, icon, onPress, selected, disabled, round, large, busy, buttonRef, preferredFocus }: {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
@@ -105,9 +143,13 @@ function IconButton({ label, icon, onPress, selected, disabled, round, large, bu
   round?: boolean;
   large?: boolean;
   busy?: boolean;
+  buttonRef?: React.Ref<View>;
+  preferredFocus?: boolean;
 }) {
   return (
     <Pressable
+      ref={buttonRef}
+      hasTVPreferredFocus={preferredFocus}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled, selected, busy }}
@@ -138,8 +180,8 @@ function SeekBar({ time, duration, disabled, onSeek }: { time: number; duration:
       accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
       onAccessibilityAction={({ nativeEvent }) => step(nativeEvent.actionName === "increment")}
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
-      onStartShouldSetResponder={() => !disabled}
-      onMoveShouldSetResponder={() => !disabled}
+      onStartShouldSetResponder={() => !Platform.isTV && !disabled}
+      onMoveShouldSetResponder={() => !Platform.isTV && !disabled}
       onResponderTerminationRequest={() => false}
       onResponderGrant={(event) => setScrub(at(event))}
       onResponderMove={(event) => setScrub(at(event))}
@@ -160,7 +202,7 @@ const styles = StyleSheet.create({
   shade: { position: "absolute", left: 0, right: 0 },
   shadeTop: { top: 0, height: 80 },
   shadeBottom: { bottom: 0, height: 96 },
-  toolbar: { position: "absolute", top: 8, right: 8, left: 8, alignItems: "flex-end" },
+  toolbar: { position: "absolute", top: 8, right: Platform.isTV ? screenPadding : 8, left: Platform.isTV ? screenPadding : 8, alignItems: "flex-end" },
   group: { flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "rgba(12,12,15,0.7)", borderRadius: 999, padding: 3 },
   center: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 32 },
   button: { width: 36, height: 36, borderRadius: 999, alignItems: "center", justifyContent: "center" },
@@ -169,12 +211,12 @@ const styles = StyleSheet.create({
   selected: { backgroundColor: colors.accent },
   disabled: { opacity: 0.4 },
   pressed: { opacity: 0.7 },
-  bottom: { position: "absolute", left: 12, right: 12, bottom: 6 },
+  bottom: { position: "absolute", left: Platform.isTV ? screenPadding : 12, right: Platform.isTV ? screenPadding : 12, bottom: Platform.isTV ? 24 : 6 },
   track: { height: 20, justifyContent: "center" },
   rail: { height: 4, borderRadius: 2, backgroundColor: "rgba(255,255,255,0.25)", overflow: "hidden" },
   fill: { height: 4, backgroundColor: colors.accent },
   thumb: { position: "absolute", width: 12, height: 12, marginLeft: -6, borderRadius: 6, backgroundColor: "#fff" },
   thumbActive: { width: 16, height: 16, marginLeft: -8, borderRadius: 8 },
   times: { flexDirection: "row", justifyContent: "space-between" },
-  time: { color: "rgba(255,255,255,0.85)", fontSize: 11, fontFamily: fonts.bodyMedium, fontVariant: ["tabular-nums"] },
+  time: { color: "rgba(255,255,255,0.85)", fontSize: Platform.isTV ? 16 : 11, fontFamily: fonts.bodyMedium, fontVariant: ["tabular-nums"] },
 });

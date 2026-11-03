@@ -37,6 +37,12 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "@react-native-tvos/config-tv",
+        {
+          "androidTVBanner": "./assets/images/tv-banner.png"
+        }
+      ],
       "expo-router",
       "expo-localization",
       [

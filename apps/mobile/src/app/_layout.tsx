@@ -14,7 +14,7 @@ import { Stack, type ErrorBoundaryProps } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { TVPressable as Pressable } from '../components/TVPressable'; import { Platform, StyleSheet, Text, View } from "react-native";
 import { localeFromTags, translate } from "../i18n";
 import { AppProviders } from "../providers/AppProviders";
 import { useLocale } from "../providers/LocaleProvider";
@@ -37,6 +37,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
         {error.message || translate(locale, "errorBody")}
       </Text>
       <Pressable
+        hasTVPreferredFocus={Platform.isTV}
         accessibilityRole="button"
         onPress={() => void retry()}
         style={errorStyles.button}
@@ -100,7 +101,7 @@ function AppNavigation() {
       <Stack
         screenOptions={{
           headerShown: false,
-          orientation: 'portrait',
+          orientation: Platform.isTV ? 'landscape' : 'portrait',
           contentStyle: { backgroundColor: colors.background },
         }}
       >
