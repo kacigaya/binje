@@ -1,13 +1,21 @@
-import { StyleSheet, useWindowDimensions } from 'react-native';
-import { spacing } from '../theme';
+import { Platform, StyleSheet, useWindowDimensions } from 'react-native';
+import { screenPadding, spacing } from '../theme';
 
-/** Two-column grid card width: screen minus both gutters and the column gap, like the web grid. */
+export function gridColumnCount(width: number) {
+  return Platform.isTV ? Math.max(2, Math.min(6, Math.floor((width - 96) / 150))) : 2;
+}
+
+export function useGridColumns() {
+  return gridColumnCount(useWindowDimensions().width);
+}
+
 export function useGridCardWidth() {
   const { width } = useWindowDimensions();
-  return Math.floor((width - spacing.md * 3) / 2);
+  const columns = gridColumnCount(width);
+  return Math.floor((width - screenPadding * 2 - spacing.md * (columns - 1)) / columns);
 }
 
 export const gridStyles = StyleSheet.create({
-  content: { paddingHorizontal: spacing.md, paddingBottom: spacing.xl, gap: spacing.lg },
+  content: { paddingHorizontal: screenPadding, paddingBottom: spacing.xl, gap: spacing.lg },
   row: { gap: spacing.md },
 });

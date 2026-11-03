@@ -29,7 +29,7 @@ export function ConsentBanner() {
       <Text style={s.body}>{t('consentBody')}</Text>
       {error ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontFamily: fonts.body }}>{error}</Text> : null}
       <View style={s.actions}>
-        <Button label={t('dismiss')} secondary disabled={pending} onPress={() => void choose('dismissed')} />
+        <Button hasTVPreferredFocus label={t('dismiss')} secondary disabled={pending} onPress={() => void choose('dismissed')} />
         <Button label={t('accept')} loading={pending} onPress={() => void choose('accepted')} />
       </View>
     </View></View>

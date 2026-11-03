@@ -1,6 +1,13 @@
-import { render, screen, userEvent } from '@testing-library/react-native';
+import { useEffect } from 'react';
+import { BackHandler, Platform, type HWEvent } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { act, render, screen, userEvent } from '@testing-library/react-native';
 import type { VideoPlayer } from 'expo-video';
 import { PlayerControls, formatTime } from '../PlayerControls';
+
+let mockRemoteHandler: ((event: HWEvent) => void) | undefined;
+jest.mock('react-native/Libraries/Components/TV/useTVEventHandler', () => ({ __esModule: true, default: (handler: (event: HWEvent) => void) => { mockRemoteHandler = handler; } }));
+jest.mock('expo-router', () => ({ useFocusEffect: jest.fn() }));
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
@@ -37,4 +44,46 @@ test('hides playback buttons while casting', () => {
   renderControls(makePlayer({ currentTime: 0, duration: 100, playing: false }), true);
   expect(screen.queryByLabelText('play')).toBeNull();
   expect(screen.getByLabelText('enterFullscreen')).toBeTruthy();
+});
+
+// The native event source is replaced; the controls and focus lifecycle stay mounted.
+function useMockFocusEffect(effect: () => void | (() => void)) { useEffect(effect, [effect]); }
+
+test('TV remote seeks with media keys, seeks with arrows only while hidden, wakes controls, auto-hides and lets the second back leave', () => {
+  jest.useFakeTimers();
+  const originalTV = Object.getOwnPropertyDescriptor(Platform, 'isTV');
+  Object.defineProperty(Platform, 'isTV', { value: true, configurable: true });
+  jest.mocked(useFocusEffect).mockImplementation(useMockFocusEffect);
+  let back: Parameters<typeof BackHandler.addEventListener>[1] | undefined;
+  const backEvent = { type: 'hardwareBackPress', timeStamp: 0 };
+  const listener = jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, handler) => {
+    back = handler;
+    return { remove: jest.fn() };
+  });
+  const player = makePlayer({ currentTime: 4, duration: 100, playing: true });
+  const view = renderControls(player);
+  try {
+    expect(screen.getByLabelText('pause').props.hasTVPreferredFocus).toBe(true);
+    act(() => mockRemoteHandler?.({ eventType: 'left', eventKeyAction: 1 }));
+    expect(player.currentTime).toBe(4);
+    act(() => mockRemoteHandler?.({ eventType: 'right', eventKeyAction: 0 }));
+    expect(player.currentTime).toBe(4);
+    act(() => mockRemoteHandler?.({ eventType: 'fastForward', eventKeyAction: 1 }));
+    expect(player.currentTime).toBe(14);
+    act(() => mockRemoteHandler?.({ eventType: 'playPause', eventKeyAction: 1 }));
+    expect(player.pause).toHaveBeenCalledTimes(1);
+    act(() => jest.advanceTimersByTime(3000));
+    expect(screen.queryByLabelText('pause')).toBeNull();
+    act(() => mockRemoteHandler?.({ eventType: 'left', eventKeyAction: 1 }));
+    expect(player.currentTime).toBe(4);
+    expect(screen.getByLabelText('pause')).toBeTruthy();
+    act(() => { expect(back?.(backEvent)).toBe(true); });
+    expect(screen.queryByLabelText('pause')).toBeNull();
+    expect(back?.(backEvent)).toBe(false);
+  } finally {
+    view.unmount();
+    listener.mockRestore();
+    if (originalTV) Object.defineProperty(Platform, 'isTV', originalTV);
+    jest.useRealTimers();
+  }
 });

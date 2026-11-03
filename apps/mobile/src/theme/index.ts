@@ -1,3 +1,4 @@
+import { Platform, type ViewStyle } from 'react-native';
 export const colors = {
   background: '#050506',
   surface: '#0c0c0f',
@@ -33,3 +34,6 @@ export const typography = {
   body: { fontSize: 16, lineHeight: 24, fontFamily: fonts.body },
   label: { fontSize: 14, fontFamily: fonts.bodySemiBold },
 } as const;
+
+export const tvFocusStyle: ViewStyle = { outlineWidth: 3, outlineColor: colors.accent, outlineOffset: -3, transform: [{ scale: 1.03 }] };
+export const screenPadding = Platform.isTV ? 48 : spacing.md;

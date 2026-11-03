@@ -4,7 +4,7 @@
 
 <h1 align="center">b!nje</h1>
 
-<p align="center">A movie and TV streaming app for web, Android, and iOS.</p>
+<p align="center">A movie and TV streaming app for web, Android, Android TV, and iOS.</p>
 
 <p align="center">
   <a href="https://nextjs.org"><img alt="Next.js 16.3.2" src="https://shieldcn.dev/badge/Next.js-16.3.2-171717.svg?variant=secondary&amp;logo=nextdotjs"></a>
@@ -21,7 +21,7 @@
 - Play streams from Vidcore, Vidsu, Vidme, and Vidru. Vidcore needs the optional [browser resolver](docs/vidcore-resolver.md).
 - Cast with Google Cast and AirPlay.
 - English and French interfaces.
-- Expo mobile app for Android and iOS.
+- Expo mobile app for Android, Android TV, and iOS.
 
 ## Screenshots
 

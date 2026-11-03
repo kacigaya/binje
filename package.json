@@ -79,6 +79,7 @@
     "proxy-addr": "^2.0.8",
     "shell-quote": "^1.11.0",
     "source-map-js": "^1.2.2",
+    "react-native": "npm:react-native-tvos@0.86.3-0",
     "react-native-screens": "~4.26.0",
     "node-forge": "^1.4.2"
   },

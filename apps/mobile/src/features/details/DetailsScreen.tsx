@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState, type ComponentProps, type ReactNode } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { TVPressable as Pressable } from '../../components/TVPressable'; import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { getMediaDetails, getSeason } from '../../api/media';
 import { BackButton } from '../../components/BackButton';
 import { RtRating, TmdbRating } from '../../components/Badges';
@@ -17,7 +17,7 @@ import { ErrorState } from '../../components/States';
 import { useIsInWatchlist, useWatchlistToggle } from '../../hooks/useWatchlistToggle';
 import { formatRating } from '../../i18n/format';
 import { useLocale } from '../../providers/LocaleProvider';
-import { colors, fonts, radius, spacing } from '../../theme';
+import { colors, fonts, radius, spacing ,screenPadding} from '../../theme';
 import type { MobileMediaType, MobilePerson, MobileSeason } from '../../types/api';
 
 type FeatherName = ComponentProps<typeof Feather>['name'];
@@ -190,7 +190,7 @@ export default function DetailsScreen({ type, id }: { type: MobileMediaType; id:
         ) : null}
 
         <View style={s.actions}>
-          <Button label={t('watchNow')} icon={<Ionicons name="play" size={18} color={colors.text} />} onPress={() => router.push(`/watch/${type}/${id}` as never)} />
+          <Button hasTVPreferredFocus label={t('watchNow')} icon={<Ionicons name="play" size={18} color={colors.text} />} onPress={() => router.push(`/watch/${type}/${id}` as never)} />
           <Button secondary icon={<Feather name={saved ? 'check' : 'plus'} size={18} color={colors.text} />} label={saved ? t('removeFromWatchlist') : t('addToWatchlist')} loading={pending} onPress={toggle} />
         </View>
         {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
@@ -233,8 +233,8 @@ export default function DetailsScreen({ type, id }: { type: MobileMediaType; id:
 const s = StyleSheet.create({
   errorBox: { flex: 1, justifyContent: 'center' },
   hero: { height: 260, backgroundColor: colors.surface },
-  content: { paddingHorizontal: spacing.md, gap: 20 },
-  padded: { paddingHorizontal: spacing.md },
+  content: { paddingHorizontal: screenPadding, gap: 20 },
+  padded: { paddingHorizontal: screenPadding },
   headRow: { flexDirection: 'row', gap: spacing.md, marginTop: -96, alignItems: 'flex-end' },
   poster: {
     width: 104,
@@ -286,7 +286,7 @@ const s = StyleSheet.create({
   episodeMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   episodeMetaText: { color: colors.muted, fontSize: 12, fontFamily: fonts.body, fontVariant: ['tabular-nums'] },
   episodeOverview: { color: colors.muted, fontSize: 12, lineHeight: 17, fontFamily: fonts.body },
-  castList: { paddingHorizontal: spacing.md, gap: 14 },
+  castList: { paddingHorizontal: screenPadding, gap: 14 },
   castCard: { width: 90, alignItems: 'center' },
   castPhoto: { width: 80, height: 80, borderRadius: 40, overflow: 'hidden', backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   castInitial: { color: colors.muted, fontSize: 24, fontFamily: fonts.heading },

@@ -1,6 +1,6 @@
 # b!nje mobile
 
-Expo SDK 57 client for Android and iOS. The mobile application uses the existing b!nje Next.js deployment as its API and stream-resolution backend, so TMDB and OMDb credentials remain server-side.
+Expo SDK 57 client for Android, Android TV, and iOS. The mobile application uses the existing b!nje Next.js deployment as its API and stream-resolution backend, so TMDB and OMDb credentials remain server-side.
 
 ## Setup
 
@@ -45,6 +45,25 @@ Google Cast uses the native sender SDK and Google's Default Media Receiver. Afte
 adding or upgrading `react-native-google-cast`, rebuild the development client before
 testing. The Cast button appears in the player when a compatible receiver is available
 on the same network.
+
+## Android TV
+
+The app uses `react-native-tvos`, the React Native fork that supports phone and TV targets. Phone builds stay the same. The `@react-native-tvos/config-tv` plugin changes the Android project for TV only when `EXPO_TV=1` is set.
+
+To build an Android TV APK:
+
+```bash
+cd apps/mobile
+npx eas-cli@latest build --platform android --profile preview_tv
+```
+
+Use `development_tv` for a development build. To generate the native project locally:
+
+```bash
+EXPO_TV=1 npx expo prebuild --platform android --clean
+```
+
+The TV build adds the Leanback launcher entry and the `assets/images/tv-banner.png` banner (320×180). It does not need a touchscreen. The remote moves focus between controls. Google Cast is not available on TV.
 
 ## Appearance and retained fixes
 
