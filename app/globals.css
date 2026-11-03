@@ -136,6 +136,28 @@
     }
 }
 
+/* Grow the navbar search box leftward from the search button. Clipping keeps layout stable during the animation. */
+@keyframes search-grow {
+    from {
+        clip-path: inset(0 0 0 calc(100% - 2.25rem) round 9999px);
+        opacity: 0;
+    }
+    to {
+        clip-path: inset(0 round 9999px);
+        opacity: 1;
+    }
+}
+
+.animate-search-grow {
+    animation: search-grow 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-search-grow {
+        animation: none;
+    }
+}
+
 /* Player.tsx sets --subtitle-lift and skips explicitly positioned cues because transforms move every cue.
  * Chromium/WebKit support the cue container; Firefox leaves cues in place. */
 video::-webkit-media-text-track-container {

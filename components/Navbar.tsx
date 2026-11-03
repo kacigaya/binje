@@ -292,7 +292,7 @@ export default function Navbar() {
             <HideOnSearchRoute locale={locale}>
             <div className={`flex items-center gap-2 ${open ? "min-w-0 flex-1 justify-end" : ""}`}>
               {open && (
-                <form id="navbar-search" onSubmit={handleSubmit} className="relative min-w-0 flex-1">
+                <form id="navbar-search" onSubmit={handleSubmit} className="relative min-w-0 flex-1 animate-search-grow">
                   <Search
                     aria-hidden="true"
                     className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none"
