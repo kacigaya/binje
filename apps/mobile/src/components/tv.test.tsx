@@ -32,3 +32,14 @@ test.each([false, true])('focus ring is TV-only: %s', tv => {
   fireEvent(button, 'blur', { nativeEvent: {} });
   expect(button).not.toHaveStyle(tvFocusStyle);
 });
+
+test('uses a supplied card focus style only on TV', () => {
+  Platform.isTV = true;
+  const focusStyle = { outlineColor: '#fff', transform: [{ scale: 1.1 }] };
+  const view = render(<TVPressable focusStyle={focusStyle} accessibilityLabel="Card"><Text>Card</Text></TVPressable>);
+  const button = view.getByLabelText('Card');
+  fireEvent(button, 'focus', { nativeEvent: {} });
+  expect(button).toHaveStyle(focusStyle);
+  fireEvent(button, 'blur', { nativeEvent: {} });
+  expect(button).not.toHaveStyle(focusStyle);
+});

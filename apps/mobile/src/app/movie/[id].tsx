@@ -1,1 +1,2 @@
-import { useLocalSearchParams } from 'expo-router'; import DetailsScreen from '../../features/details/DetailsScreen'; export default function MovieDetails(){const {id}=useLocalSearchParams<{id:string}>();return <DetailsScreen type="movie" id={Number(id)}/>}
+import { Platform } from 'react-native'; import TVDetailsScreen from '../../features/details/TVDetailsScreen';
+import { useLocalSearchParams } from 'expo-router'; import DetailsScreen from '../../features/details/DetailsScreen'; export default function MovieDetails(){const {id}=useLocalSearchParams<{id:string}>();const Screen=Platform.isTV?TVDetailsScreen:DetailsScreen;return <Screen type="movie" id={Number(id)}/>}

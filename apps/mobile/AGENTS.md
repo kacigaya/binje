@@ -9,6 +9,8 @@
   `react-native` copies for peer dependencies.
 - `EXPO_TV=1` makes prebuild and EAS (`development_tv`, `preview_tv`) target Android TV.
   Gate TV-only UI on `Platform.isTV` so phone behavior does not change.
+  TV Home, Search, and Details live in `TV*Screen.tsx` files. Route files pick them with `Platform.isTV`.
+  Android TV moves focus on key-down but sends remote events on key-up. Code that reads the focused element in a remote handler must allow for this.
 - Validation from the repository root: `bun run mobile:typecheck`,
   `bun run mobile:test --runInBand`, and `bun run mobile:lint`.
 - Check SDK compatibility from this directory with `bunx expo install --check`.

@@ -17,7 +17,10 @@
 - [ ] Verify consent, watchlist, history, and clear-data behavior
 - [ ] Verify English and French layouts
 - [ ] Verify Android back navigation and iOS gestures
-- [ ] Install a `preview_tv` build on an Android TV device or emulator. Verify that the launcher banner shows, D-pad focus is visible on all screens, search opens the keyboard, and the remote controls playback
+- [ ] Install a `preview_tv` build on an Android TV device or emulator. Verify that the launcher banner shows, D-pad focus is visible on all screens, and the remote controls playback
+- [ ] On TV, press Left at the screen edge and verify that the menu opens. Press Back on a main page and verify that focus moves to the menu
+- [ ] On TV Home, press Right on the last hero button and verify that the next featured title shows. Move into a row and verify that the backdrop follows the focused card. Hold OK on a poster and verify that playback starts
+- [ ] On TV Search, type with the on-screen keyboard. Hold OK on `e` and verify that the accent row opens. Hold Delete and verify that the query clears
 - [ ] Verify no secrets exist in public Expo config or exported bundles
 - [ ] Build internal preview binaries
 - [ ] Obtain explicit approval before store submission

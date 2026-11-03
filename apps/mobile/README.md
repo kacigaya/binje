@@ -50,6 +50,8 @@ on the same network.
 
 The app uses `react-native-tvos`, the React Native fork that supports phone and TV targets. Phone builds stay the same. The `@react-native-tvos/config-tv` plugin changes the Android project for TV only when `EXPO_TV=1` is set.
 
+On TV, the app uses separate screens for Home, Search, and Details. A menu rail on the left replaces the tab bar. The route files select the TV screen when `Platform.isTV` is true.
+
 To build an Android TV APK:
 
 ```bash
