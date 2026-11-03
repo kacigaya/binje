@@ -27,9 +27,9 @@
 1. Set `expo.version` in `apps/mobile/app.json` and `version` in `package.json` to the new version.
 2. Merge the change to `main`.
 3. Publish a GitHub release with tag `vX.Y.Z` that matches `expo.version`.
-4. The `Release apps` workflow builds the Android APK on EAS with the `preview` profile.
+4. The `Release apps` workflow builds the Android phone APK on EAS with the `preview` profile, and the Android TV APK with the `preview_tv` profile.
 5. The same workflow builds an unsigned iOS IPA on a macOS runner.
-6. The workflow attaches `binje-vX.Y.Z.apk`, `binje-vX.Y.Z.ipa`, and their SHA-256 files to the release.
+6. The workflow attaches `binje-vX.Y.Z.apk`, `binje-vX.Y.Z-tv.apk`, `binje-vX.Y.Z.ipa`, and their SHA-256 files to the release.
 
 The workflow needs the `EXPO_TOKEN` repository secret. EAS increments the Android version code for each build.
 
