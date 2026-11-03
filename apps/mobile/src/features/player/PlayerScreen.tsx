@@ -100,6 +100,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
     return () => { active = false; };
   }, [streamMedia, mediaKey, attempt]);
   useEffect(() => {
+    player.pause();
     if (!streamMedia || !source) return;
     let cancelled = false;
     const failure = () => {

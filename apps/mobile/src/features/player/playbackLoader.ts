@@ -1,13 +1,14 @@
 import type { VideoPlayer } from 'expo-video';
 
-type Player = Pick<VideoPlayer, 'replaceAsync' | 'currentTime' | 'play' | 'pause'>;
+type Player = Pick<VideoPlayer, 'replaceAsync' | 'currentTime' | 'play'>;
 
 /** Native replacements cannot be cancelled. Queue them so an old load cannot replace a new episode. */
 export function createPlaybackLoader(player: Player) {
   let generation = 0;
   let tail: Promise<unknown> = Promise.resolve();
   return {
-    invalidate() { generation += 1; player.pause(); },
+    // Expo can release the native player before the screen's effect cleanup runs.
+    invalidate() { generation += 1; },
     load(uri: string, position: number, shouldPlay: () => boolean) {
       const expected = generation;
       const operation = tail.catch(() => {}).then(async () => {
