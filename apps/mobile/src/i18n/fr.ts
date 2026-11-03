@@ -1,6 +1,7 @@
 import type { en } from './en';
 
 export const fr: Record<keyof typeof en, string> = {
+  trendingWeek: 'Tendances de la semaine', starring: 'Avec', resume: 'Reprendre', minutesLeft: 'min restantes', minutes: 'min', space: 'Espace', deleteKey: 'Effacer', accentHint: 'Maintenez OK sur une lettre pour les accents',
   home: 'Accueil', movies: 'Films', tvShows: 'Séries', watchlist: 'Ma liste', search: 'Rechercher', settings: 'Réglages',
   trending: 'Tendance', movie: 'Film', tvSeries: 'Série', related: 'Similaires', browse: 'Parcourir', library: 'Bibliothèque', popular: 'Populaires',
   trendingMovies: 'Films tendance', trendingTV: 'Séries tendance', popularMovies: 'Films populaires', popularTV: 'Séries populaires',

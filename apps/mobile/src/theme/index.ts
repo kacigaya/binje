@@ -26,7 +26,7 @@ export const fonts = {
 } as const;
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 } as const;
 /** Tab bar height above the bottom safe-area inset. Floating UI must clear it. */
-export const layout = { tabBarHeight: 80 } as const;
+export const layout = { tabBarHeight: 80, tvRailWidth: 72, tvRailExpandedWidth: 236 } as const;
 export const radius = { sm: 8, md: 12, lg: 20, xl: 32, pill: 999 } as const;
 export const typography = {
   title: { fontSize: 30, fontFamily: fonts.heading },
@@ -35,5 +35,7 @@ export const typography = {
   label: { fontSize: 14, fontFamily: fonts.bodySemiBold },
 } as const;
 
-export const tvFocusStyle: ViewStyle = { outlineWidth: 3, outlineColor: colors.accent, outlineOffset: -3, transform: [{ scale: 1.03 }] };
-export const screenPadding = Platform.isTV ? 48 : spacing.md;
+export const tvFocusStyle: ViewStyle = { outlineWidth: 2.5, outlineColor: '#fff', outlineOffset: 3, transform: [{ scale: 1.06 }], boxShadow: '0 8px 28px rgba(0,0,0,0.6)' };
+export const screenPadding = Platform.isTV ? 32 : spacing.md;
+
+export const tvCardFocusStyle: ViewStyle = { ...tvFocusStyle, transform: [{ scale: 1.1 }], boxShadow: '0 10px 30px rgba(0,0,0,0.7)', zIndex: 2 };

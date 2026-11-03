@@ -1,4 +1,5 @@
 export const en = {
+  trendingWeek: 'Trending this week', starring: 'Starring', resume: 'Resume', minutesLeft: 'min left', minutes: 'min', space: 'Space', deleteKey: 'Delete', accentHint: 'Hold OK on a letter for accents',
   home: 'Home', movies: 'Movies', tvShows: 'TV Shows', watchlist: 'Watchlist', search: 'Search', settings: 'Settings',
   trending: 'Trending', movie: 'Movie', tvSeries: 'TV Series', related: 'More like this', browse: 'Browse', library: 'Library', popular: 'Popular',
   trendingMovies: 'Trending Movies', trendingTV: 'Trending TV Shows', popularMovies: 'Popular Movies', popularTV: 'Popular TV Shows',
