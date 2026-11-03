@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Image, { type ImageLoaderProps } from "next/image";
 import { Info, Pause, Play } from "lucide-react";
 import { useReducedMotion } from "motion/react";
@@ -45,9 +45,46 @@ function heroLogoBox(width?: number, height?: number) {
   };
 }
 
+function HeroLogo({
+  item,
+  className,
+  ...props
+}: {
+  item: MediaItem;
+  className: string;
+  priority?: boolean;
+  loading?: "eager";
+  onLoad?: () => void;
+  onError?: () => void;
+}) {
+  const logo = logoUrl(item.logo_path ?? null);
+  if (!logo) return null;
+  const logoBox = heroLogoBox(item.logo_width, item.logo_height);
+
+  return (
+    <Image
+      {...props}
+      src={logo}
+      alt=""
+      aria-hidden="true"
+      width={item.logo_width ?? 500}
+      height={item.logo_height ?? 200}
+      sizes={logoBox.sizes}
+      style={logoBox.style}
+      className={`h-28 w-(--logo-width) object-contain object-left-bottom sm:h-36 sm:w-(--logo-width-sm) short:h-20 ${className}`}
+    />
+  );
+}
+
 export default function Hero({ items }: HeroProps) {
   const { locale, t } = useTranslations();
   const [activeIndex, setActiveIndex] = useState(0);
+  // Keep the previous backdrop under the active one so the crossfade never shows the page background.
+  const [baseIndex, setBaseIndex] = useState(0);
+  // Load the next title hidden, then switch once its images are ready so text and pictures change together.
+  const [pendingIndex, setPendingIndex] = useState<number | null>(null);
+  const pendingAssets = useRef(0);
+  const [rotated, setRotated] = useState(false);
   const [paused, setPaused] = useState(false);
   const reducedMotion = useReducedMotion() ?? false;
   const rotates = !reducedMotion;
@@ -61,21 +98,50 @@ export default function Hero({ items }: HeroProps) {
     // Disable automatic rotation for reduced motion; everyone else gets a pause control.
     if (safeItems.length <= 1 || paused || !rotates) return;
 
-    const intervalId = window.setInterval(() => {
-      setActiveIndex((previousIndex) => (previousIndex + 1) % safeItems.length);
+    const timeoutId = window.setTimeout(() => {
+      const nextIndex = (activeIndex + 1) % safeItems.length;
+      const next = safeItems[nextIndex];
+      pendingAssets.current =
+        Number(Boolean(next.backdrop_path)) + Number(Boolean(next.logo_path));
+      setBaseIndex(activeIndex);
+      if (pendingAssets.current === 0) {
+        setActiveIndex(nextIndex);
+        setRotated(true);
+      } else {
+        setPendingIndex(nextIndex);
+      }
     }, 15000);
 
-    return () => window.clearInterval(intervalId);
-  }, [paused, rotates, safeItems.length]);
+    return () => window.clearTimeout(timeoutId);
+  }, [activeIndex, paused, rotates, safeItems]);
 
-  const normalizedIndex =
-    safeItems.length > 0 ? activeIndex % safeItems.length : 0;
-  const activeItem = safeItems[normalizedIndex];
+  // Failed images also count as settled so one broken asset cannot stop rotation.
+  function settlePendingAsset(index: number) {
+    if (index !== pendingIndex) return;
+    pendingAssets.current -= 1;
+    if (pendingAssets.current > 0) return;
+    setActiveIndex(index);
+    setPendingIndex(null);
+    setRotated(true);
+  }
+
+  const itemAt = (index: number) =>
+    safeItems.length > 0 ? safeItems[index % safeItems.length] : undefined;
+  const activeItem = itemAt(activeIndex);
   if (!activeItem) return null;
+  const pendingItem = pendingIndex === null ? undefined : itemAt(pendingIndex);
 
-  const backdrop = activeItem.backdrop_path;
+  // Bottom to top: previous, active, then the hidden incoming title.
+  const backdropLayers = [
+    { index: baseIndex, className: "" },
+    { index: activeIndex, className: rotated ? "animate-hero-fade" : "" },
+    ...(pendingIndex === null ? [] : [{ index: pendingIndex, className: "opacity-0" }]),
+  ].filter(
+    (layer, position, layers) =>
+      layers.findLastIndex((other) => other.index === layer.index) === position,
+  );
+
   const logo = logoUrl(activeItem.logo_path ?? null);
-  const logoBox = heroLogoBox(activeItem.logo_width, activeItem.logo_height);
   const detailHref =
     activeItem.media_type === "tv"
       ? `/tv/${activeItem.id}`
@@ -88,17 +154,40 @@ export default function Hero({ items }: HeroProps) {
 
   return (
     <section className="relative flex min-h-[70svh] w-full items-end overflow-hidden sm:min-h-[80svh]">
-      {backdrop && (
-        <Image
-          src={backdrop}
-          loader={tmdbBackdropLoader}
-          alt={activeItem.title}
-          fill
-          priority
-          // `priority` emits a preload; `fetchPriority` keeps the backdrop ahead of poster requests.
-          fetchPriority="high"
-          className="object-cover object-top"
-          sizes="100vw"
+      {backdropLayers.map(({ index, className }) => {
+        const item = itemAt(index);
+        if (!item?.backdrop_path) return null;
+        const pending = index === pendingIndex;
+        const first = index === 0 && !rotated;
+
+        return (
+          <Image
+            key={`${item.media_type}-${item.id}`}
+            src={item.backdrop_path}
+            loader={tmdbBackdropLoader}
+            alt={index === activeIndex ? activeItem.title : ""}
+            aria-hidden={index === activeIndex ? undefined : true}
+            fill
+            priority={first}
+            loading={pending ? "eager" : undefined}
+            // `priority` emits a preload; `fetchPriority` keeps the first backdrop ahead of poster requests.
+            fetchPriority={first ? "high" : undefined}
+            onLoad={pending ? () => settlePendingAsset(index) : undefined}
+            onError={pending ? () => settlePendingAsset(index) : undefined}
+            className={`object-cover object-top ${className}`}
+            sizes="100vw"
+          />
+        );
+      })}
+
+      {pendingItem?.logo_path && pendingIndex !== null && (
+        <HeroLogo
+          key={`logo-${pendingItem.media_type}-${pendingItem.id}`}
+          item={pendingItem}
+          loading="eager"
+          onLoad={() => settlePendingAsset(pendingIndex)}
+          onError={() => settlePendingAsset(pendingIndex)}
+          className="pointer-events-none invisible absolute"
         />
       )}
 
@@ -108,23 +197,18 @@ export default function Hero({ items }: HeroProps) {
       {/* Content stays in flow so the hero grows instead of clipping it on short screens. */}
       <div className="relative mx-auto w-full max-w-7xl px-4 pt-28 pb-16 sm:px-6 sm:pb-24 short:pt-24 short:pb-16">
         <div className="max-w-2xl space-y-4">
+          {/* Remount only the item details; the action row keeps focus during rotation. */}
+          <div
+            key={`${activeItem.media_type}-${activeItem.id}`}
+            className={`space-y-4 ${rotated ? "animate-hero-fade" : ""}`}
+          >
           {/* Fix the title slot height so logo loading cannot shift the bottom-anchored content. */}
           <div className="flex min-h-28 items-end sm:min-h-36 short:min-h-20">
             {logo ? (
               <>
                 {/* Keep an h1 in the document when the logo replaces the visible title. */}
                 <h1 className="sr-only">{activeItem.title}</h1>
-                <Image
-                  src={logo}
-                  alt=""
-                  aria-hidden="true"
-                  width={activeItem.logo_width ?? 500}
-                  height={activeItem.logo_height ?? 200}
-                  priority
-                  sizes={logoBox.sizes}
-                  style={logoBox.style}
-                  className="h-28 w-(--logo-width) object-contain object-left-bottom sm:h-36 sm:w-(--logo-width-sm) short:h-20"
-                />
+                <HeroLogo item={activeItem} priority={!rotated} className="" />
               </>
             ) : (
               <h1
@@ -167,10 +251,10 @@ export default function Hero({ items }: HeroProps) {
           </div>
 
           <ExpandableOverview
-            key={activeItem.id}
             text={activeItem.overview}
             className="text-base sm:text-lg text-foreground/70 leading-relaxed max-w-xl"
           />
+          </div>
 
           <div className="flex items-center gap-3 pt-2">
             <WatchNowLink

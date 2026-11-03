@@ -136,6 +136,26 @@
     }
 }
 
+/* Hero.tsx switches titles only after the next images load, so the fade never reveals a blank frame. */
+@keyframes hero-fade {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-hero-fade {
+    animation: hero-fade 700ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-hero-fade {
+        animation: none;
+    }
+}
+
 /* Grow the navbar search box leftward from the search button. Clipping keeps layout stable during the animation. */
 @keyframes search-grow {
     from {
