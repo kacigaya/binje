@@ -262,138 +262,98 @@ export async function searchMulti(
   page = 1,
   locale: Locale = DEFAULT_LOCALE,
 ): Promise<MultiSearchResponse> {
-  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-  const variations = generateQueryVariations(query).slice(0, 3);
-  const pagesToFetch = safePage === 1 ? [1, 2, 3] : [safePage];
-  const allResults: MultiSearchResult[] = [];
-  const seen = new Set<string>();
-  let totalPages = 1;
-
-  const requests = variations.flatMap((q) =>
-    pagesToFetch.map((p) =>
-      tmdbFetch<MultiSearchResponse>(
-        `/search/multi?query=${encodeURIComponent(q)}&page=${p}`,
-        600, locale,
-      ),
-    ),
-  );
-
-  const responses = await Promise.allSettled(requests);
-
-  for (const response of responses) {
-    if (response.status !== "fulfilled") {
-      continue;
-    }
-
-    const data = response.value;
-    totalPages = Math.max(totalPages, data.total_pages);
-
-    for (const r of data.results) {
-      const key = `${r.media_type}-${r.id}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        allResults.push(r);
-      }
-    }
-  }
-
-  const rankedResults = rankSearchResults(allResults, query);
-  const normalizedQuery = normalizeForMatch(query);
-  const finalResults =
-    normalizedQuery.length >= 6
-      ? rankedResults.filter((result) => {
-          const title = (result.title ?? result.name ?? "").trim();
-          if (!title) return false;
-          return normalizeForMatch(title).includes(normalizedQuery);
-        })
-      : rankedResults;
-
-  return {
-    page: safePage,
-    results: finalResults,
-    total_pages: totalPages,
-    total_results: finalResults.length,
-  };
+  return searchLocalized(query, page, locale, false);
 }
 
-/** Lightweight exact-match search for typeahead UIs: one query and one page. */
+/** Typeahead uses the same title index, but only fetches the first page. */
 export async function searchSuggestions(
   query: string,
   locale: Locale = DEFAULT_LOCALE,
 ): Promise<MultiSearchResponse> {
-  const cleanQuery = query.trim().replace(/\s+/g, " ");
-  if (!cleanQuery) {
-    return { page: 1, results: [], total_pages: 0, total_results: 0 };
+  const data = await searchLocalized(query, 1, locale, true);
+  const results = data.results.filter((result) =>
+    result.media_type === "movie" || result.media_type === "tv",
+  );
+  return { ...data, results, total_results: results.length };
+}
+
+async function searchLocalized(
+  query: string,
+  page: number,
+  locale: Locale,
+  suggestionsOnly: boolean,
+): Promise<MultiSearchResponse> {
+  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+  const variations = generateQueryVariations(query);
+  if (variations.length === 0) {
+    return { page: safePage, results: [], total_pages: 0, total_results: 0 };
   }
 
-  const data = await tmdbFetch<MultiSearchResponse>(
-    `/search/multi?query=${encodeURIComponent(cleanQuery)}&page=1`,
-    600,
-    locale,
+  const pages = !suggestionsOnly && safePage === 1 ? [1, 2, 3] : [safePage];
+  // TMDB searches translated and alternative titles. `language` controls display.
+  // Do not filter by the returned title: the matching alias may be absent from it.
+  const displayRequests = variations.flatMap((variation) =>
+    pages.map((p) => tmdbFetch<MultiSearchResponse>(
+      `/search/multi?query=${encodeURIComponent(variation)}&page=${p}`,
+      600, locale,
+    )),
   );
-  const results = rankSearchResults(
-    data.results.filter((result) =>
-      result.media_type === "movie" || result.media_type === "tv",
-    ),
-    cleanQuery,
-  );
+  // Rank translated matches by ID. Never use these responses for display.
+  const otherLocale = locale === "fr" ? "en" : "fr";
+  const titleRequests = pages.map((p) => tmdbFetch<MultiSearchResponse>(
+    `/search/multi?query=${encodeURIComponent(variations[0])}&page=${p}`,
+    600, otherLocale,
+  ));
+  const responses = await Promise.allSettled([...displayRequests, ...titleRequests]);
+  const titlesById = new Map<string, string[]>();
+  for (const response of responses.slice(displayRequests.length)) {
+    if (response.status !== "fulfilled") continue;
+    for (const result of response.value.results) {
+      titlesById.set(`${result.media_type}-${result.id}`, [result.title ?? result.name ?? ""]);
+    }
+  }
+  const results = new Map<string, MultiSearchResult>();
+  let totalPages = 0;
+  let succeeded = false;
+  for (const response of responses.slice(0, displayRequests.length)) {
+    if (response.status !== "fulfilled") continue;
+    succeeded = true;
+    totalPages = Math.max(totalPages, response.value.total_pages);
+    for (const result of response.value.results) {
+      const key = `${result.media_type}-${result.id}`;
+      if (!results.has(key)) results.set(key, result);
+    }
+  }
+  if (!succeeded) throw new Error("TMDB search failed");
 
-  return { ...data, results, total_results: results.length };
+  const ranked = rankSearchResults([...results.values()], query, titlesById);
+  return {
+    page: safePage,
+    results: ranked,
+    total_pages: totalPages,
+    total_results: ranked.length,
+  };
 }
 
 function generateQueryVariations(query: string): string[] {
   const cleanQuery = query.trim().replace(/\s+/g, " ");
-  const collapsed = normalizeForMatch(cleanQuery);
-  const variations = new Set<string>();
+  const normalized = normalizeSearchText(cleanQuery);
+  if (!normalized) return [];
 
-  const addVariation = (value: string) => {
-    const normalizedValue = value.trim().replace(/\s+/g, " ");
-    if (normalizedValue) {
-      variations.add(normalizedValue);
-    }
-  };
-
-  if (!collapsed) {
-    return [];
-  }
-
-  addVariation(cleanQuery);
-  addVariation(collapsed);
-  addVariation(cleanQuery.replace(/-/g, " "));
-  addVariation(cleanQuery.replace(/\s+/g, "-"));
-  addVariation(cleanQuery.replace(/[-\s]+/g, ""));
-
-  const digitSeparated = collapsed
-    .replace(/([a-z])(\d)/g, "$1 $2")
-    .replace(/(\d)([a-z])/g, "$1 $2");
-
-  if (digitSeparated !== collapsed) {
-    addVariation(digitSeparated);
-    addVariation(digitSeparated.replace(/\s+/g, "-"));
-  }
-
-  if (collapsed.length >= 7) {
-    const broadPrefixLength = Math.max(4, Math.floor(collapsed.length * 0.7));
-    const prefix = collapsed.slice(0, broadPrefixLength);
-    const suffix = collapsed.slice(broadPrefixLength);
-
-    addVariation(prefix);
-
-    if (suffix.length >= 2) {
-      addVariation(`${prefix} ${suffix}`);
-      addVariation(`${prefix}-${suffix}`);
-    }
-  }
-
-  return [...variations].sort();
+  // Keep the full title first. Prefix searches can return unrelated movies.
+  return [...new Set([cleanQuery, normalized, normalizeForMatch(cleanQuery)])];
 }
 
-function rankSearchResults(results: MultiSearchResult[], query: string) {
+function rankSearchResults(
+  results: MultiSearchResult[],
+  query: string,
+  titlesById: Map<string, string[]>,
+) {
   const normalizedQuery = normalizeForMatch(query);
 
   return [...results].sort((a, b) => {
-    const bScore = scoreSearchResult(b, normalizedQuery);
-    const aScore = scoreSearchResult(a, normalizedQuery);
+    const bScore = scoreSearchResult(b, normalizedQuery, titlesById.get(`${b.media_type}-${b.id}`));
+    const aScore = scoreSearchResult(a, normalizedQuery, titlesById.get(`${a.media_type}-${a.id}`));
     if (bScore !== aScore) return bScore - aScore;
 
     const bVotes = b.vote_count ?? 0;
@@ -411,19 +371,25 @@ function rankSearchResults(results: MultiSearchResult[], query: string) {
 function scoreSearchResult(
   result: MultiSearchResult,
   normalizedQuery: string,
+  translatedTitles: string[] = [],
 ) {
-  const title = (result.title ?? result.name ?? "").trim();
-  if (!title) return -1000;
+  const titles = [
+    result.title, result.name, result.original_title, result.original_name,
+    ...translatedTitles,
+    ...(result.alternative_titles ?? []), ...(result.matched_titles ?? []),
+  ].filter((title): title is string => Boolean(title?.trim()));
+  if (titles.length === 0) return -1000;
 
-  const normalizedTitle = normalizeForMatch(title);
-  let score = 0;
-  const hasExactCanonicalMatch = normalizedTitle.includes(normalizedQuery);
+  let score = Math.max(...titles.map((title) => {
+    const normalizedTitle = normalizeForMatch(title);
+    let titleScore = 0;
+    if (normalizedTitle === normalizedQuery) titleScore += 200;
+    if (normalizedTitle.startsWith(normalizedQuery)) titleScore += 120;
+    if (normalizedTitle.endsWith(normalizedQuery)) titleScore += 100;
+    if (normalizedTitle.includes(normalizedQuery)) titleScore += 260;
+    return titleScore;
+  }));
 
-  if (normalizedTitle === normalizedQuery) score += 200;
-  if (normalizedTitle.startsWith(normalizedQuery)) score += 120;
-  if (normalizedTitle.endsWith(normalizedQuery)) score += 100;
-  if (hasExactCanonicalMatch) score += 260;
-  if (!hasExactCanonicalMatch) score -= 120;
   if (result.media_type === "movie" || result.media_type === "tv") score += 20;
 
   score += Math.min(result.vote_count ?? 0, 2000) / 200;
@@ -432,10 +398,17 @@ function scoreSearchResult(
   return score;
 }
 
-export function normalizeForMatch(value: string) {
+function normalizeSearchText(value: string) {
   return value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\p{M}/gu, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
+    .replace(/œ/g, "oe")
+    .replace(/æ/g, "ae")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+export function normalizeForMatch(value: string) {
+  return normalizeSearchText(value).replace(/\s+/g, "");
 }

@@ -172,6 +172,10 @@ export interface MultiSearchResult {
   media_type: "movie" | "tv" | "person";
   title?: string;
   name?: string;
+  original_title?: string;
+  original_name?: string;
+  alternative_titles?: string[];
+  matched_titles?: string[];
   overview?: string;
   poster_path: string | null;
   backdrop_path?: string | null;
