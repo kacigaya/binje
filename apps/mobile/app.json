@@ -2,7 +2,7 @@
   "expo": {
     "name": "b!nje",
     "slug": "binje",
-    "version": "1.0.2",
+    "version": "1.1.0",
     "description": "Discover and stream trending movies and TV shows. VO/VF audio, continue watching, watchlist, English and French.",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
