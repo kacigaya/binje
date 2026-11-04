@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function HeroSkeleton() {
   return (
     <section
-      className="relative flex min-h-[70svh] w-full items-end overflow-hidden sm:min-h-[80svh]"
+      className="relative flex min-h-[70lvh] w-full items-end overflow-hidden sm:min-h-[80lvh]"
       aria-label="Loading featured titles"
     >
       <Skeleton className="absolute inset-0 rounded-none" />

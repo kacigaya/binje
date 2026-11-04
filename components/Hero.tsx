@@ -153,7 +153,9 @@ export default function Hero({ items }: HeroProps) {
   const rating = formatRating(locale, activeItem.vote_average) ?? t("N/A");
 
   return (
-    <section className="relative flex min-h-[70svh] w-full items-end overflow-hidden sm:min-h-[80svh]">
+    // `lvh` ignores browser toolbar height. Mobile browsers change that height
+    // when the keyboard opens, so `svh` moved the bottom-anchored content.
+    <section className="relative flex min-h-[70lvh] w-full items-end overflow-hidden sm:min-h-[80lvh]">
       {backdropLayers.map(({ index, className }) => {
         const item = itemAt(index);
         if (!item?.backdrop_path) return null;
