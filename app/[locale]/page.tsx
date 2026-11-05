@@ -3,6 +3,7 @@ import Carousel from "@/components/Carousel";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
 import ContinueWatching from "@/components/ContinueWatching";
 import HeroSkeleton from "@/components/HeroSkeleton";
+import type { Metadata } from "next";
 import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
 import {
@@ -18,8 +19,27 @@ import {
   tvToMedia,
 } from "@/lib/tmdb";
 import { isLocale, localizedHref, translate, type Locale } from "@/lib/i18n";
+import { SITE_URL } from "@/lib/site";
 
 const FEATURED_ITEM_COUNT = 5;
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    // A brand-only title lets Google replace it with link text such as "Séries".
+    title: { absolute: `b!nje: ${translate(locale, "Movies and TV shows")}` },
+    alternates: { canonical: `/${locale}` },
+  };
+}
+
+// Google reads the site name from WebSite data on the home page; without it, search shows "Duck DNS".
+const WEBSITE_JSON_LD = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "b!nje",
+  alternateName: "binje",
+  url: `${SITE_URL}/`,
+});
 
 async function FeaturedHero({ locale }: { locale: Locale }) {
   const trending = await getTrending(locale);
@@ -77,6 +97,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: WEBSITE_JSON_LD }} />
       <Suspense fallback={<HeroSkeleton />}>
         <FeaturedHero locale={locale} />
       </Suspense>

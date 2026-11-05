@@ -8,6 +8,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   return {
     title: translate(locale, "My Watchlist"),
     description: translate(locale, "Movies and TV shows you saved to watch later."),
+    alternates: { canonical: `/${locale}/watchlist` },
   };
 }
 

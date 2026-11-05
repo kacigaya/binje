@@ -7,7 +7,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   return {
     title: translate(locale, "DMCA Policy"),
     description: translate(locale, "b!nje hosts no files. How to report content you own the rights to."),
-    // The locale layout canonicalises everything to `/${locale}` by default.
     alternates: { canonical: `/${locale}/dmca` },
   };
 }

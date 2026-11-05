@@ -7,7 +7,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   return {
     title: translate(locale, "Privacy Policy"),
     description: translate(locale, "How b!nje handles your data: local watch history, no tracking, no third-party cookies."),
-    // The locale layout canonicalises everything to `/${locale}` by default.
     alternates: { canonical: `/${locale}/privacy` },
   };
 }

@@ -46,7 +46,6 @@ export async function generateMetadata({
     metadataBase: new URL(SITE_URL),
     title: { default: "b!nje", template: "%s | b!nje" },
     description,
-    alternates: { canonical: `/${locale}` },
     openGraph: {
       type: "website",
       siteName: "b!nje",

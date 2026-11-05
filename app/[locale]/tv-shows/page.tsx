@@ -18,7 +18,7 @@ import { isLocale, translate, type Locale, type TranslationKey } from "@/lib/i18
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
   const { locale } = await params;
-  return { title: translate(locale, "TV Shows") };
+  return { title: translate(locale, "TV Shows"), alternates: { canonical: `/${locale}/tv-shows` } };
 }
 
 const SECTIONS = [

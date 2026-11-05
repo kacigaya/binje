@@ -7,6 +7,7 @@ const FRENCH = {
   "Browse movies and TV shows with TMDB and Rotten Tomatoes ratings, then play them from third-party sources.":
     "Parcourez films et séries avec les notes TMDB et Rotten Tomatoes, puis lancez-les depuis des sources tierces.",
   Movies: "Films",
+  "Movies and TV shows": "Films et séries",
   "TV Shows": "Séries",
   Watchlist: "Ma liste",
   Search: "Rechercher",
