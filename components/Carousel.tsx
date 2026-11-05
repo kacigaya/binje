@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import MediaCard from "@/components/MediaCard";
 import ScrollArrows from "@/components/ScrollArrows";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
@@ -25,7 +26,7 @@ export default function Carousel({
 
   return (
     <section className="relative">
-      <div className="mb-4 flex items-baseline justify-between gap-4 px-4 sm:px-6">
+      <div className="mb-4 flex items-center justify-between gap-4 px-4 sm:px-6">
         <h2
           className="text-xl sm:text-2xl font-bold tracking-tight"
           style={{ fontFamily: "var(--font-heading)" }}
@@ -35,10 +36,14 @@ export default function Carousel({
         {seeAllHref && (
           <Link
             href={seeAllHref}
-            className="shrink-0 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+            className="group/see-all flex shrink-0 items-center gap-1 rounded-sm text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground hover:duration-140 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
-            {t("See all")}
+            <span className="underline-draw">{t("See all")}</span>
             <span className="sr-only">: {title}</span>
+            <ArrowRight
+              aria-hidden="true"
+              className="size-4 transition-transform duration-200 ease-ui group-hover/see-all:translate-x-0.75 group-hover/see-all:duration-140 motion-reduce:transition-none"
+            />
           </Link>
         )}
       </div>

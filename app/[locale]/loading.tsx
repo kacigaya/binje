@@ -9,7 +9,7 @@ export default function HomeLoading() {
     <div className="flex flex-col">
       <HeroSkeleton />
 
-      <div className="-mt-12 relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-10 pb-16">
+      <div className="-mt-6 sm:-mt-12 relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-10 pb-16">
         {Array.from({ length: SECTION_COUNT }).map((_, i) => (
           <div key={i} className="space-y-4 px-4 sm:px-6">
             <Skeleton className="h-8 w-48" />

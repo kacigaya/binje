@@ -158,9 +158,9 @@ async function MovieDetails({
               label={translate(locale, "Watch Now")}
               media={{ type: "movie", id: movie.id }}
               className={buttonClassName({
-                size: "lg",
-                className:
-                  "w-full sm:w-auto rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-10 h-12 text-base cursor-pointer",
+                variant: "brand",
+                size: "xl",
+                className: "w-full sm:w-auto sm:px-10 cursor-pointer",
               })}
             />
             <WatchlistButton

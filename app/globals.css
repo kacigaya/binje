@@ -6,6 +6,11 @@
 /* Short viewports, mainly phones in landscape. */
 @custom-variant short (@media (max-height: 30rem));
 
+/* UI motion ease: quick start, soft stop, no overshoot. */
+@theme {
+    --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 @theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -104,6 +109,31 @@
 }
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.25);
+}
+
+/* Link underline: draws in from the left on hover and leaves to the right. */
+.underline-draw {
+    background: linear-gradient(currentColor, currentColor) right bottom / 0 1px no-repeat;
+    transition: background-size 200ms var(--ease-ui);
+}
+
+@media (hover: hover) {
+    a:hover .underline-draw {
+        background-position: left bottom;
+        background-size: 100% 1px;
+        transition-duration: 140ms;
+    }
+}
+
+a:focus-visible .underline-draw {
+    background-position: left bottom;
+    background-size: 100% 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .underline-draw {
+        transition: none;
+    }
 }
 
 .scrollbar-hide::-webkit-scrollbar {

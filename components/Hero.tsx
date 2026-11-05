@@ -263,18 +263,17 @@ export default function Hero({ items }: HeroProps) {
               href={localizedHref(locale, watchHref)}
               label={t("Watch Now")}
               className={buttonClassName({
-                size: "lg",
-                className:
-                  "rounded-full bg-accent-red text-white font-semibold hover:bg-accent-red/90 gap-2 px-6 sm:px-8 h-12 text-base cursor-pointer",
+                variant: "brand",
+                size: "xl",
+                className: "cursor-pointer",
               })}
             />
             <IntentPrefetchLink
               href={localizedHref(locale, detailHref)}
               className={buttonClassName({
-                size: "lg",
-                variant: "outline",
-                className:
-                  "rounded-full border-white/20 bg-white/5 hover:bg-white/10 text-foreground gap-2 px-6 sm:px-8 h-12 text-base cursor-pointer",
+                variant: "glass",
+                size: "xl",
+                className: "cursor-pointer",
               })}
             >
               <Info className="size-5" />

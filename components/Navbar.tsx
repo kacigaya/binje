@@ -58,6 +58,7 @@ function NavLink({
   className,
   onClick,
   tabIndex,
+  current,
   children,
 }: {
   href: string;
@@ -66,6 +67,7 @@ function NavLink({
   className: string;
   onClick?: () => void;
   tabIndex?: number;
+  current?: boolean;
   children: ReactNode;
 }) {
   const [icon, feedback] = useAnimatedIcon();
@@ -75,6 +77,7 @@ function NavLink({
       href={href}
       onClick={onClick}
       tabIndex={tabIndex}
+      aria-current={current ? "page" : undefined}
       {...feedback}
       className={className}
     >
@@ -93,11 +96,13 @@ function ActiveNavLink({
   inactiveClassName: string;
 }) {
   const pathname = usePathname();
+  const current = pathname === props.href;
 
   return (
     <NavLink
       {...props}
-      className={pathname === props.href ? activeClassName : inactiveClassName}
+      current={current}
+      className={current ? activeClassName : inactiveClassName}
     />
   );
 }

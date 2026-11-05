@@ -47,20 +47,25 @@ export default function MediaCard({
   );
 
   return (
-    <div className={cn("group relative", className)}>
+    <div
+      className={cn(
+        "group relative transition-transform duration-200 ease-ui hover:duration-140 motion-safe:pointer-fine:hover:-translate-y-0.5 motion-reduce:transition-none",
+        className,
+      )}
+    >
       <IntentPrefetchLink
         dwell
         href={localizedHref(locale, href)}
         className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
-        <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-card ring-1 ring-white/5 transition-shadow duration-200 group-hover:ring-white/25">
+        <div className="relative aspect-2/3 overflow-hidden rounded-xl bg-card ring-1 ring-white/5 transition-shadow duration-200 group-hover:shadow-xl group-hover:shadow-black/40 group-hover:ring-white/25">
           <Image
             src={poster}
             alt=""
             fill
             priority={eager}
             loading={eager ? "eager" : "lazy"}
-            className="object-cover transition-transform duration-200 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            className="object-cover transition-transform duration-600 ease-ui group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
             sizes="(max-width: 640px) 160px, 185px"
           />
 
@@ -80,7 +85,7 @@ export default function MediaCard({
         </div>
 
         <p className="mt-2 truncate text-sm font-semibold leading-tight text-foreground">
-          {item.title}
+          <span className="underline-draw">{item.title}</span>
         </p>
         <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
           {item.media_type === "tv" && (

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { CheckIcon } from "@/components/ui/check";
 import { PlusIcon } from "@/components/ui/plus";
+import { buttonClassName } from "@/components/ui/button";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import {
   isInWatchlist,
@@ -43,11 +44,15 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
         toggleWatchlistWithFeedback(item, added, t);
       }}
       aria-pressed={added}
-      className={`inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full border h-12 px-7 text-base font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 ${
-        added
-          ? "border-accent-red/60 bg-accent-red/15 text-accent-red-text hover:bg-accent-red/25"
-          : "border-white/15 bg-white/8 text-foreground hover:bg-white/12"
-      }`}
+      className={buttonClassName({
+        variant: "glass",
+        size: "xl",
+        className: `w-full sm:w-auto cursor-pointer ${
+          added
+            ? "border-accent-red/60 bg-accent-red/15 text-accent-red-text hover:bg-accent-red/25"
+            : ""
+        }`,
+      })}
     >
       {added ? (
         <CheckIcon ref={icon} size={20} />

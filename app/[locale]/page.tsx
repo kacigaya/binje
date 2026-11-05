@@ -81,7 +81,7 @@ export default async function HomePage() {
         <FeaturedHero locale={locale} />
       </Suspense>
 
-      <div className="-mt-12 relative z-10 flex w-full max-w-7xl flex-col gap-10 px-0 pb-16 mx-auto">
+      <div className="-mt-6 sm:-mt-12 relative z-10 flex w-full max-w-7xl flex-col gap-10 px-0 pb-16 mx-auto">
         <ContinueWatching />
         <Suspense fallback={<CarouselSkeleton />}>
           <TrendingMovies locale={locale} />
