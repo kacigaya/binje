@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 
 /**
  * Arrows seek only while controls are hidden; when visible, they move D-pad focus between buttons.
+ * PlayerControls also seeks with left and right while the progress bar has focus.
  * Android sends key-up by default and key-down only while a key is held, so act on key-up for one action per press.
  */
 export function tvPlaybackAction(eventType: string, eventKeyAction?: number, controlsVisible = false) {

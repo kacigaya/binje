@@ -39,6 +39,9 @@ export const en = {
   resumeFeatured: 'Resume featured titles',
   qualityFailed: "Could not change quality. Try again.",
   play: 'Play', pause: 'Pause', back10: 'Back 10 seconds', forward10: 'Forward 10 seconds',
+  checkingSources: 'Checking sources…',
+  previousEpisode: 'Previous episode', nextEpisode: 'Next episode',
+  upNext: 'Up next', playNow: 'Play now', cancel: 'Cancel', close: 'Close', startsIn: 'Starts in',
   seek: 'Seek', showControls: 'Show controls', cropBars: 'Crop black bars',
   pictureInPicture: 'Picture-in-picture', enterFullscreen: 'Enter fullscreen',
 } as const;

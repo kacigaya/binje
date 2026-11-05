@@ -33,7 +33,7 @@ jest.mock('expo-video', () => ({
   },
 }));
 jest.mock('@tanstack/react-query', () => ({ useQuery: ({ queryKey }: { queryKey: string[] }) => ({ data: queryKey[0] === 'season' ? { episodes: [] } : mockMedia, isLoading: false, isError: false }) }));
-jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
+jest.mock('@expo/vector-icons', () => ({ Feather: () => null, Ionicons: () => null, MaterialCommunityIcons: () => null }));
 jest.mock('@expo/vector-icons/Feather', () => () => null);
 jest.mock('expo-image', () => ({ Image: () => null }));
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: () => null }));
@@ -42,7 +42,16 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 jest.mock('../../../api/media', () => ({ getMediaDetails: jest.fn(), getSeason: jest.fn() }));
 jest.mock('../../../providers/LocaleProvider', () => ({ useLocale: () => ({ locale: 'en', t: mockTranslate }) }));
 jest.mock('../../../storage/playHistory', () => ({ getResumePosition: jest.fn().mockResolvedValue(12), upsertPlayHistory: jest.fn().mockResolvedValue(undefined), updatePlayHistoryProgress: jest.fn().mockResolvedValue(undefined) }));
-jest.mock('../PlayerControls', () => ({ PlayerControls: () => null }));
+// Keep the back button and the episode buttons that the player passes to the controls.
+jest.mock('../PlayerControls', () => {
+  const { createElement } = jest.requireActual('react');
+  const { Text } = jest.requireActual('react-native');
+  return {
+    PlayerControls: ({ leading, episodeButtons }: { leading?: unknown; episodeButtons?: unknown }) => [leading, episodeButtons],
+    IconButton: () => null,
+    ControlPill: ({ label, onPress }: { label: string; onPress: () => void }) => createElement(Text, { onPress }, label),
+  };
+});
 jest.mock('../CastControls', () => () => null);
 jest.mock('../resolveStream', () => ({
   fetchAvailableSources: jest.fn().mockResolvedValue(['vidcore']),
@@ -95,7 +104,7 @@ test('changing episodes still pauses the live player before loading', async () =
   const view = render(<PlayerScreen type="tv" id={1} />);
   await waitFor(() => expect(mockPlayer.play).toHaveBeenCalledTimes(1));
   mockEvents.length = 0;
-  fireEvent.press(view.getByText('next'));
+  fireEvent.press(view.getByText('nextEpisode'));
   await waitFor(() => expect(mockPlayer.play).toHaveBeenCalledTimes(2));
   expect(mockEvents).toEqual(['pause', 'play']);
   expect(() => view.unmount()).not.toThrow();

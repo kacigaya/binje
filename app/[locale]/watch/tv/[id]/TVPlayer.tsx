@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type MouseEvent, type ReactNode } from "react";
+import { useState, useEffect, type MouseEvent, type ReactNode, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -139,131 +139,67 @@ export default function TVPlayer({
     episode < maxEpisodes ||
     seasons.some((s) => s.season_number === season + 1);
 
-  const [prevIcon, prevFeedback] = useAnimatedIcon();
-  const [nextIcon, nextFeedback] = useAnimatedIcon();
+  // The episode after this one, for the player's Next button and Up next card.
+  const nextInSeason = episode < maxEpisodes;
+  const nextItem = nextInSeason && !loading ? episodes?.find((item) => item.episode_number === episode + 1) : undefined;
+  const upNext = hasNext
+    ? {
+        label: [nextInSeason ? `S${season}:E${episode + 1}` : `S${season + 1}:E1`, nextItem?.name].filter(Boolean).join(" · "),
+        still: stillUrl(nextItem?.still_path ?? null, "w300"),
+        onPlay: nextEpisode,
+      }
+    : null;
 
-  return (
-    <div className="space-y-4">
-      <Player
-        tmdbId={showId}
-        title={title}
-        originalLanguage={originalLanguage}
-        year={year}
-        imdbId={imdbId}
-        type="tv"
-        season={season}
-        episode={episode}
-        poster={poster}
+  /** The season picker. Inside the player, its popup renders in the player so it shows in fullscreen. */
+  function seasonSelect(container?: RefObject<HTMLDivElement | null>) {
+    return (
+      <Select
+        ariaLabel={t("Season")}
+        container={container}
+        value={season}
+        onValueChange={(value) => navigate(value, 1)}
+        items={seasons.map((s) => ({
+          value: s.season_number,
+          label: s.name,
+        }))}
+        className="h-10 rounded-full border border-white/15 bg-white/5 px-4 text-sm font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:border-accent-red/50 focus-visible:ring-accent-red/30"
       />
+    );
+  }
 
-      {header && <div className="px-4 sm:px-0">{header}</div>}
-
-      <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">
-        <div className="flex items-center justify-between gap-3 sm:justify-start">
-          <span className="text-sm font-medium text-muted-foreground">
-            {t("Season")}
-          </span>
-          <Select
-            ariaLabel={t("Season")}
-            value={season}
-            onValueChange={(value) => navigate(value, 1)}
-            items={seasons.map((s) => ({
-              value: s.season_number,
-              label: s.name,
-            }))}
-            className="h-10 rounded-full border border-white/15 bg-white/5 px-4 text-sm font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:border-accent-red/50 focus-visible:ring-accent-red/30"
-          />
-        </div>
-
-        <div className="flex min-w-0 items-center sm:border-l sm:border-white/10 sm:pl-4">
-          <p className="min-w-0">
-            <span className="block text-xs text-muted-foreground">
-              {t("Now playing")}
-            </span>
-            <span
-              className="block truncate text-sm font-semibold text-foreground"
-              style={{ fontFamily: "var(--font-heading)" }}
-            >
-              {currentSeason?.name ?? `${t("Season")} ${season}`}, {t("Episode")} {episode}
-            </span>
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex">
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            onClick={prevEpisode}
-            {...prevFeedback}
-            disabled={!hasPrev}
-            className="h-10 rounded-full px-4 cursor-pointer"
-          >
-            <ChevronLeftIcon ref={prevIcon} size={16} />
-            {t("Previous")}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            onClick={nextEpisode}
-            {...nextFeedback}
-            disabled={!hasNext}
-            className="h-10 rounded-full px-4 cursor-pointer"
-          >
-            {t("Next")}
-            <ChevronRightIcon ref={nextIcon} size={16} />
-          </Button>
-        </div>
-      </div>
-
-      <div className="px-4 sm:px-0">
-        <h2
-          className="text-lg font-semibold mb-3"
-          style={{ fontFamily: "var(--font-heading)" }}
-        >
-          {t("Episodes")}
-        </h2>
-
-        {loading ? (
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="w-72 sm:w-80 shrink-0 aspect-video rounded-2xl bg-white/5 animate-pulse motion-reduce:animate-none"
-              />
-            ))}
-          </div>
-        ) : episodes === null ? (
-          <div role="alert" className="flex items-center gap-3 text-sm text-muted-foreground">
-            <p>{t("Couldn’t load episodes.")}</p>
-            <button
-              type="button"
-              onClick={() => setEpisodesSeason(null)}
-              className="inline-flex h-9 cursor-pointer items-center rounded-full border border-white/15 px-3 font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
-            >
-              {t("Try again")}
-            </button>
-          </div>
-        ) : episodes.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {t("No episode previews available.")}
-          </p>
-        ) : (
-          <div className="group/scroll relative">
-            <ScrollArrows
-              canScrollLeft={canScrollLeft}
-              canScrollRight={canScrollRight}
-              scroll={scrollEpisodes}
-            />
-
+  /** The episode cards with their loading, error and empty states. `wrap` lays the cards out for the page or the player panel. */
+  function episodeList(wrap: (cards: ReactNode) => ReactNode) {
+    if (loading) {
+      return (
+        <div className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2">
+          {Array.from({ length: 8 }).map((_, i) => (
             <div
-              ref={scrollRef}
-              tabIndex={0}
-              role="group"
-              aria-label={t("Episodes")}
-              className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
-            >
+              key={i}
+              className="w-72 sm:w-80 shrink-0 aspect-video rounded-2xl bg-white/5 animate-pulse motion-reduce:animate-none"
+            />
+          ))}
+        </div>
+      );
+    }
+    if (episodes === null) {
+      return (
+        <div role="alert" className="flex items-center gap-3 text-sm text-muted-foreground">
+          <p>{t("Couldn’t load episodes.")}</p>
+          <button
+            type="button"
+            onClick={() => setEpisodesSeason(null)}
+            className="inline-flex h-9 cursor-pointer items-center rounded-full border border-white/15 px-3 font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
+          >
+            {t("Try again")}
+          </button>
+        </div>
+      );
+    }
+    if (episodes.length === 0) {
+      return <p className="text-sm text-muted-foreground">{t("No episode previews available.")}</p>;
+    }
+    return wrap(
+      <>
               {episodes.map((ep) => {
               // Let Next resize the original so cards stay sharp on high-density screens.
               const still = stillUrl(ep.still_path, "original");
@@ -348,9 +284,113 @@ export default function TVPlayer({
                 </Link>
               );
               })}
-            </div>
+      </>,
+    );
+  }
+
+  const [prevIcon, prevFeedback] = useAnimatedIcon();
+  const [nextIcon, nextFeedback] = useAnimatedIcon();
+
+  return (
+    <div className="space-y-4">
+      <Player
+        tmdbId={showId}
+        title={title}
+        originalLanguage={originalLanguage}
+        year={year}
+        imdbId={imdbId}
+        type="tv"
+        season={season}
+        episode={episode}
+        poster={poster}
+        nextEpisode={upNext}
+        episodes={(container) => (
+          <div className="space-y-3">
+            {seasonSelect(container)}
+            {episodeList((cards) => <div className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2">{cards}</div>)}
           </div>
         )}
+      />
+
+      {header && <div className="px-4 sm:px-0">{header}</div>}
+
+      <div className="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:px-0">
+        <div className="flex items-center justify-between gap-3 sm:justify-start">
+          <span className="text-sm font-medium text-muted-foreground">
+            {t("Season")}
+          </span>
+          {seasonSelect()}
+        </div>
+
+        <div className="flex min-w-0 items-center sm:border-l sm:border-white/10 sm:pl-4">
+          <p className="min-w-0">
+            <span className="block text-xs text-muted-foreground">
+              {t("Now playing")}
+            </span>
+            <span
+              className="block truncate text-sm font-semibold text-foreground"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              {currentSeason?.name ?? `${t("Season")} ${season}`}, {t("Episode")} {episode}
+            </span>
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex">
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            onClick={prevEpisode}
+            {...prevFeedback}
+            disabled={!hasPrev}
+            className="h-10 rounded-full px-4 cursor-pointer"
+          >
+            <ChevronLeftIcon ref={prevIcon} size={16} />
+            {t("Previous")}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            onClick={nextEpisode}
+            {...nextFeedback}
+            disabled={!hasNext}
+            className="h-10 rounded-full px-4 cursor-pointer"
+          >
+            {t("Next")}
+            <ChevronRightIcon ref={nextIcon} size={16} />
+          </Button>
+        </div>
+      </div>
+
+      <div className="px-4 sm:px-0">
+        <h2
+          className="text-lg font-semibold mb-3"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          {t("Episodes")}
+        </h2>
+
+        {episodeList((cards) => (
+          <div className="group/scroll relative">
+            <ScrollArrows
+              canScrollLeft={canScrollLeft}
+              canScrollRight={canScrollRight}
+              scroll={scrollEpisodes}
+            />
+
+            <div
+              ref={scrollRef}
+              tabIndex={0}
+              role="group"
+              aria-label={t("Episodes")}
+              className="flex gap-4 overflow-x-auto scrollbar-hide pt-1 pl-1 pb-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/50"
+            >
+              {cards}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -41,6 +41,9 @@ export const fr: Record<keyof typeof en, string> = {
   resumeFeatured: 'Reprendre les titres à la une',
   qualityFailed: "Impossible de changer la qualité. Réessayez.",
   play: 'Lecture', pause: 'Pause', back10: 'Reculer de 10 secondes', forward10: 'Avancer de 10 secondes',
+  checkingSources: 'Vérification des sources…',
+  previousEpisode: 'Épisode précédent', nextEpisode: 'Épisode suivant',
+  upNext: 'À suivre', playNow: 'Lire maintenant', cancel: 'Annuler', close: 'Fermer', startsIn: 'Démarre dans',
   seek: 'Position', showControls: 'Afficher les commandes', cropBars: 'Rogner les bandes noires',
   pictureInPicture: 'Image dans l’image', enterFullscreen: 'Plein écran',
 };

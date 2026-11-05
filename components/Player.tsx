@@ -1,10 +1,10 @@
 "use client";
 
 import type Hls from "hls.js";
-import { Crop, PictureInPicture2, RotateCcw } from "lucide-react";
+import { Crop, ListVideo, PictureInPicture2, RotateCcw, SkipForward, X } from "lucide-react";
 import { Maximize, Minimize } from "lucide";
 import { MorphIcon } from "morphicons/react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import {
   togglePlayback,
 } from "@/components/PlayerControls";
 import SubtitleMenu, { DELAY_STEP, formatDelay, type SyncStatus } from "@/components/SubtitleMenu";
+import UpNext from "@/components/UpNext";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { qualityClass } from "@/lib/quality-class";
@@ -112,6 +113,8 @@ export default function Player({
   episode,
   poster,
   originalLanguage,
+  nextEpisode,
+  episodes,
 }: {
   tmdbId: number;
   title: string;
@@ -122,6 +125,10 @@ export default function Player({
   episode?: number;
   poster?: string | null;
   originalLanguage?: string;
+  /** The episode after this one: a Next button, and the Up next card when this one ends. */
+  nextEpisode?: { label: string; still?: string | null; onPlay: () => void } | null;
+  /** The episode picker shown over the video, so it works in fullscreen. Popups render in `container`. */
+  episodes?: (container: RefObject<HTMLDivElement | null>) => ReactNode;
 }) {
   const { t, locale } = useTranslations();
   const mediaKey = `${type}:${tmdbId}:${season ?? 1}:${episode ?? 1}`;
@@ -285,7 +292,14 @@ export default function Player({
   const lastPointerTypeRef = useRef("");
   const idleTimerRef = useRef<number | undefined>(undefined);
   const [idle, setIdle] = useState(false);
-  const controlsHidden = idle && !paused && !exhausted;
+  // Keyed by media so a new episode closes the panel and drops the Up next card.
+  const [episodesOpenKey, setEpisodesOpenKey] = useState<string | null>(null);
+  const [endedKey, setEndedKey] = useState<string | null>(null);
+  const episodesOpen = episodes !== undefined && episodesOpenKey === mediaKey;
+  const upNextOpen = Boolean(nextEpisode) && endedKey === mediaKey;
+  const episodesButtonRef = useRef<HTMLButtonElement>(null);
+  const episodesPanelRef = useRef<HTMLDivElement>(null);
+  const controlsHidden = idle && !paused && !exhausted && !episodesOpen;
   const playbackControls = !googleCasting && !exhausted;
 
   // Keep controls visible during hover, keyboard focus or an open menu.
@@ -521,6 +535,18 @@ export default function Player({
   function toggleSubtitles() {
     if (allTracks.length) setSubtitle({ file: pickedFile ?? null, on: activeSubtitle < 0 });
   }
+
+  function closeEpisodes() {
+    setEpisodesOpenKey(null);
+    episodesButtonRef.current?.focus();
+  }
+
+  // Start on the playing episode so the keyboard lands where the viewer is.
+  useEffect(() => {
+    if (!episodesOpen) return;
+    const panel = episodesPanelRef.current;
+    (panel?.querySelector<HTMLElement>('[aria-current="true"]') ?? panel?.querySelector<HTMLElement>("button, a"))?.focus({ preventScroll: true });
+  }, [episodesOpen]);
 
   function skip(forward: boolean) {
     const video = videoRef.current;
@@ -878,7 +904,12 @@ export default function Player({
           playsInline
           onLoadedMetadata={onLoadedMetadata}
           onResize={updateAspectRatio}
-          onPlay={() => setPaused(false)}
+          onPlay={() => {
+            setPaused(false);
+            // Replaying after the end must not advance to the next episode mid-replay.
+            setEndedKey(null);
+          }}
+          onSeeking={() => setEndedKey(null)}
           onPause={() => setPaused(true)}
           onWaiting={() => setBuffering(true)}
           onPlaying={() => setBuffering(false)}
@@ -890,6 +921,9 @@ export default function Player({
             setCrop(null);
           }}
           onTimeUpdate={onTimeUpdate}
+          onEnded={() => {
+            if (nextEpisode && !googleCasting) setEndedKey(mediaKey);
+          }}
           style={{ aspectRatio: displayAspectRatio }}
           className={cn("w-full bg-black", cropEnabled ? "object-cover" : "object-contain")}
           crossOrigin="anonymous"
@@ -1006,6 +1040,22 @@ export default function Player({
               <ControlButton aria-label={t("Forward 10 seconds")} title={t("Forward 10 seconds")} onClick={() => skip(true)} className="hidden md:inline-flex">
                 <SkipIcon forward />
               </ControlButton>
+              {nextEpisode && (
+                <ControlButton aria-label={`${t("Next episode")}: ${nextEpisode.label}`} title={t("Next episode")} onClick={nextEpisode.onPlay}>
+                  <SkipForward aria-hidden="true" />
+                </ControlButton>
+              )}
+              {episodes && (
+                <ControlButton
+                  ref={episodesButtonRef}
+                  aria-label={t("Episodes")}
+                  title={t("Episodes")}
+                  aria-expanded={episodesOpen}
+                  onClick={() => (episodesOpen ? closeEpisodes() : setEpisodesOpenKey(mediaKey))}
+                >
+                  <ListVideo aria-hidden="true" />
+                </ControlButton>
+              )}
               <VolumeControl videoRef={videoRef} />
             </ControlGroup>
           )}
@@ -1124,6 +1174,40 @@ export default function Player({
           </div>
         )}
       </div>
+      {episodesOpen && episodes && (
+        <div
+          ref={episodesPanelRef}
+          role="dialog"
+          aria-label={t("Episodes")}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
+            event.stopPropagation();
+            closeEpisodes();
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          className="absolute inset-x-0 bottom-0 z-20 max-h-[90%] overflow-y-auto bg-linear-to-t from-black via-black/90 to-transparent px-3 pt-12 pb-3 text-white sm:px-5 sm:pb-5"
+        >
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-heading)" }}>{t("Episodes")}</h2>
+            <ControlButton aria-label={t("Close episodes")} title={t("Close episodes")} onClick={closeEpisodes} className="bg-white/10">
+              <X aria-hidden="true" />
+            </ControlButton>
+          </div>
+          {episodes(containerRef)}
+        </div>
+      )}
+      {upNextOpen && nextEpisode && (
+        <UpNext
+          key={mediaKey}
+          label={nextEpisode.label}
+          still={nextEpisode.still}
+          onPlay={() => {
+            setEndedKey(null);
+            nextEpisode.onPlay();
+          }}
+          onCancel={() => setEndedKey(null)}
+        />
+      )}
     </div>
   );
 }

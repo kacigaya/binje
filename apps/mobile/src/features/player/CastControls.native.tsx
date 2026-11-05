@@ -167,10 +167,10 @@ export default function NativeCastControls({
 
 const styles = StyleSheet.create({
   container: { alignItems: "flex-end" },
-  button: { width: 38, height: 30 },
+  button: { width: 44, height: 44 },
   error: {
     position: "absolute",
-    top: 34,
+    top: 48,
     right: 0,
     width: 210,
     color: colors.destructive,
