@@ -1,6 +1,8 @@
 # Mobile project facts
 
 - Expo 57, React Native 0.86, React 19.2.3. Package manager: Bun 1.4.0 at the repository root.
+- Keep the root `expo-constants` override on the same range as the mobile dependency.
+  This prevents `expo-linking` from installing an older native module copy.
 - Native package versions follow `expo/bundledNativeModules.json`. Expo 57 expects
   `react-native-gesture-handler` on `~2.32.0`; upgrade its major with the Expo SDK.
 - `react-native` is aliased to `react-native-tvos` with an exact version in `apps/mobile/package.json`
