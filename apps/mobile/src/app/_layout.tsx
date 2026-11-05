@@ -89,6 +89,8 @@ export default function RootLayout() {
   );
 }
 
+const playerScreenOptions = Platform.isTV ? { orientation: 'all' as const } : { orientation: 'landscape' as const, statusBarHidden: true, navigationBarHidden: true };
+
 function AppNavigation() {
   const { isLoading } = useLocale();
   useEffect(() => {
@@ -105,8 +107,9 @@ function AppNavigation() {
           contentStyle: { backgroundColor: colors.background },
         }}
       >
-        <Stack.Screen name="watch/movie/[id]" options={{ orientation: 'all' }} />
-        <Stack.Screen name="watch/tv/[id]" options={{ orientation: 'all' }} />
+        {/* The player is full screen everywhere: phones lock to landscape and hide the system bars, TV is landscape already. */}
+        <Stack.Screen name="watch/movie/[id]" options={playerScreenOptions} />
+        <Stack.Screen name="watch/tv/[id]" options={playerScreenOptions} />
       </Stack>
     </>
   );

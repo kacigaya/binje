@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
-import { TVPressable as Pressable } from '../components/TVPressable'; import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-native';
+import { TVPressable as Pressable } from '../components/TVPressable'; import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { colors, fonts, layout, radius, spacing } from '../theme';
 
 type Toast = { message: string; actionLabel?: string; onAction?: () => void };
@@ -8,17 +9,6 @@ type ToastContextValue = { show(toast: Toast): void };
 
 const TOAST_DURATION_MS = 4000;
 const ToastContext = createContext<ToastContextValue | null>(null);
-
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
-  useEffect(() => {
-    let active = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then(value => { if (active) setReduced(value); });
-    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
-    return () => { active = false; subscription.remove(); };
-  }, []);
-  return reduced;
-}
 
 export function ToastProvider({ children }: PropsWithChildren) {
   const [toast, setToast] = useState<Toast | null>(null);
