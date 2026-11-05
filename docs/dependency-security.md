@@ -54,7 +54,7 @@ The `image-size@1.2.1` patch is obsolete. The override now installs `image-size`
 2.0.4. The tests check the CommonJS default export used by Metro.
 
 The XML parser override installs `@xmldom/xmldom` 0.9.12 for both plist callers.
-The `@expo/plist@0.8.1` patch passes the XML MIME type that this parser requires.
+The `@expo/plist@0.8.2` patch passes the XML MIME type that this parser requires.
 It also removes whitespace before an XML declaration. Expo's generated entitlement
 template starts with a newline, which the stricter parser rejects. Content inside
 plist values stays unchanged. Invalid embedded XML declarations still fail.
