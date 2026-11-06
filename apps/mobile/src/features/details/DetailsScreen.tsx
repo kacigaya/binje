@@ -161,8 +161,8 @@ export default function DetailsScreen({ type, id }: { type: MobileMediaType; id:
           <TmdbRating rating={rating} />
           {d.rottenTomatoesScore != null ? <RtRating score={d.rottenTomatoesScore} /> : null}
           {d.contentRating ? <View style={s.rated}><Text style={s.ratedText}>{d.contentRating}</Text></View> : null}
-          {type === 'tv' && seasons.length ? <Meta icon="layers">{seasons.length} {seasons.length === 1 ? t('season') : t('seasons')}</Meta> : null}
-          {type === 'tv' && episodeCount ? <Meta icon="tv">{episodeCount} {episodeCount === 1 ? t('episode') : t('episodes')}</Meta> : null}
+          {type === 'tv' && seasons.length ? <Meta icon="layers">{seasons.length} {(seasons.length === 1 ? t('season') : t('seasons')).toLocaleLowerCase(locale)}</Meta> : null}
+          {type === 'tv' && episodeCount ? <Meta icon="tv">{episodeCount} {(episodeCount === 1 ? t('episode') : t('episodes')).toLocaleLowerCase(locale)}</Meta> : null}
           {d.runtime ? <Meta icon="clock">{formatRuntime(d.runtime)}</Meta> : null}
           {releaseDate ? <Meta icon="calendar">{releaseDate}</Meta> : null}
         </View>
