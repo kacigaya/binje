@@ -6,6 +6,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import type { VideoPlayer } from "expo-video";
+import type { EdgeInsets } from "react-native-safe-area-context";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
 import { useLocale } from "../../providers/LocaleProvider";
 import { colors, fonts, screenPadding } from "../../theme";
@@ -15,6 +16,10 @@ const HIDE_AFTER_MS = 2500;
 const DOUBLE_TAP_MS = 300;
 /** TV focus inverts controls: a white fill with dark icons and text, readable from across a room. */
 const TV_INK = "#0a0a0b";
+
+const NO_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+// Caption distance from the safe-area bottom: clear of the bar while it shows, near the edge otherwise.
+const CAPTION_LIFT = { phone: 20, phoneBar: 64, phoneEpisodes: 96, tv: 56, tvBar: 280 };
 
 // The player is a native handle; seeking means writing its position.
 function seekTo(player: VideoPlayer, seconds: number) { player.currentTime = seconds; }
@@ -28,8 +33,12 @@ export function formatTime(seconds: number) {
 }
 
 /** Mirrors the web player overlay on phones: toolbar on top, skip/play in the center, seek bar at the bottom. */
-export function PlayerControls({ player, leading, heading, hideBar, episodeButtons, toolbar, crop, onCrop, onFullscreen, onPip, disabled, status, menuOpen, onCloseMenu }: {
+export function PlayerControls({ player, insets = NO_INSETS, captions, leading, heading, hideBar, episodeButtons, toolbar, crop, onCrop, onFullscreen, onPip, disabled, status, menuOpen, onCloseMenu }: {
   player: VideoPlayer;
+  /** Safe area for the buttons and bar. Shades and the loading dim still cover the full screen, under a notch too. */
+  insets?: EdgeInsets;
+  /** Subtitles. They sit above the bar while it shows. */
+  captions?: ReactNode;
   /** Rendered at the start of the top row, such as a back button in full screen. */
   leading?: ReactNode;
   /** TV only: what is playing, shown above the progress bar. */
@@ -145,9 +154,13 @@ export function PlayerControls({ player, leading, heading, hideBar, episodeButto
     if (action === 'pause') player.pause();
   };
 
+  const safeArea = [StyleSheet.absoluteFill, { top: insets.top, right: insets.right, bottom: insets.bottom, left: insets.left }];
+  const barShown = visible && !hideBar && !disabled;
+  const captionLift = Platform.isTV ? (barShown ? CAPTION_LIFT.tvBar : CAPTION_LIFT.tv) : barShown ? (episodeButtons ? CAPTION_LIFT.phoneEpisodes : CAPTION_LIFT.phoneBar) : CAPTION_LIFT.phone;
   const layer = (
     <>
       {Platform.isTV ? <TVRemoteEvents onEvent={handleRemote} onBack={handleBack} /> : null}
+      {captions && !status ? <View pointerEvents="none" style={[safeArea, styles.captions, { paddingBottom: captionLift }]}>{captions}</View> : null}
       {status || buffering ? (
         <View pointerEvents="none" style={[styles.status, status ? styles.statusDim : null]}>
           <Spinner />
@@ -155,8 +168,10 @@ export function PlayerControls({ player, leading, heading, hideBar, episodeButto
         </View>
       ) : null}
       {seekHint ? (
-        <View key={seekHint.id} pointerEvents="none" style={[styles.seekHint, seekHint.forward ? styles.seekHintForward : styles.seekHintBack]}>
-          <SkipIcon forward={seekHint.forward} />
+        <View pointerEvents="none" style={safeArea}>
+          <View key={seekHint.id} style={[styles.seekHint, seekHint.forward ? styles.seekHintForward : styles.seekHintBack]}>
+            <SkipIcon forward={seekHint.forward} />
+          </View>
         </View>
       ) : null}
     </>
@@ -200,6 +215,7 @@ export function PlayerControls({ player, leading, heading, hideBar, episodeButto
         {layer}
         <LinearGradient pointerEvents="none" colors={["transparent", "rgba(0,0,0,0.6)", "rgba(0,0,0,0.92)"]} locations={[0, 0.45, 1]} style={[styles.shade, styles.tvShade]} />
         {disabled || status ? null : (
+          <View pointerEvents="box-none" style={safeArea}>
           <View style={styles.tvBar}>
             {heading ? (
               <View style={styles.tvHeading}>
@@ -228,6 +244,7 @@ export function PlayerControls({ player, leading, heading, hideBar, episodeButto
               </View>
             </View>
           </View>
+          </View>
         )}
       </View>
     );
@@ -239,6 +256,7 @@ export function PlayerControls({ player, leading, heading, hideBar, episodeButto
       <Pressable accessibilityElementsHidden importantForAccessibility="no" onPress={onSurfacePress} style={StyleSheet.absoluteFill} />
       <LinearGradient pointerEvents="none" colors={["rgba(0,0,0,0.6)", "transparent"]} style={[styles.shade, styles.shadeTop]} />
       <LinearGradient pointerEvents="none" colors={["transparent", "rgba(0,0,0,0.8)"]} style={[styles.shade, episodeButtons ? styles.shadeBottomTall : styles.shadeBottom]} />
+      <View pointerEvents="box-none" style={safeArea}>
       <View pointerEvents="box-none" style={[styles.toolbar, leading ? styles.toolbarSplit : null]}>
         {leading}
         <ControlGroup>
@@ -264,6 +282,7 @@ export function PlayerControls({ player, leading, heading, hideBar, episodeButto
           {episodeButtons ? <View pointerEvents="box-none" style={styles.phoneEpisodes}>{episodeButtons}</View> : null}
         </View>
       )}
+      </View>
     </View>
   );
 }
@@ -491,6 +510,7 @@ const styles = StyleSheet.create({
   statusDim: { backgroundColor: "rgba(0,0,0,0.6)" },
   statusText: { color: "rgba(255,255,255,0.8)", fontSize: 14, fontFamily: fonts.bodyMedium, textAlign: "center" },
   spinner: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: "rgba(255,255,255,0.15)", borderTopColor: colors.accent },
+  captions: { justifyContent: "flex-end", alignItems: "center", paddingHorizontal: 24 },
   seekHint: { position: "absolute", top: "50%", width: 64, height: 64, marginTop: -32, borderRadius: 32, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.6)" },
   seekHintBack: { left: "12%" },
   seekHintForward: { right: "12%" },

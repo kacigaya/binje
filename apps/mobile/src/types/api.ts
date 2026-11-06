@@ -10,6 +10,7 @@ export type {
   MobileMediaSummary,
   MobileMediaType,
   MobilePerson,
+  MobileRelease,
   MobileSeason,
   MobileSeasonResponse,
   MobileStreamMetadata,

@@ -90,3 +90,12 @@ export interface MobileSeasonResponse {
 export interface MobileApiErrorResponse {
   error: { code: "INVALID_REQUEST" | "NOT_FOUND" | "UPSTREAM_ERROR"; message: string };
 }
+
+/** Download links are null when the release lacks that build. */
+export interface MobileRelease {
+  version: string;
+  url: string;
+  android: string | null;
+  androidTv: string | null;
+  ios: string | null;
+}

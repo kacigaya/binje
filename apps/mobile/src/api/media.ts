@@ -6,6 +6,7 @@ import type {
   MobileMediaDetails,
   MobileMediaSummary,
   MobileMediaType,
+  MobileRelease,
   MobileSeasonResponse,
   SearchResponse,
 } from "../types/api";
@@ -18,6 +19,10 @@ export type BrowseCategory =
   | "upcoming"
   | "airing-today"
   | "on-the-air";
+
+export function getLatestRelease(signal?: AbortSignal) {
+  return apiRequest<MobileRelease>("/api/mobile/version", { signal });
+}
 
 export function getHome(locale: MobileLocale, signal?: AbortSignal) {
   return apiRequest<MobileHomeResponse>("/api/mobile/home", {

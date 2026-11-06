@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState, type ComponentProps, type ReactNode } from 'react';
-import { TVPressable as Pressable } from '../../components/TVPressable'; import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { TVPressable as Pressable } from '../../components/TVPressable'; import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getMediaDetails, getSeason } from '../../api/media';
 import { BackButton } from '../../components/BackButton';
 import { RtRating, TmdbRating } from '../../components/Badges';
@@ -63,8 +63,9 @@ function Episodes({ showId, seasons }: { showId: number; seasons: MobileSeason[]
   return (
     <View style={s.section}>
       <Text accessibilityRole="header" style={s.sectionTitle}>{t('episodes')}</Text>
+      {/* One scrolling row, like the player panel: long shows do not push the episodes off screen. */}
       {seasons.length > 1 ? (
-        <View style={s.chips}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipScroll} contentContainerStyle={s.chips}>
           {seasons.map((item) => {
             const active = item.seasonNumber === season;
             return (
@@ -79,7 +80,7 @@ function Episodes({ showId, seasons }: { showId: number; seasons: MobileSeason[]
               </Pressable>
             );
           })}
-        </View>
+        </ScrollView>
       ) : null}
       {q.isLoading ? (
         <View style={s.episodeList}>{[0, 1, 2].map((i) => <View key={i} style={s.episodeSkeleton} />)}</View>
@@ -269,7 +270,9 @@ const s = StyleSheet.create({
   creatorsNames: { color: colors.text, fontSize: 16, fontFamily: fonts.bodyMedium, marginTop: 2 },
   section: { marginTop: 48, gap: spacing.md },
   sectionTitle: { color: colors.text, fontSize: 20, fontFamily: fonts.heading },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  // The row runs to the screen edges; its content keeps the section padding.
+  chipScroll: { marginHorizontal: -screenPadding },
+  chips: { paddingHorizontal: screenPadding, gap: spacing.sm },
   chip: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.borderStrong },
   chipActive: { backgroundColor: colors.text, borderColor: colors.text },
   chipPressed: { backgroundColor: colors.fillActive },
