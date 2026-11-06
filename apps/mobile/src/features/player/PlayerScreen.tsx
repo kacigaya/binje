@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { TVPressable as Pressable } from '../../components/TVPressable'; import { BackHandler, Platform, ActivityIndicator, TVFocusGuideView, StyleSheet, Text, View } from "react-native";
+import { TVPressable as Pressable } from '../../components/TVPressable'; import { BackHandler, Platform, ActivityIndicator, ScrollView, TVFocusGuideView, StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { ControlPill, IconButton, PlayerControls } from "./PlayerControls";
+import { Captions } from "./Captions";
+import { fetchCues, fetchTitleSubtitles, trackLabels, type SubtitleTrack } from "./subtitles";
 import { EpisodePanel } from "./EpisodePanel";
 import { UpNextCard } from "./UpNextCard";
 import { playlistQualities, type Quality } from "./qualities";
@@ -47,7 +49,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   const [stream, setStream] = useState<Keyed<StreamResponse> | null>(null);
   const [qualityHeight, setQualityHeight] = useState(0);
   const [variants, setVariants] = useState<Keyed<Quality[]> | null>(null);
-  const [menu, setMenu] = useState<'quality' | 'episodes' | null>(null);
+  const [menu, setMenu] = useState<'quality' | 'subtitles' | 'episodes' | null>(null);
   const qualityMenuOpen = menu === 'quality';
   // The episode panel can browse another season without changing playback.
   const [panelSeason, setPanelSeason] = useState(initialSeason ?? 1);
@@ -57,12 +59,15 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   const [message, setMessage] = useState('');
   const [casting, setCasting] = useState(false);
   const [crop, setCrop] = useState(false);
+  // Picked by file, with the label to find the same language in the next episode. null file: subtitles off.
+  const [subtitleChoice, setSubtitleChoice] = useState<{ file: string | null; label?: string } | null>(null);
   const [firstFrame, setFirstFrame] = useState<string | null>(null);
   const videoRef = useRef<VideoView>(null);
   const castingRef = useRef(false);
   const loadedKey = useRef<string | null>(null);
   const qualityBusy = useRef(false);
   const qualityButton = useRef<View>(null);
+  const subtitlesButton = useRef<View>(null);
   const episodesButton = useRef<View>(null);
   const lastMenu = useRef<typeof menu>(null);
   const request = useRef(0);
@@ -85,7 +90,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   const source = selectPlaybackSource(availableList, forMedia(failed, mediaKey) ?? [], forMedia(playing, mediaKey));
   const exhausted = source === null && availableList !== undefined;
   const currentStream = forMedia(stream, mediaKey);
-  const player = useVideoPlayer(null, instance => { instance.loop = false; instance.timeUpdateEventInterval = 0.5; instance.keepScreenOnWhilePlaying = true; });
+  const player = useVideoPlayer(null, instance => { instance.loop = false; instance.timeUpdateEventInterval = 0.25; instance.keepScreenOnWhilePlaying = true; });
   const loader = useMemo(() => createPlaybackLoader(player), [player]);
   const progressWriter = useMemo(() => createProgressWriter((positionSeconds, durationSeconds) => updatePlayHistoryProgress({ type, id, season, episode, positionSeconds, durationSeconds })), [type, id, season, episode]);
   const handleCastingChange = useCallback((active: boolean) => { castingRef.current = active; setCasting(active); }, []);
@@ -156,7 +161,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   // On TV the focused menu item unmounts with the menu, so focus goes back to the button that opened it.
   useEffect(() => {
     const closed = lastMenu.current;
-    if (Platform.isTV && closed && !menu) requestAnimationFrame(() => (closed === 'quality' ? qualityButton : episodesButton).current?.requestTVFocus());
+    if (Platform.isTV && closed && !menu) requestAnimationFrame(() => ({ quality: qualityButton, subtitles: subtitlesButton, episodes: episodesButton })[closed].current?.requestTVFocus());
     lastMenu.current = menu;
   }, [menu]);
 
@@ -189,7 +194,27 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
     if (!currentStream) return undefined;
     return height === 0 ? proxiedHlsUrl(currentStream.url) : qualities.find(item => item.height === height)?.url;
   }
-  const streamError = message ? t(message === "saveFailed" ? "saveFailed" : "qualityFailed") : null;
+  // Like the web player: the source's own tracks start on, title-wide ones wait to be picked.
+  const streamTracks: SubtitleTrack[] = currentStream?.tracks ?? [];
+  const titleTracks = useQuery({
+    queryKey: ['subtitles', mediaKey],
+    queryFn: ({ signal }) => fetchTitleSubtitles(streamMedia!, signal),
+    enabled: streamMedia !== null && currentStream !== undefined && streamTracks.length === 0,
+  });
+  const subtitleTracks = streamTracks.length ? streamTracks : titleTracks.data ?? [];
+  const subtitleNames = trackLabels(subtitleTracks, (index) => `${t("subtitles")} ${index}`);
+  const activeTrack = subtitleChoice === null
+    ? streamTracks[0]
+    : subtitleChoice.file === null
+      ? undefined
+      : subtitleTracks.find((track) => track.file === subtitleChoice.file) ?? subtitleTracks.find((track) => track.label === subtitleChoice.label) ?? subtitleTracks[0];
+  const cues = useQuery({
+    queryKey: ['subtitleCues', activeTrack?.file, activeTrack?.format],
+    queryFn: ({ signal }) => fetchCues(activeTrack!, signal),
+    enabled: activeTrack !== undefined && !casting,
+    staleTime: Infinity,
+  });
+  const streamError = message ? t(message === "saveFailed" ? "saveFailed" : "qualityFailed") : activeTrack && cues.isError ? t("subtitlesFailed") : null;
   const status = exhausted ? null : source === null ? t("checkingSources") : resolving ? t("loading") : null;
   const seasonList = (details.data?.seasons ?? []).filter((item) => item.seasonNumber > 0);
   const currentSeason = seasonList.find((item) => item.seasonNumber === season);
@@ -270,11 +295,12 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
     {backdropUrl && firstFrame !== mediaKey ? (
       <Image pointerEvents="none" source={backdropUrl} alt="" style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
     ) : null}
-    <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { top: insets.top, right: insets.right, bottom: insets.bottom, left: insets.left }]}>
     <PlayerControls
       player={player}
+      insets={insets}
       disabled={casting || exhausted}
       status={status}
+      captions={activeTrack && cues.data && !casting ? <Captions key={activeTrack.file} player={player} cues={cues.data} /> : null}
       menuOpen={menu !== null || upNextOpen}
       onCloseMenu={() => { setMenu(null); setEnded(null); }}
       heading={Platform.isTV ? tvHeading : undefined}
@@ -301,6 +327,17 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
       leading={Platform.isTV ? undefined : <BackButton floating={false} />}
       onPip={() => void videoRef.current?.startPictureInPicture()}
       toolbar={<>
+        {subtitleTracks.length > 0 ? (
+          <IconButton
+            buttonRef={subtitlesButton}
+            label={t("subtitles")}
+            selected={activeTrack !== undefined}
+            expanded={menu === "subtitles"}
+            onPress={() => setMenu((open) => open === "subtitles" ? null : "subtitles")}
+          >
+            {(ink) => <MaterialCommunityIcons name={activeTrack ? "closed-caption" : "closed-caption-outline"} size={Platform.isTV ? 24 : 18} color={ink} />}
+          </IconButton>
+        ) : null}
         {qualityHeights.length > 0 && Platform.isTV ? (
           <ControlPill
             buttonRef={qualityButton}
@@ -344,31 +381,37 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
         /> : null}
       </>}
     />
+    <View pointerEvents="box-none" style={[StyleSheet.absoluteFill, { top: insets.top, right: insets.right, bottom: insets.bottom, left: insets.left }]}>
     {qualityMenuOpen ? (
       // On TV the D-pad stays in the open menu, like the episode panel; Back closes it.
       <FocusTrap trapFocusUp trapFocusDown trapFocusLeft trapFocusRight style={[styles.qualityMenu, Platform.isTV ? styles.tvQualityMenu : styles.phoneQualityMenu]}>
         {Platform.isTV ? <Text style={styles.tvMenuCaption}>{t("quality")}</Text> : null}
         {[0, ...qualityHeights].map((height) => (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ selected: qualityHeight === height }}
+          <MenuOption
             key={height || "auto"}
+            label={height === 0 ? t("auto") : `${height}p`}
+            selected={qualityHeight === height}
             disabled={qualityPending || resolving}
             onPress={() => void changeQuality(height)}
-            hasTVPreferredFocus={Platform.isTV && qualityHeight === height}
-            focusStyle={styles.qualityItemFocused}
-            style={({ pressed }) => [styles.qualityItem, Platform.isTV && styles.tvQualityItem, pressed && styles.qualityItemPressed]}
-          >
-            {({ focused }) => {
-              // TV focus inverts the item, like the bar's buttons.
-              const ink = Platform.isTV && focused ? "#0a0a0b" : colors.text;
-              return <>
-                <Text style={[styles.qualityItemText, Platform.isTV && styles.tvQualityItemText, { color: ink }]}>{height === 0 ? t("auto") : `${height}p`}</Text>
-                {qualityHeight === height ? <Feather name="check" size={Platform.isTV ? 18 : 14} color={ink} /> : null}
-              </>;
-            }}
-          </Pressable>
+          />
         ))}
+      </FocusTrap>
+    ) : null}
+    {menu === "subtitles" ? (
+      <FocusTrap trapFocusUp trapFocusDown trapFocusLeft trapFocusRight style={[styles.qualityMenu, Platform.isTV ? styles.tvQualityMenu : styles.phoneQualityMenu]}>
+        {Platform.isTV ? <Text style={styles.tvMenuCaption}>{t("subtitles")}</Text> : null}
+        {/* Title-wide lists can hold many languages. */}
+        <ScrollView style={Platform.isTV ? styles.tvMenuList : styles.menuList}>
+          <MenuOption label={t("off")} selected={activeTrack === undefined} onPress={() => { setMenu(null); setSubtitleChoice({ file: null }); }} />
+          {subtitleTracks.map((track, index) => (
+            <MenuOption
+              key={track.file}
+              label={subtitleNames[index]}
+              selected={activeTrack?.file === track.file}
+              onPress={() => { setMenu(null); setSubtitleChoice({ file: track.file, label: track.label }); }}
+            />
+          ))}
+        </ScrollView>
       </FocusTrap>
     ) : null}
     {menu === "episodes" && !Platform.isTV ? <Pressable accessibilityElementsHidden importantForAccessibility="no" onPress={() => setMenu(null)} style={StyleSheet.absoluteFill} /> : null}
@@ -418,6 +461,29 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   );
 }
 
+function MenuOption({ label, selected, disabled, onPress }: { label: string; selected: boolean; disabled?: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected, disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      hasTVPreferredFocus={Platform.isTV && selected}
+      focusStyle={styles.qualityItemFocused}
+      style={({ pressed }) => [styles.qualityItem, Platform.isTV && styles.tvQualityItem, pressed && styles.qualityItemPressed]}
+    >
+      {({ focused }) => {
+        // TV focus inverts the item, like the bar's buttons.
+        const ink = Platform.isTV && focused ? "#0a0a0b" : colors.text;
+        return <>
+          <Text numberOfLines={1} style={[styles.qualityItemText, Platform.isTV && styles.tvQualityItemText, { color: ink }]}>{label}</Text>
+          {selected ? <Feather name="check" size={Platform.isTV ? 18 : 14} color={ink} /> : null}
+        </>;
+      }}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
   immersive: { flex: 1, backgroundColor: "#000" },
@@ -436,6 +502,8 @@ const styles = StyleSheet.create({
   tvQualityMenu: { bottom: 92, right: screenPadding, minWidth: 200, padding: 6, borderRadius: 18 },
   episodePanel: { position: "absolute", left: 0, right: 0, bottom: 0 },
   tvMenuCaption: { color: colors.muted, fontSize: 13, fontFamily: fonts.bodySemiBold, letterSpacing: 0.6, textTransform: "uppercase", paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
+  menuList: { maxHeight: 240 },
+  tvMenuList: { maxHeight: 420 },
   tvQualityItem: { paddingHorizontal: 16, paddingVertical: 12 },
   tvQualityItemText: { fontSize: 18 },
   qualityItemFocused: { backgroundColor: "#fff" },

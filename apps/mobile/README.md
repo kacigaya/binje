@@ -46,6 +46,18 @@ adding or upgrading `react-native-google-cast`, rebuild the development client b
 testing. The Cast button appears in the player when a compatible receiver is available
 on the same network.
 
+The player draws subtitles itself, because `expo-video` cannot load external subtitle
+files. The server proxy converts SRT files to WebVTT. The subtitle button selects a
+track or turns subtitles off. The stream's own tracks start on. Title-wide tracks from
+`/api/subtitles` start off. The mobile player does not have the web delay and
+auto-sync controls.
+
+On launch, the app asks `/api/mobile/version` for the latest GitHub release. The server
+reads GitHub, so the app contacts only the b!nje service. When the release is newer than
+the installed `app.json` version, a prompt opens the APK on Android and the release page
+on iOS. **Later** hides the prompt until the next release. The prompt waits while the
+consent sheet is open.
+
 ## Android TV
 
 The app uses `react-native-tvos`, the React Native fork that supports phone and TV targets. Phone builds stay the same. The `@react-native-tvos/config-tv` plugin changes the Android project for TV only when `EXPO_TV=1` is set.

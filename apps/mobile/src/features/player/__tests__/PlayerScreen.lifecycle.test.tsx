@@ -32,7 +32,8 @@ jest.mock('expo-video', () => ({
     return useReleasingSharedObject(() => mockPlayer, []);
   },
 }));
-jest.mock('@tanstack/react-query', () => ({ useQuery: ({ queryKey }: { queryKey: string[] }) => ({ data: queryKey[0] === 'season' ? { episodes: [] } : mockMedia, isLoading: false, isError: false }) }));
+const mockQueryData = (key: string) => key === 'season' ? { episodes: [] } : key === 'subtitles' || key === 'subtitleCues' ? [] : mockMedia;
+jest.mock('@tanstack/react-query', () => ({ useQuery: ({ queryKey }: { queryKey: string[] }) => ({ data: mockQueryData(queryKey[0]), isLoading: false, isError: false }) }));
 jest.mock('@expo/vector-icons', () => ({ Feather: () => null, Ionicons: () => null, MaterialCommunityIcons: () => null }));
 jest.mock('@expo/vector-icons/Feather', () => () => null);
 jest.mock('expo-image', () => ({ Image: () => null }));
