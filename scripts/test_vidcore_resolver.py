@@ -5,9 +5,9 @@ import threading
 import unittest
 from http.server import ThreadingHTTPServer
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
-from vidcore_resolver import handler_class, is_playlist, is_provider_request, player_path, resolve
+from vidcore_resolver import guard_browser, handler_class, is_playlist, is_provider_request, player_path, resolve, serve, watch_browser
 
 
 class MediaTests(unittest.TestCase):
@@ -36,25 +36,122 @@ class MediaTests(unittest.TestCase):
 
 
 class BrowserTests(unittest.IsolatedAsyncioTestCase):
-    async def test_captures_playlist_without_downloading_media_and_closes_page(self):
-        page = SimpleNamespace(route=AsyncMock(), close=AsyncMock())
-        route = SimpleNamespace(request=SimpleNamespace(url="https://cdn.test/master.m3u8", resource_type="xhr"), abort=AsyncMock())
+    def session(self):
+        connection = SimpleNamespace(on=Mock(), off=Mock(), send=AsyncMock())
+        page = SimpleNamespace(connection=connection, session_id="page-1", goto=AsyncMock())
+        session = SimpleNamespace(new_page=AsyncMock(return_value=page), close_page=AsyncMock(),
+                                  browser=SimpleNamespace(connection=connection))
+        return session, page, connection
+
+    async def test_captures_playlist_and_removes_listener(self):
+        session, page, connection = self.session()
 
         async def navigate(*_args, **_kwargs):
-            await page.route.call_args.args[1](route)
+            connection.on.call_args.args[1]({"request": {"url": "https://cdn.test/master.m3u8"}})
 
-        page.goto = AsyncMock(side_effect=navigate)
-        session = SimpleNamespace(context=SimpleNamespace(new_page=AsyncMock(return_value=page)))
-        self.assertEqual(await resolve(session, "/movie/1?autoPlay=true"), {"url": "https://cdn.test/master.m3u8"})
-        route.abort.assert_awaited_once()
-        page.close.assert_awaited_once()
+        page.goto.side_effect = navigate
+        self.assertEqual(await resolve(session, "/movie/1"), {"url": "https://cdn.test/master.m3u8"})
+        connection.off.assert_called_once_with("Network.requestWillBeSent", connection.on.call_args.args[1], session_id="page-1")
+        session.close_page.assert_awaited_once_with(page)
 
     async def test_closes_page_after_navigation_fails(self):
-        page = SimpleNamespace(route=AsyncMock(), close=AsyncMock(), goto=AsyncMock(side_effect=TimeoutError))
-        session = SimpleNamespace(context=SimpleNamespace(new_page=AsyncMock(return_value=page)))
+        session, page, connection = self.session()
+        page.goto.side_effect = TimeoutError
         with self.assertRaises(TimeoutError):
             await resolve(session, "/movie/1")
-        page.close.assert_awaited_once()
+        session.close_page.assert_awaited_once_with(page)
+        connection.off.assert_called_once()
+
+    async def test_browser_guard_blocks_media_and_offsite_requests(self):
+        session, _, connection = self.session()
+        await guard_browser(session, "proxy-user", "proxy-password")
+        handlers = {call.args[0]: call.args[1] for call in connection.on.call_args_list}
+        request = handlers["Fetch.requestPaused"]
+        cases = [
+            ("https://vidcore.io/chunk.js", "Script", "Fetch.continueRequest"),
+            ("https://vidcore.io/movie.mp4", "Media", "Fetch.failRequest"),
+            ("https://vidcore.io/master.m3u8", "XHR", "Fetch.failRequest"),
+            ("https://cdn.test/master.m3u8", "XHR", "Fetch.failRequest"),
+            ("http://127.0.0.1/admin", "Document", "Fetch.failRequest"),
+            ("https://vidcore.io/wyzie", "Fetch", "Fetch.failRequest"),
+        ]
+        for url, kind, method in cases:
+            with self.subTest(url=url):
+                request({"requestId": "1", "request": {"url": url}, "resourceType": kind})
+                await asyncio.sleep(0)
+                self.assertEqual(connection.send.call_args.args[0], method)
+
+    async def test_proxy_credentials_never_answer_site_challenges(self):
+        session, _, connection = self.session()
+        await guard_browser(session, "proxy-user", "proxy-password")
+        handlers = {call.args[0]: call.args[1] for call in connection.on.call_args_list}
+        auth = handlers["Fetch.authRequired"]
+        for source in ["Server", "Proxy"]:
+            auth({"requestId": "1", "authChallenge": {"source": source}})
+            await asyncio.sleep(0)
+            answer = connection.send.call_args.args[1]["authChallengeResponse"]
+            expected = {"response": "Default"} if source == "Server" else {
+                "response": "ProvideCredentials", "username": "proxy-user", "password": "proxy-password"}
+            self.assertEqual(answer, expected)
+
+    async def test_health_check_logs_failure_without_sensitive_error_text(self):
+        session, _, connection = self.session()
+        connection.send.side_effect = ConnectionError("secret-token")
+        with self.assertLogs("vidcore_resolver", level="ERROR") as logs:
+            with self.assertRaisesRegex(RuntimeError, "Browser connection failed"):
+                await watch_browser(session)
+        self.assertIn("ConnectionError", logs.output[0])
+        self.assertNotIn("secret-token", logs.output[0])
+
+    async def test_browser_failure_stops_http_server_and_exits_for_systemd_restart(self):
+        session, _, connection = self.session()
+        connection.send.side_effect = ConnectionError
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_class(asyncio.get_running_loop(), session, "x" * 32))
+        with self.assertLogs("vidcore_resolver", level="ERROR"):
+            with self.assertRaisesRegex(RuntimeError, "Browser connection failed"):
+                await asyncio.wait_for(serve(session, server), timeout=2)
+        self.assertEqual(server.fileno(), -1)
+
+
+    async def test_idle_http_client_does_not_block_browser_recovery(self):
+        session, _, connection = self.session()
+        crash = asyncio.Event()
+        accepted = threading.Event()
+
+        async def fail_when_signaled(*_args, **_kwargs):
+            await crash.wait()
+            raise ConnectionError
+
+        connection.send.side_effect = fail_when_signaled
+        base = handler_class(asyncio.get_running_loop(), session, "x" * 32)
+
+        class Handler(base):
+            def setup(self):
+                super().setup()
+                accepted.set()
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        task = asyncio.create_task(serve(session, server))
+        reader, writer = await asyncio.open_connection(*server.server_address)
+        try:
+            writer.write(b"POST /resolve HTTP/1.1\r\nHost:")
+            await writer.drain()
+            self.assertTrue(await asyncio.to_thread(accepted.wait, 1))
+            crash.set()
+            with self.assertLogs("vidcore_resolver", level="ERROR"):
+                with self.assertRaisesRegex(RuntimeError, "Browser connection failed"):
+                    await asyncio.wait_for(task, timeout=2)
+            self.assertEqual(server.fileno(), -1)
+            writer.write(b" localhost\r\n\r\n")
+            await writer.drain()
+            await asyncio.wait_for(reader.read(), timeout=1)
+        finally:
+            writer.close()
+            await writer.wait_closed()
+            if not task.done():
+                crash.set()
+                with self.assertRaises(RuntimeError):
+                    await task
 
 
 class HttpTests(unittest.TestCase):

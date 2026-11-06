@@ -6,7 +6,7 @@ The service does not download media. b!nje checks the returned URL, probes a pla
 
 ## Setup
 
-1. Use a host with WebSkrap, Patchright Chromium, and Xvfb installed. This host was tested with WebSkrap 2.13.0 and `/home/ubuntu/.local/venvs/webskrap/bin/python`.
+1. Use a host with WebSkrap, Chromium, and Xvfb installed. This host was tested with WebSkrap 3.2.4 and `/home/ubuntu/.local/venvs/webskrap/bin/python`. The resolver uses WebSkrap 3's CDP API. WebSkrap 2 is not supported.
 2. Put these values in the browser service's private environment:
 
    | Variable | Value |
@@ -43,6 +43,8 @@ The website deploys automatically from `main` through Dokploy. Runtime values mu
 The resolver runs as user `ubuntu` with the installed browser runtime. It starts at boot and restarts after a failure. Gluetun remains a separate shared service.
 
 When the resolver script changes, install the updated script under `/opt/binje-vidcore-resolver` and restart this unit. A website deployment updates the app container; it does not replace this host service.
+
+The resolver checks the browser connection every two seconds. Each check has a three-second deadline. If the browser exits or stops responding, the resolver exits with a failure. The systemd unit then restarts it after five seconds. A request timeout alone does not restart the browser. Request failures log the exception type. Logs omit exception messages because these can contain credentials or signed media URLs.
 
 ## Limits
 
