@@ -5,8 +5,9 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState, type ComponentProps, type ReactNode } from 'react';
-import { TVPressable as Pressable } from '../../components/TVPressable'; import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { TVPressable as Pressable } from '../../components/TVPressable'; import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { getMediaDetails, getSeason } from '../../api/media';
+import { SeasonMenu } from './SeasonMenu';
 import { BackButton } from '../../components/BackButton';
 import { RtRating, TmdbRating } from '../../components/Badges';
 import { Button } from '../../components/Button';
@@ -53,7 +54,7 @@ function CastCard({ person }: { person: MobilePerson }) {
   );
 }
 
-/** Mirrors the web SeasonEpisodes section: season chips above a list of episodes. */
+/** Mirrors the web SeasonEpisodes section: a season menu above a list of episodes. */
 function Episodes({ showId, seasons }: { showId: number; seasons: MobileSeason[] }) {
   const { locale, t } = useLocale();
   const [season, setSeason] = useState(seasons[0].seasonNumber);
@@ -63,25 +64,7 @@ function Episodes({ showId, seasons }: { showId: number; seasons: MobileSeason[]
   return (
     <View style={s.section}>
       <Text accessibilityRole="header" style={s.sectionTitle}>{t('episodes')}</Text>
-      {/* One scrolling row, like the player panel: long shows do not push the episodes off screen. */}
-      {seasons.length > 1 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipScroll} contentContainerStyle={s.chips}>
-          {seasons.map((item) => {
-            const active = item.seasonNumber === season;
-            return (
-              <Pressable
-                key={item.id}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                onPress={() => setSeason(item.seasonNumber)}
-                style={({ pressed }) => [s.chip, active && s.chipActive, pressed && !active && s.chipPressed]}
-              >
-                <Text style={[s.chipText, active && s.chipTextActive]}>{item.name}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      ) : null}
+      {seasons.length > 1 ? <SeasonMenu seasons={seasons} season={season} onChange={setSeason} /> : null}
       {q.isLoading ? (
         <View style={s.episodeList}>{[0, 1, 2].map((i) => <View key={i} style={s.episodeSkeleton} />)}</View>
       ) : q.isError && !q.data ? (
@@ -270,14 +253,6 @@ const s = StyleSheet.create({
   creatorsNames: { color: colors.text, fontSize: 16, fontFamily: fonts.bodyMedium, marginTop: 2 },
   section: { marginTop: 48, gap: spacing.md },
   sectionTitle: { color: colors.text, fontSize: 20, fontFamily: fonts.heading },
-  // The row runs to the screen edges; its content keeps the section padding.
-  chipScroll: { marginHorizontal: -screenPadding },
-  chips: { paddingHorizontal: screenPadding, gap: spacing.sm },
-  chip: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.borderStrong },
-  chipActive: { backgroundColor: colors.text, borderColor: colors.text },
-  chipPressed: { backgroundColor: colors.fillActive },
-  chipText: { color: colors.text, fontSize: 14, fontFamily: fonts.bodyMedium },
-  chipTextActive: { color: colors.background },
   episodeList: { gap: spacing.sm },
   episodeSkeleton: { height: 80, borderRadius: radius.md, backgroundColor: colors.fill },
   episode: { flexDirection: 'row', gap: 12, padding: spacing.xs, borderRadius: radius.md, borderCurve: 'continuous' },

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Clock, Play } from "lucide-react";
+import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatAirDate, formatRating, localizedHref } from "@/lib/i18n";
 import {
@@ -46,6 +47,7 @@ export default function SeasonEpisodes({
 
   const [picked, setPicked] = useState<number | null>(null);
   const season = picked ?? lastSeason ?? initialSeason;
+  const episodeCount = seasons.find((s) => s.season_number === season)?.episode_count;
   const [episodesBySeason, setEpisodesBySeason] = useState<
     Record<number, Episode[] | null>
   >({ [initialSeason]: initialEpisodes });
@@ -82,31 +84,24 @@ export default function SeasonEpisodes({
         {t("Episodes")}
       </h2>
 
-      <div
-        role="group"
-        aria-label={t("Season")}
-        className="mb-4 flex flex-wrap gap-2"
-      >
-        {seasons.map((s) => {
-          const active = s.season_number === season;
-          return (
-            <button
-              key={s.season_number}
-              type="button"
-              aria-pressed={active}
-              onClick={() => setPicked(s.season_number)}
-              className={cn(
-                "h-8 cursor-pointer rounded-full border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60",
-                active
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-white/15 text-foreground/80 hover:bg-white/10",
-              )}
-            >
-              {s.name}
-            </button>
-          );
-        })}
-      </div>
+      {/* One menu keeps long shows compact: 38 seasons used to fill the screen with chips. */}
+      {seasons.length > 1 && (
+        <div className="mb-4 flex items-center gap-3">
+          <Select
+            ariaLabel={t("Season")}
+            alignItemWithTrigger={false}
+            value={season}
+            items={seasons.map((s) => ({ value: s.season_number, label: s.name }))}
+            onValueChange={setPicked}
+            className="h-10 min-w-0 gap-2 rounded-full border border-white/15 px-4 text-sm font-semibold transition-colors hover:bg-white/10"
+          />
+          {episodeCount !== undefined && (
+            <span className="text-sm text-muted-foreground">
+              {episodeCount} {(episodeCount === 1 ? t("Episode") : t("Episodes")).toLocaleLowerCase(locale)}
+            </span>
+          )}
+        </div>
+      )}
 
       {episodes === undefined ? (
         <ul className="space-y-2" aria-hidden="true">
