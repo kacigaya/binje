@@ -2,7 +2,7 @@ import { act, render } from "@testing-library/react-native";
 import type { VideoPlayer } from "expo-video";
 import * as client from "../../../api/client";
 import { Captions } from "../Captions";
-import { activeCueText, fetchCues, fetchTitleSubtitles, subtitleUrl, trackLabels } from "../subtitles";
+import { activeCueText, fetchCues, nextCueEdge, fetchTitleSubtitles, subtitleUrl, trackLabels } from "../subtitles";
 
 jest.mock("../../../api/client", () => ({ apiRequest: jest.fn() }));
 const request = client.apiRequest as jest.Mock;
@@ -40,11 +40,32 @@ test("parses fetched cues and rejects a failed download", async () => {
 
 test("captions follow the player position", () => {
   let onTime: (event: { currentTime: number }) => void = () => {};
-  const player = { currentTime: 1.5, addListener: jest.fn((_name: string, listener: typeof onTime) => { onTime = listener; return { remove: jest.fn() }; }) };
+  const player = { currentTime: 1.5, playing: false, playbackRate: 1, addListener: jest.fn((_name: string, listener: typeof onTime) => { onTime = listener; return { remove: jest.fn() }; }) };
   const view = render(<Captions player={player as unknown as VideoPlayer} cues={cues} />);
   expect(view.getByText("One", { includeHiddenElements: true })).toBeTruthy();
   act(() => onTime({ currentTime: 3.5 }));
   expect(view.getByText("Two", { includeHiddenElements: true })).toBeTruthy();
   act(() => onTime({ currentTime: 5 }));
   expect(view.queryByText(/One|Two/, { includeHiddenElements: true })).toBeNull();
+});
+
+test("finds the next cue edge", () => {
+  expect(nextCueEdge(cues, 0)).toBe(1);
+  expect(nextCueEdge(cues, 2.5)).toBe(3);
+  expect(nextCueEdge(cues, 4)).toBeUndefined();
+});
+
+test("captions show a cue that starts and ends between position reports", () => {
+  jest.useFakeTimers();
+  let onTime: (event: { currentTime: number }) => void = () => {};
+  const player = { currentTime: 1, playing: true, playbackRate: 1, addListener: jest.fn((_name: string, listener: typeof onTime) => { onTime = listener; return { remove: jest.fn() }; }) };
+  const view = render(<Captions player={player as unknown as VideoPlayer} cues={[{ start: 1.05, end: 1.2, text: "Quick" }]} />);
+  act(() => onTime({ currentTime: 1 }));
+  player.currentTime = 1.06;
+  act(() => { jest.advanceTimersByTime(60); });
+  expect(view.getByText("Quick", { includeHiddenElements: true })).toBeTruthy();
+  player.currentTime = 1.21;
+  act(() => { jest.advanceTimersByTime(150); });
+  expect(view.queryByText("Quick", { includeHiddenElements: true })).toBeNull();
+  jest.useRealTimers();
 });

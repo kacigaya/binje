@@ -36,6 +36,15 @@ export function activeCueText(cues: readonly Cue[], time: number) {
   return cues.filter((cue) => cue.start <= time && time < cue.end).map((cue) => cue.text).join("\n");
 }
 
+/** The first cue start or end after `time`. */
+export function nextCueEdge(cues: readonly Cue[], time: number) {
+  let edge: number | undefined;
+  for (const cue of cues) {
+    for (const value of [cue.start, cue.end]) if (value > time && (edge === undefined || value < edge)) edge = value;
+  }
+  return edge;
+}
+
 /** Providers repeat labels such as "English"; number the repeats like the web player. */
 export function trackLabels(tracks: readonly SubtitleTrack[], fallback: (index: number) => string) {
   const counts = new Map<string, number>();
