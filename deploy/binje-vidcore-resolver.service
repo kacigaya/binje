@@ -5,12 +5,13 @@ After=network-online.target docker.service gluetun.service
 
 [Service]
 Type=simple
-User=ubuntu
-Group=ubuntu
+User=binje-resolver
+Group=binje-resolver
 WorkingDirectory=/opt/binje-vidcore-resolver
 EnvironmentFile=/etc/binje-vidcore-resolver/environment
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/home/ubuntu/.local/venvs/webskrap/bin/python /opt/binje-vidcore-resolver/vidcore_resolver.py
+# Resolve the mounted runtime path inside this unit's filesystem namespace.
+ExecStart=/usr/bin/env /opt/binje-vidcore-runtime/python/bin/python3.11 /opt/binje-vidcore-resolver/vidcore_resolver.py
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=15
@@ -18,7 +19,18 @@ UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ProtectHome=read-only
+ProtectHome=tmpfs
+StateDirectory=binje-vidcore
+StateDirectoryMode=0700
+CacheDirectory=binje-vidcore
+CacheDirectoryMode=0700
+Environment=HOME=/var/lib/binje-vidcore
+Environment=XDG_CACHE_HOME=/var/cache/binje-vidcore
+Environment=WEBSKRAP_BROWSERS_PATH=/opt/binje-vidcore-runtime/browsers
+Environment=PYTHONPATH=/opt/binje-vidcore-runtime/site-packages
+BindReadOnlyPaths=/home/ubuntu/.local/share/uv/python/cpython-3.11.15-linux-aarch64-gnu:/opt/binje-vidcore-runtime/python
+BindReadOnlyPaths=/home/ubuntu/.local/venvs/webskrap/lib/python3.11/site-packages:/opt/binje-vidcore-runtime/site-packages
+BindReadOnlyPaths=/home/ubuntu/.cache/webskrap/browsers:/opt/binje-vidcore-runtime/browsers
 MemoryMax=1536M
 TasksMax=512
 

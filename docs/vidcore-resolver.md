@@ -35,12 +35,18 @@ The website deploys automatically from `main` through Dokploy. Runtime values mu
 1. Install the resolver script at `/opt/binje-vidcore-resolver/vidcore_resolver.py`.
 2. Store its private environment in `/etc/binje-vidcore-resolver/environment`. Set directory permissions to `0700` and file permissions to `0600`, owned by root.
 3. Set `VIDCORE_RESOLVER_HOST=172.18.0.1` in that file. This is the host address on `docker_gwbridge`. Keep port `3040`.
-4. Install [the systemd unit](../deploy/binje-vidcore-resolver.service) as `/etc/systemd/system/binje-vidcore-resolver.service`. Enable and start it.
-5. Permit TCP port `3040` only from `172.18.0.0/16` on `docker_gwbridge`, to destination `172.18.0.1`.
-6. Save `VIDCORE_RESOLVER_URL=http://172.18.0.1:3040` and the matching bearer secret in Dokploy's `binje` application. Preserve its other environment values.
-7. Let the normal commit-triggered deployment apply those settings. Verify `/api/sources`, `/api/resolve`, and actual playback on the public website.
+4. Create the system account `binje-resolver` with home `/var/lib/binje-vidcore` and shell `/usr/sbin/nologin`. Do not add it to admin groups.
+5. Create `/opt/binje-vidcore-runtime/python`, `/opt/binje-vidcore-runtime/site-packages`, and `/opt/binje-vidcore-runtime/browsers` as root-owned directories with mode `0755`. Confirm the source paths in the unit. They must point to the installed Python runtime, WebSkrap site-packages, and browser binaries.
+6. Install [the systemd unit](../deploy/binje-vidcore-resolver.service) as `/etc/systemd/system/binje-vidcore-resolver.service`. Run `systemctl daemon-reload`. Enable and start the service.
+7. Permit TCP port `3040` only from `172.18.0.0/16` on `docker_gwbridge`, to destination `172.18.0.1`.
+8. Save `VIDCORE_RESOLVER_URL=http://172.18.0.1:3040` and the matching bearer secret in Dokploy's `binje` application. Preserve its other environment values.
+9. Let the normal commit-triggered deployment apply those settings. Verify `/api/sources`, `/api/resolve`, and actual playback on the public website.
 
-The resolver runs as user `ubuntu` with the installed browser runtime. It starts at boot and restarts after a failure. Gluetun remains a separate shared service.
+The resolver runs as `binje-resolver`. The unit hides home directories and mounts only the required runtime files read-only. Its state and cache directories belong to this account. It starts at boot and restarts after a failure. Gluetun remains a separate shared service.
+
+On this host, `/etc/ufw/before.rules` and `/etc/ufw/before6.rules` restrict the resolver account's outbound traffic. New IPv4 connections may reach only `10.89.0.13:8888`. New IPv6 connections are blocked. Replies to incoming resolver requests remain allowed. Keep this policy ahead of UFW's general loopback allow rule.
+
+The Gluetun hook `/etc/gluetun/post-rules.txt` blocks its root-owned HTTP proxy from connecting to private addresses. Local DNS and the health endpoint remain available. The hook is mounted read-only by the Gluetun Quadlet. It is applied again when Gluetun rebuilds its firewall. Non-root media applications retain their private-service access. Do not remove these restrictions to make a provider work.
 
 When the resolver script changes, install the updated script under `/opt/binje-vidcore-resolver` and restart this unit. A website deployment updates the app container; it does not replace this host service.
 
