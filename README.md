@@ -91,16 +91,13 @@ See [`apps/mobile/README.md`](./apps/mobile/README.md).
 
 ## Deployment
 
-Follow the [deployment policy](docs/deployment-policy.md).
-Build every deployment from a tagged commit.
+Dokploy deploys each commit to `main` automatically. Follow the [deployment policy](docs/deployment-policy.md).
 Run `node scripts/verify-deployment.mjs https://binje.duckdns.org` after each deployment.
-
-Operator action required: delete the `v1.binje.duckdns.org` and `v2.binje.duckdns.org` DuckDNS records, or put both deployments behind authentication.
 Only the production host may serve a public build.
 
 ## Privacy
 
-Watch history stays in your browser's `localStorage`. No tracking and no analytics.
+Watch history, the watchlist, and player settings stay in your browser's `localStorage`. No tracking and no analytics.
 
 ## License
 

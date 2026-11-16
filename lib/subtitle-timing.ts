@@ -1,8 +1,6 @@
 // Map subtitle time to video time: video = subtitle * scale + offset.
 export type SubtitleSync = { offset: number; scale: number };
 
-export const NO_SYNC: SubtitleSync = { offset: 0, scale: 1 };
-
 // PAL releases run 25 fps, film releases 23.976: the same lines land about 4%
 // apart and drift further the longer the video runs.
 const PAL = 25;

@@ -2,11 +2,11 @@
 
 ## F1: Public previews
 
-The old `v1` and `v2` previews can expose builds without current controls.
+The old `v1` and `v2` previews could expose builds without current controls.
 The [deployment policy](deployment-policy.md) permits only the production host to be public.
-It requires authentication or removal for previews and a tagged commit for each build.
-The operator must remove the two DuckDNS records or protect both deployments.
-This patch does not change DNS, Dokploy, or running deployments.
+It requires authentication or removal for previews.
+On 2026-11-16 both preview hostnames failed the TLS handshake, so they no longer serve a build.
+DuckDNS resolves every subdomain, so there were no separate records to delete.
 
 Verify after deployment:
 

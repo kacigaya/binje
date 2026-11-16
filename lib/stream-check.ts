@@ -40,7 +40,7 @@ export type ResolveParams = {
   imdbId: string;
   season: string;
   episode: string;
-  audio?: "vf" | "vostfr";
+  audio?: "vf";
 };
 
 // Key by TMDB id and episode; title and year only guide provider lookup.
@@ -50,10 +50,9 @@ export function resolveKey({ type, id, season, episode, audio }: ResolveParams) 
 }
 
 type Track = { file: string; label?: string };
-export type ResolverResult = { url: string; tracks: Track[] };
 
 // Keep provider headers server-side; attach them in the proxy, never in JSON responses.
-export type ResolvedStream = ResolverResult & { referer?: string; height?: number };
+export type ResolvedStream = { url: string; tracks: Track[]; referer?: string; height?: number };
 
 export function httpUrl(value: unknown, base?: string | URL): string | undefined {
   if (typeof value !== "string" || !value) return;

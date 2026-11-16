@@ -30,6 +30,15 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
             {" "}({french ? "clé" : "key"}: <Code>binje:play-history:v1</Code>){" "}
             {french ? "afin que vous puissiez reprendre votre lecture. Ces données ne quittent jamais votre appareil." : "so you can resume what you were watching. This data never leaves your device."}
           </p>
+          <p>
+            {french ? "Si vous autorisez le stockage local, nous stockons aussi « Ma liste »" : "If you allow local storage, we also store your watchlist"}
+            {" "}({french ? "clé" : "key"}: <Code>binje:watchlist:v1</Code>).{" "}
+            {french ? "Pour garder vos réglages, nous stockons aussi votre choix de stockage" : "To keep your settings, we also store your storage choice"}
+            {" "}(<Code>binje:cookie-consent</Code>),{" "}
+            {french ? "le volume du lecteur" : "the player volume"} (<Code>player-volume</Code>){" "}
+            {french ? "et le décalage des sous-titres" : "and subtitle timing"} (<Code>subtitle-sync-v2</Code>).{" "}
+            {french ? "Ces données restent aussi sur votre appareil." : "This data also stays on your device."}
+          </p>
         </Section>
 
         <Section title={translate(locale, "What we don’t do")}>

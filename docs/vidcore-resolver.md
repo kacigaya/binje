@@ -1,8 +1,8 @@
 # Vidcore browser resolver
 
-Vidcore runs rotating request code in its player. `scripts/vidcore_resolver.py` runs that player with the installed WebSkrap runtime. Chromium uses Gluetun's authenticated HTTP proxy and a virtual display. It returns one HLS URL to b!nje.
+Vidcore runs rotating request code in its player. `scripts/vidcore_resolver.py` runs that player with the installed WebSkrap runtime. Chromium uses Gluetun's authenticated HTTP proxy and a virtual display. It returns the HLS URLs that the player requests to b!nje.
 
-The service does not download media. b!nje checks the returned URL, probes a playlist and a middle segment, then uses `/api/hls` for playback. This keeps the existing private-network checks and host allowlist. Media requests use the app server's direct connection.
+The service does not download media. b!nje checks the returned URLs, probes each playlist and a middle segment, then uses `/api/hls` for playback. This keeps the existing private-network checks and host allowlist. Media requests use the app server's direct connection.
 
 ## Setup
 
@@ -35,22 +35,36 @@ The website deploys automatically from `main` through Dokploy. Runtime values mu
 1. Install the resolver script at `/opt/binje-vidcore-resolver/vidcore_resolver.py`.
 2. Store its private environment in `/etc/binje-vidcore-resolver/environment`. Set directory permissions to `0700` and file permissions to `0600`, owned by root.
 3. Set `VIDCORE_RESOLVER_HOST=172.18.0.1` in that file. This is the host address on `docker_gwbridge`. Keep port `3040`.
-4. Install [the systemd unit](../deploy/binje-vidcore-resolver.service) as `/etc/systemd/system/binje-vidcore-resolver.service`. Enable and start it.
-5. Permit TCP port `3040` only from `172.18.0.0/16` on `docker_gwbridge`, to destination `172.18.0.1`.
-6. Save `VIDCORE_RESOLVER_URL=http://172.18.0.1:3040` and the matching bearer secret in Dokploy's `binje` application. Preserve its other environment values.
-7. Let the normal commit-triggered deployment apply those settings. Verify `/api/sources`, `/api/resolve`, and actual playback on the public website.
+4. Create the system account `binje-resolver` with home `/var/lib/binje-vidcore` and shell `/usr/sbin/nologin`. Do not add it to admin groups.
+5. Create `/opt/binje-vidcore-runtime/python`, `/opt/binje-vidcore-runtime/site-packages`, and `/opt/binje-vidcore-runtime/browsers` as root-owned directories with mode `0755`. Confirm the source paths in the unit. They must point to the installed Python runtime, WebSkrap site-packages, and browser binaries.
+6. Install [the systemd unit](../deploy/binje-vidcore-resolver.service) as `/etc/systemd/system/binje-vidcore-resolver.service`. Run `systemctl daemon-reload`. Enable and start the service.
+7. Permit TCP port `3040` only from `172.18.0.0/16` on `docker_gwbridge`, to destination `172.18.0.1`.
+8. Save `VIDCORE_RESOLVER_URL=http://172.18.0.1:3040` and the matching bearer secret in Dokploy's `binje` application. Preserve its other environment values.
+9. Let the normal commit-triggered deployment apply those settings. Verify `/api/sources`, `/api/resolve`, and actual playback on the public website.
 
-The resolver runs as user `ubuntu` with the installed browser runtime. It starts at boot and restarts after a failure. Gluetun remains a separate shared service.
+The resolver runs as `binje-resolver`. The unit hides home directories and mounts only the required runtime files read-only. Its state and cache directories belong to this account. It starts at boot and restarts after a failure. Gluetun remains a separate shared service.
+
+On this host, `/etc/ufw/before.rules` and `/etc/ufw/before6.rules` restrict the resolver account's outbound traffic. New IPv4 connections may reach only `10.89.0.13:8888`. New IPv6 connections are blocked. Replies to incoming resolver requests remain allowed. Keep this policy ahead of UFW's general loopback allow rule.
+
+The Gluetun hook `/etc/gluetun/post-rules.txt` blocks its root-owned HTTP proxy from connecting to private addresses. Local DNS and the health endpoint remain available. The hook is mounted read-only by the Gluetun Quadlet. It is applied again when Gluetun rebuilds its firewall. Non-root media applications retain their private-service access. Do not remove these restrictions to make a provider work.
 
 When the resolver script changes, install the updated script under `/opt/binje-vidcore-resolver` and restart this unit. A website deployment updates the app container; it does not replace this host service.
 
-The resolver checks the browser connection every two seconds. Each check has a three-second deadline. If the browser exits or stops responding, the resolver exits with a failure. The systemd unit then restarts it after five seconds. A request timeout alone does not restart the browser. Request failures log the exception type. Logs omit exception messages because these can contain credentials or signed media URLs.
+The resolver checks the browser connection every two seconds. Each check has a three-second deadline. If the browser exits or stops responding, the resolver exits with a failure. The systemd unit then restarts it after five seconds. A request timeout alone does not restart the browser.
+
+Every request writes one log line with its result and elapsed time:
+
+- `resolved in <s>s with <n> playlists` at INFO level.
+- `busy after <s>s` at WARNING level when no browser slot was free.
+- `failed (<exception type>) after <s>s` at WARNING level.
+
+Logs omit URLs, media IDs, and exception messages, because these can contain credentials or signed media URLs. Read them with `journalctl -u binje-vidcore-resolver`.
 
 ## Limits
 
-The endpoint accepts only movie IDs or TV IDs with season and episode numbers. Every request needs the bearer secret. Browser traffic can reach only the two Vidcore hosts. Other hosts, media downloads, subtitle searches, and service workers are blocked. Browser requests use a ten-second deadline and at most two pages at once. The app gives browser resolution and CDN probes one shared thirteen-second deadline. It caches successful resolves for five minutes.
+The endpoint accepts only movie IDs or TV IDs with season and episode numbers. Every request needs the bearer secret. Browser traffic can reach only the two Vidcore hosts. Other hosts, media downloads, subtitle searches, and service workers are blocked. A request waits at most one second for one of the two browser slots. If no slot is free, the service answers `503` at once and the app moves to the next source. The ten-second page deadline starts only after the request gets a slot. Within it, the first playlist must arrive within eight seconds. The service then listens for one more second and returns up to five playlists as `urls`, plus the first one as `url`. The app gives browser resolution and CDN probes one shared thirteen-second deadline. It caches successful resolves for five minutes.
 
-The resolver uses Vidcore's default stream. It does not try every server in Vidcore's menu. For TMDB 969681, the default stream advertised a 3840×1600 rendition. A separate entry named “Premiere 4K” returned 404 during the same check.
+The resolver blocks every playlist load in the browser. When the default server's playlist fails, the player can request another server. The app probes the returned playlists concurrently and keeps the first playable one in the player's order. An app built before this change reads only `url`, so it keeps working with the new script. The new app also accepts an old script that returns only `url`. The resolver does not select servers in Vidcore's menu itself. For TMDB 969681, the default stream advertised a 3840×1600 rendition. A separate entry named “Premiere 4K” returned 404 during the same check.
 
 If a future CDN binds media to the VPN IP, the direct media probe will reject it and b!nje will use another source. Add VPN media routing only after such a stream is verified. Do not remove the private-network checks to make that stream work.
 

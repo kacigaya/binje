@@ -136,7 +136,6 @@ test("resolver cache keys keep audio and episodes separate", () => {
   const params = { type: "tv", id: "1", title: "X", year: "2020", imdbId: "", season: "1", episode: "2" } as const;
   expect(resolveKey(params)).toBe("tv:1:1:2");
   expect(resolveKey({ ...params, audio: "vf" })).toBe("tv:1:1:2:vf");
-  expect(resolveKey({ ...params, audio: "vostfr" })).toBe("tv:1:1:2:vostfr");
 });
 
 test("manual provider requests keep redirects unread and still block private targets", async () => {

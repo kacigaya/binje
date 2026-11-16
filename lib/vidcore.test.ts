@@ -62,6 +62,31 @@ test("rejects service errors and evicts failed resolves", async () => {
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
 
+test("probes fallback playlists concurrently and keeps the player's order", async () => {
+  configure();
+  const probed: string[] = [];
+  globalThis.fetch = mock(async (input: unknown) => {
+    const url = String(input);
+    if (url.startsWith("http://127.0.0.1:3040/")) {
+      return Response.json({
+        url: "https://203.0.113.160/dead.m3u8",
+        urls: ["https://203.0.113.160/dead.m3u8", "javascript:alert(1)", "https://203.0.113.161/hd.m3u8", "https://203.0.113.162/sd.m3u8"],
+      });
+    }
+    probed.push(url);
+    if (url.endsWith("dead.m3u8")) return new Response("gone", { status: 404 });
+    if (url.endsWith("hd.m3u8")) return new Response("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1,RESOLUTION=1920x1080\nmedia.m3u8\n");
+    if (url.endsWith("sd.m3u8")) return new Response("#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1,RESOLUTION=1280x720\nmedia.m3u8\n");
+    if (url.endsWith("media.m3u8")) return new Response("#EXTM3U\n#EXTINF:150,\nsegment.ts\n#EXT-X-ENDLIST\n");
+    return new Response("segment");
+  }) as unknown as typeof fetch;
+  expect(await resolveVidcoreStream(params("6"))).toEqual({
+    url: "https://203.0.113.161/hd.m3u8", referer: "https://vidcore.io/", tracks: [], height: 1080,
+  });
+  expect(probed).toContain("https://203.0.113.162/sd.m3u8");
+  expect(probed.some((url) => url.startsWith("javascript:"))).toBe(false);
+});
+
 test("rejects malformed media URLs", async () => {
   configure();
   globalThis.fetch = mock(async () => Response.json({ url: "javascript:alert(1)" })) as unknown as typeof fetch;

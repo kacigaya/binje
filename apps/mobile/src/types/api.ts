@@ -39,5 +39,4 @@ export type SourcesResponse = { sources?: unknown };
 export type StreamResponse = {
   url: string;
   tracks?: Array<{ file: string; label?: string }>;
-  sources?: Array<{ file: string; height: number }>;
 };

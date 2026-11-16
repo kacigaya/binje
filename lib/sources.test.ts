@@ -29,7 +29,7 @@ test("parses only supported resolver audio lanes", () => {
   const query = new URLSearchParams("type=movie&id=1&title=X&year=2020&audio=vf");
   expect(parseResolveParams(query)?.audio).toBe("vf");
   query.set("audio", "vostfr");
-  expect(parseResolveParams(query)?.audio).toBe("vostfr");
+  expect(parseResolveParams(query)).toBeNull();
   query.set("audio", "vo");
   expect(parseResolveParams(query)).toBeNull();
   query.set("audio", "");
