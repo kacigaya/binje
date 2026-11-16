@@ -1,8 +1,7 @@
-import { firstInOrder, httpUrl, isRecord, probeManifest, resolveKey, type ResolveParams, type ResolvedStream } from "@/lib/stream-check";
+import { httpUrl, isRecord, probeManifest, resolveKey, type ResolveParams, type ResolvedStream } from "@/lib/stream-check";
 import { createTtlCache } from "@/lib/ttl-cache";
 
 const REFERER = "https://vidcore.io/";
-const MAX_PLAYLISTS = 5;
 const cache = createTtlCache<ResolvedStream>(5 * 60 * 1000);
 
 // The local browser service runs Vidcore's rotating request code through Gluetun.
@@ -28,16 +27,9 @@ export function resolveVidcoreStream(params: ResolveParams): Promise<ResolvedStr
       throw new Error("Vidcore browser resolver failed.");
     }
     const body: unknown = await response.json();
-    // Older resolver scripts return only `url`; newer ones add the player's fallback servers as `urls`.
-    const listed = isRecord(body) ? (Array.isArray(body.urls) ? body.urls : [body.url]) : [];
-    const urls = [...new Set(listed.map((value) => httpUrl(value)).filter((url) => url !== undefined))].slice(0, MAX_PLAYLISTS);
-    const stream = await firstInOrder(urls.map(async (url) => {
-      const probe = await probeManifest(url, REFERER, signal);
-      if (!probe) throw new Error("Unplayable stream.");
-      return { url, height: probe.height };
-    })).catch(() => {
-      throw new Error("Vidcore has no playable stream.");
-    });
-    return { ...stream, referer: REFERER, tracks: [] };
+    const url = isRecord(body) ? httpUrl(body.url) : undefined;
+    const probe = url ? await probeManifest(url, REFERER, signal) : undefined;
+    if (!url || !probe) throw new Error("Vidcore has no playable stream.");
+    return { url, referer: REFERER, tracks: [], height: probe.height };
   });
 }

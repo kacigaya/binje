@@ -5,8 +5,7 @@
 The old `v1` and `v2` previews could expose builds without current controls.
 The [deployment policy](deployment-policy.md) permits only the production host to be public.
 It requires authentication or removal for previews.
-On 2026-11-16 both preview hostnames failed the TLS handshake, so they no longer serve a build.
-DuckDNS resolves every subdomain, so there were no separate records to delete.
+The old previews were removed.
 
 Verify after deployment:
 

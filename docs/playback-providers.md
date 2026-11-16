@@ -8,7 +8,7 @@ Checked on 2026-10-22 with TMDB 969681 (movie) and TMDB 213562 S1E1 (TV).
 
 | Source | Server | Resolver | How it resolves |
 | --- | --- | --- | --- |
-| `vidcore` | Vidcore AdFree | `lib/vidcore.ts` | Asks the local WebSkrap browser service to run Vidcore through Gluetun. See [setup](vidcore-resolver.md). |
+| `vidcore` | Vidcore AdFree | `lib/vidcore.ts` | Asks the local WebSkrap browser service to run Vidcore's player. See [setup](vidcore-resolver.md). |
 | `vidsu` | Vidsu AdFree | `lib/vidsu.ts` | Asks three JSON APIs by TMDB id: Vidrock (`themoviebox.uk`), Xpass (`freakyniki.elaxo.lol`) and Flix2Watch. |
 | `vidme` | Vidme AdFree | `lib/vidme.ts` | Reads a signed token from the vidzen.fun watch page, then asks each server (Mars, Jupiter, Mercury and others) for its streams. |
 | `vidru` | Vidru AdFree | `lib/vidru.ts` | Follows ythd.org to a vidsrc.sh player page. Decrypts the stream list with the WebAssembly module that the API sends. Stamps each URL with its host's `/generate.php` token. |
@@ -33,6 +33,6 @@ Playback starts with Vidcore while availability checks run. If it fails, the pla
 - **Vidsu, Vidrock Nova:** Each segment is a 1×1 PNG. The transport stream sits in a private `tsDa` chunk, and `lib/transport-stream.ts` extracts it. The CDN sends a 90-second clip to non-browser User-Agents, so test it with a browser User-Agent.
 - **Vidme:** Every stream sits under `https://vidzen.fun/api/stream/` and needs the Referer `https://vidzen.fun/`. Proxima is not in the server list: it returned nothing for the movie and HEVC DASH for the episode. Mercury can point to vidzy.cc, which serves only the first nine segments. The middle-segment probe rejects it.
 - **Vidru:** The API token and the host tokens are bound to the server's IP address. A Cloudflare Turnstile check gates only the player page, not the API. The WebAssembly module gets no imports, so it can only compute.
-- **Vidcore:** The browser service returns the first playlist and any fallback playlists that the player requests within one second. The app probes them in that order and keeps the first that plays. Its page redirects from vidcore.net to vidcore.io. The browser service uses Gluetun's authenticated HTTP proxy and a virtual display. It captures the default server's HLS URL. The app then probes and proxies media with its existing public-network checks. On 2026-10-22, TMDB 969681 advertised 3840×1600 HLS. Both its playlist and a middle segment loaded without the VPN. This cropped frame ranks and displays as 2160p.
+- **Vidcore:** The browser service captures the default server's HLS URL. The app then probes and proxies it with its existing public-network checks.
 
 Vidcore is left out of the availability response when the browser service is not configured, fails, or returns an unplayable stream. The other sources remain available.
