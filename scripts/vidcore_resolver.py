@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import re
+import time
 from contextlib import suppress
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import TYPE_CHECKING, TypedDict
@@ -15,8 +16,23 @@ if TYPE_CHECKING:
     from webskrap.client import WebSkrapSession
 
 TIMEOUT_SECONDS = 10
+FIRST_PLAYLIST_SECONDS = 8
+# The player may switch servers after its first playlist is blocked.
+COLLECT_SECONDS = 1
+MAX_PLAYLISTS = 5
+SLOT_WAIT_SECONDS = 1
+SLOTS = 2
 PROVIDER_HOSTS = {"vidcore.net", "vidcore.io"}
 LOGGER = logging.getLogger(__name__)
+
+
+class Busy(Exception):
+    pass
+
+
+class ResolveResult(TypedDict):
+    url: str
+    urls: list[str]
 
 
 class RequestData(TypedDict):
@@ -79,19 +95,25 @@ def is_provider_request(url: str, resource_type: str) -> bool:
         return False
 
 
-async def resolve(session: "WebSkrapSession", path: str) -> dict[str, str]:
+async def resolve(session: "WebSkrapSession", path: str) -> ResolveResult:
     page = await session.new_page()
-    playlist = asyncio.get_running_loop().create_future()
+    first = asyncio.get_running_loop().create_future()
+    playlists: list[str] = []
 
     def capture_request(event: RequestEvent) -> None:
         url = event["request"]["url"]
-        if is_playlist(url) and not playlist.done():
-            playlist.set_result(url)
+        if is_playlist(url) and url not in playlists and len(playlists) < MAX_PLAYLISTS:
+            playlists.append(url)
+            if not first.done():
+                first.set_result(None)
 
     try:
         page.connection.on("Network.requestWillBeSent", capture_request, session_id=page.session_id)
-        await page.goto("https://vidcore.net" + path, wait_until="domcontentloaded", timeout_s=9)
-        return {"url": await playlist}
+        async with asyncio.timeout(FIRST_PLAYLIST_SECONDS):
+            await page.goto("https://vidcore.net" + path, wait_until="domcontentloaded", timeout_s=FIRST_PLAYLIST_SECONDS)
+            await first
+        await asyncio.sleep(COLLECT_SECONDS)
+        return {"url": playlists[0], "urls": list(playlists)}
     finally:
         page.connection.off("Network.requestWillBeSent", capture_request, session_id=page.session_id)
         await session.close_page(page)
@@ -160,12 +182,20 @@ async def serve(session: "WebSkrapSession", server: ThreadingHTTPServer) -> None
 
 
 def handler_class(loop: asyncio.AbstractEventLoop, session: "WebSkrapSession", token: str) -> type[BaseHTTPRequestHandler]:
-    slots = asyncio.Semaphore(2)
+    slots = asyncio.Semaphore(SLOTS)
 
-    async def bounded_resolve(path: str) -> dict[str, str]:
-        async with asyncio.timeout(TIMEOUT_SECONDS):
-            async with slots:
+    async def bounded_resolve(path: str) -> ResolveResult:
+        # Queue time must not consume the page's own time limit.
+        try:
+            async with asyncio.timeout(SLOT_WAIT_SECONDS):
+                await slots.acquire()
+        except TimeoutError:
+            raise Busy from None
+        try:
+            async with asyncio.timeout(TIMEOUT_SECONDS):
                 return await resolve(session, path)
+        finally:
+            slots.release()
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *_args):
@@ -193,13 +223,18 @@ def handler_class(loop: asyncio.AbstractEventLoop, session: "WebSkrapSession", t
                 path = player_path(json.loads(self.rfile.read(length)))
             except (ValueError, OSError):
                 return self.reply(400, {"error": "Invalid media request."})
+            started = time.monotonic()
             future = asyncio.run_coroutine_threadsafe(bounded_resolve(path), loop)
             try:
-                result = future.result(TIMEOUT_SECONDS + 1)
+                result = future.result(SLOT_WAIT_SECONDS + TIMEOUT_SECONDS + 1)
+            except Busy:
+                LOGGER.warning("Vidcore request busy after %.1fs.", time.monotonic() - started)
+                return self.reply(503, {"error": "Vidcore resolver is busy."})
             except Exception as error:
                 future.cancel()
-                LOGGER.warning("Vidcore request failed (%s).", type(error).__name__)
+                LOGGER.warning("Vidcore request failed (%s) after %.1fs.", type(error).__name__, time.monotonic() - started)
                 return self.reply(502, {"error": "Vidcore is unavailable."})
+            LOGGER.info("Vidcore request resolved in %.1fs with %d playlists.", time.monotonic() - started, len(result["urls"]))
             self.reply(200, result)
 
     return Handler
