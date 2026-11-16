@@ -37,12 +37,6 @@ export function unpackPacked(source: string): string | null {
   return payload;
 }
 
-export function extractM3u8(embedHtml: string): string | null {
-  const unpacked = unpackPacked(embedHtml) ?? embedHtml;
-  const m = unpacked.match(/file\s*:\s*"([^"]+\.m3u8[^"]*)"/);
-  return m ? m[1] : null;
-}
-
 export function scrapeM3u8(embedHtml: string): string | null {
   const unpacked = unpackPacked(embedHtml) ?? embedHtml;
   const m = unpacked.match(/https?:\/\/[^"'\s\\)]+\.m3u8[^"'\s\\)]*/);
@@ -56,12 +50,12 @@ function streamPath(value: unknown): string | undefined {
   if (parsed.origin === FREMBED_ORIGIN && parsed.pathname === "/api/stream") return url;
 }
 
-export function preferredStreamPaths(meta: Record<string, unknown>, audio: "vf" | "vostfr" = "vf"): string[] {
+export function preferredStreamPaths(meta: Record<string, unknown>): string[] {
   const links = Array.isArray(meta.links) ? meta.links.filter(isRecord) : [];
   const paths: string[] = [];
   // Modern entries carry language and host metadata. Never walk browser-only hosters.
   for (const hoster of HOSTERS) {
-    const matching = links.filter((link) => link.lang === audio && isRecord(link.host) && link.host.slug === hoster);
+    const matching = links.filter((link) => link.lang === "vf" && isRecord(link.host) && link.host.slug === hoster);
     matching.sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0));
     for (const link of matching) {
       const path = streamPath(link.url);
@@ -70,7 +64,7 @@ export function preferredStreamPaths(meta: Record<string, unknown>, audio: "vf" 
   }
   const knownPaths = new Set(links.map((link) => streamPath(link.url)).filter(Boolean));
   for (let slot = 1; slot <= 7; slot++) {
-    const path = streamPath(meta[`link${slot}${audio === "vostfr" ? "vostfr" : ""}`]);
+    const path = streamPath(meta[`link${slot}`]);
     // Older slots have no host metadata; inspect their redirect before fetching the embed.
     if (path && !knownPaths.has(path)) paths.push(path);
   }
@@ -104,7 +98,7 @@ async function resolveHoster(path: string, signal: AbortSignal): Promise<Resolve
 }
 
 async function extract(params: ResolveParams): Promise<ResolvedStream> {
-  const { type, id, season, episode, audio = "vf" } = params;
+  const { type, id, season, episode } = params;
   const signal = AbortSignal.timeout(14_000);
   const query = new URLSearchParams({ id, idType: "tmdb" });
   if (type === "tv") {
@@ -112,7 +106,7 @@ async function extract(params: ResolveParams): Promise<ResolvedStream> {
     query.set("epi", episode);
   }
   const meta = await fetchJson(`${FREMBED_ORIGIN}/api/${type === "tv" ? "series" : "films"}?${query}`, { referer: REFERER, signal });
-  const paths = isRecord(meta) ? preferredStreamPaths(meta, audio) : [];
+  const paths = isRecord(meta) ? preferredStreamPaths(meta) : [];
   for (const path of paths) {
     signal.throwIfAborted();
     const stream = await resolveHoster(path, signal).catch(() => undefined);
@@ -121,9 +115,9 @@ async function extract(params: ResolveParams): Promise<ResolvedStream> {
   throw new Error("No Frembed server returned a playable stream.");
 }
 
-// Signed hoster URLs expire. Share hoster walks for five minutes, per audio lane.
+// Signed hoster URLs expire. Share hoster walks for five minutes.
 const cache = createTtlCache<ResolvedStream>(5 * 60 * 1000);
 
 export function resolveFrembedStream(params: ResolveParams): Promise<ResolvedStream> {
-  return cache.get(resolveKey({ ...params, audio: params.audio ?? "vf" }), () => extract(params));
+  return cache.get(resolveKey({ ...params, audio: "vf" }), () => extract(params));
 }

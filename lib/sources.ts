@@ -75,7 +75,7 @@ export function parseResolveParams(query: URLSearchParams): ResolveParams | null
   const season = query.get("season") ?? "1";
   const episode = query.get("episode") ?? "1";
   if (
-    (audio !== null && audio !== "vf" && audio !== "vostfr") ||
+    (audio !== null && audio !== "vf") ||
     (type !== "movie" && type !== "tv") ||
     !/^\d+$/.test(id) ||
     !title ||

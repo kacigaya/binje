@@ -14,7 +14,7 @@ export default function Root({ children }: PropsWithChildren) {
         <title>b!nje</title>
         <meta
           name="description"
-          content="Discover and stream trending movies and TV shows. VO/VF audio, continue watching, watchlist, English and French."
+          content="Discover and stream trending movies and TV shows. Continue watching, watchlist, English and French."
         />
         <meta name="theme-color" content="#050506" />
         <link rel="icon" href="/favicon.ico" />

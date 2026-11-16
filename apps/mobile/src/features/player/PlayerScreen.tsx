@@ -186,9 +186,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
       }
     } finally { if (request.current === token) { qualityBusy.current = false; setQualityPending(false); } }
   }
-  // Prefer the separate files from the API; otherwise offer the variants of the HLS playlist.
-  const apiQualities: Quality[] = (currentStream?.sources ?? []).map(item => ({ height: item.height, url: proxiedHlsUrl(item.file) }));
-  const qualities = apiQualities.length ? apiQualities : forMedia(variants, mediaKey) ?? [];
+  const qualities = forMedia(variants, mediaKey) ?? [];
   const qualityHeights = [...new Set(qualities.map(item => item.height))].sort((a, b) => b - a);
   function qualityUrl(height: number) {
     if (!currentStream) return undefined;
@@ -368,11 +366,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
         {currentStream && !Platform.isTV ? <NativeCastControls
           player={player}
           mediaKey={mediaKey}
-          source={currentStream
-            ? qualityHeight === 0
-              ? currentStream.url
-              : currentStream.sources?.find((item) => item.height === qualityHeight)?.file ?? currentStream.url
-            : null}
+          source={currentStream.url}
           tracks={currentStream?.tracks ?? []}
           title={details.data.title}
           onCastingChange={handleCastingChange}

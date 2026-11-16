@@ -1,5 +1,5 @@
 import { afterEach, expect, mock, spyOn, test } from "bun:test";
-import { extractM3u8, preferredStreamPaths, scrapeM3u8, unpackPacked } from "./frembed";
+import { preferredStreamPaths, scrapeM3u8, unpackPacked } from "./frembed";
 
 const PACKED =
   "eval(function(p,a,c,k,e,d){while(c--)if(k[c])p=p.replace(new RegExp(String.raw`\\b`+c.toString(a)+String.raw`\\b`,\"g\"),k[c]);return p}('0(\"1\").2({3:[{4:\"5://6.7.8/9/a.b?c=d&e=43200\"}]})',15,15,'jwplayer|vplayer|setup|sources|file|https|strm1|uqload|is|hls2|master|m3u8|t|abc|e'.split('|')))";
@@ -11,15 +11,8 @@ test("unpackPacked restores the packed jwplayer setup", () => {
   );
 });
 
-test("extractM3u8 pulls the signed HLS url", () => {
-  expect(extractM3u8(PACKED)).toBe(
-    "https://strm1.uqload.is/hls2/master.m3u8?t=abc&e=43200",
-  );
-});
-
 test("returns null when there is no packer / no m3u8", () => {
   expect(unpackPacked("<html>no packer here</html>")).toBeNull();
-  expect(extractM3u8("<html>no packer here</html>")).toBeNull();
   expect(scrapeM3u8("<html>no stream here</html>")).toBeNull();
 });
 
@@ -33,7 +26,7 @@ test("scrapeM3u8 grabs a plain in-page m3u8 (non-uqload hoster)", () => {
   );
 });
 
-test("selects requested audio, Uqload first, and skips Voe/Dood", () => {
+test("selects VF audio, Uqload first, and skips Voe/Dood", () => {
   const meta = {
     links: [
       { lang: "vf", position: 1, host: { slug: "voe" }, url: "/api/stream?server=id:1" },
@@ -52,10 +45,6 @@ test("selects requested audio, Uqload first, and skips Voe/Dood", () => {
     "https://frembed.bar/api/stream?server=id:3",
     "https://frembed.bar/api/stream?server=id:2",
     "https://frembed.bar/api/stream?server=legacy",
-  ]);
-  expect(preferredStreamPaths(meta, "vostfr")).toEqual([
-    "https://frembed.bar/api/stream?server=id:4",
-    "https://frembed.bar/api/stream?server=legacy-sub",
   ]);
 });
 
@@ -83,7 +72,7 @@ const params: check.ResolveParams = {
 };
 afterEach(() => { mock.restore(); });
 
-test("walks slots, probes with provider Referer, registers streams and caches by audio", async () => {
+test("walks slots, probes with provider Referer, registers streams and caches walks", async () => {
   const meta = spyOn(check, "fetchJson").mockResolvedValue({ links: [
     { lang: "vf", host: { slug: "uqload" }, url: "/api/stream?server=id:91" },
     { lang: "vf", host: { slug: "netu" }, url: "/api/stream?server=id:92" },
@@ -104,9 +93,7 @@ test("walks slots, probes with provider Referer, registers streams and caches by
   expect(new Headers(slots.mock.calls[0][1]?.headers).get("referer")).toBe("https://frembed.bar/");
   await resolveFrembedStream({ ...params, audio: "vf" });
   expect(meta).toHaveBeenCalledTimes(1);
-  await resolveFrembedStream({ ...params, audio: "vostfr" });
-  expect(meta).toHaveBeenCalledTimes(2);
-  expect(slots.mock.calls.at(-1)?.[0]).toContain("id:93");
+  expect(slots.mock.calls.some(([url]) => String(url).includes("id:93"))).toBe(false);
 });
 
 test("VF availability omits uncovered series and never resolves VO providers", async () => {

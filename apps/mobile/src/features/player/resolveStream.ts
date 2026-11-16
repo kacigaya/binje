@@ -59,9 +59,6 @@ export async function resolveStream(media: StreamMedia, source: PlaybackSource):
   return {
     url: result.url,
     tracks: Array.isArray(result.tracks) ? result.tracks.filter((track) => isPlayableUrl(track.file)) : [],
-    sources: Array.isArray(result.sources)
-      ? result.sources.filter((source) => isPlayableUrl(source.file) && Number.isFinite(source.height))
-      : undefined,
   };
 }
 
