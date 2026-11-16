@@ -11,7 +11,7 @@
 - [ ] Export Android, iOS, and web bundles
 - [ ] Install an Android development build and verify navigation
 - [ ] Install an iOS development build and verify navigation
-- [ ] Verify VO and VF playback on both platforms
+- [ ] Verify playback on both platforms
 - [ ] Verify Google Cast discovery, playback transfer, subtitles, progress, and disconnect resume on Android and iOS
 - [ ] Verify TV season and episode selection
 - [ ] Verify consent, watchlist, history, and clear-data behavior
