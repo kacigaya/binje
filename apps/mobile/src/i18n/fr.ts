@@ -23,7 +23,7 @@ export const fr: Record<keyof typeof en, string> = {
   refreshFailed: "Actualisation impossible. Le contenu enregistré reste affiché.",
   clearHistoryBody: "Effacer tout l’historique de lecture sur cet appareil ?",
   privacyDataTitle: "Données locales",
-  privacyDataBody: "Votre langue et la dernière notification de mise à jour fermée sont enregistrées sur cet appareil. Avec votre accord, b!nje enregistre aussi votre liste et votre historique de lecture.",
+  privacyDataBody: "Votre langue, votre choix de stockage local et la dernière notification de mise à jour fermée sont enregistrés sur cet appareil. Avec votre accord, b!nje enregistre aussi votre liste et votre historique de lecture.",
   privacyTrackingTitle: "Requêtes multimédias",
   privacyTrackingBody: "L’application n’utilise ni identifiants publicitaires ni outils de suivi. La navigation, la recherche et la lecture envoient des requêtes au service b!nje. L’application demande aussi au service b!nje la dernière version de l’application.",
   privacyControlsTitle: "Vos commandes",

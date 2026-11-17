@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
-import { FlatList } from 'react-native';
+import { act, fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { AccessibilityInfo, FlatList } from 'react-native';
+import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { browseMedia, getHome, getMediaDetails, searchMedia } from '../../api/media';
 import { setConsent } from '../../storage/consent';
@@ -59,6 +60,47 @@ test('keeps cached titles visible when a refresh fails', async () => {
   render(<QueryClientProvider client={queryClient}><HomeScreen /></QueryClientProvider>);
   await waitFor(() => expect(screen.getByText('refreshFailed')).toBeTruthy());
   expect(screen.getByText('Saved title')).toBeTruthy();
+});
+
+function featuredHome(): MobileHomeResponse {
+  return { featured: [{ ...title, title: 'First', backdropUrl: 'https://img/1.jpg' }, { ...title, id: 2, title: 'Second', backdropUrl: 'https://img/2.jpg' }], trendingMovies: [], trendingTV: [] };
+}
+
+test('rotates the hero only after the next images load, and drops a backdrop that fails', async () => {
+  jest.useFakeTimers();
+  let loaded!: (value: boolean) => void;
+  const prefetch = jest.spyOn(Image, 'prefetch').mockReturnValue(new Promise(resolve => { loaded = resolve; }));
+  const queryClient = client();
+  queryClient.setQueryData(['home', 'en'], featuredHome());
+  jest.mocked(getHome).mockResolvedValue(featuredHome());
+  render(<QueryClientProvider client={queryClient}><HomeScreen /></QueryClientProvider>);
+  await act(async () => { jest.advanceTimersByTime(15_000); });
+  expect(prefetch).toHaveBeenCalledWith('https://img/2.jpg');
+  expect(screen.getByText('First')).toBeTruthy();
+  await act(async () => { loaded(true); });
+  expect(screen.getByText('Second')).toBeTruthy();
+  fireEvent(screen.getByLabelText('Second'), 'error', { nativeEvent: { error: 'failed' } });
+  expect(screen.queryByLabelText('Second')).toBeNull();
+  prefetch.mockRestore();
+  jest.useRealTimers();
+});
+
+test('keeps the hero still under reduced motion', async () => {
+  jest.useFakeTimers();
+  const reduceMotion = jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
+  const prefetch = jest.spyOn(Image, 'prefetch');
+  const queryClient = client();
+  queryClient.setQueryData(['home', 'en'], featuredHome());
+  jest.mocked(getHome).mockResolvedValue(featuredHome());
+  render(<QueryClientProvider client={queryClient}><HomeScreen /></QueryClientProvider>);
+  await act(async () => {});
+  await act(async () => { jest.advanceTimersByTime(15_000); });
+  expect(prefetch).not.toHaveBeenCalled();
+  expect(screen.getByText('First')).toBeTruthy();
+  expect(screen.queryByLabelText('pauseFeatured')).toBeNull();
+  reduceMotion.mockRestore();
+  prefetch.mockRestore();
+  jest.useRealTimers();
 });
 
 test('shows blocked and failed saves without success, then permits retry', async () => {

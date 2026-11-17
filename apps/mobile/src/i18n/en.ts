@@ -21,7 +21,7 @@ export const en = {
   refreshFailed: "Could not refresh. Showing saved content.",
   clearHistoryBody: "Remove all playback history from this device?",
   privacyDataTitle: "Local data",
-  privacyDataBody: "Your language preference and the last update notice you closed are stored on this device. With your consent, b!nje also stores your watchlist and playback history.",
+  privacyDataBody: "Your language preference, your local storage choice, and the last update notice you closed are stored on this device. With your consent, b!nje also stores your watchlist and playback history.",
   privacyTrackingTitle: "Media requests",
   privacyTrackingBody: "The app does not use advertising identifiers or analytics trackers. Browsing, search, and playback send media requests to the b!nje service. The app also asks the b!nje service for the latest app version.",
   privacyControlsTitle: "Your controls",
