@@ -108,7 +108,7 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner
             "$apksigner" verify --print-certs "$RUNNER_TEMP/$APK" | tee "$RUNNER_TEMP/signer.txt"
-            grep -q "Signer #1 certificate SHA-256 digest: $SIGNER_SHA256" "$RUNNER_TEMP/signer.txt"
+            grep -Eq "certificate SHA-256 digest: $SIGNER_SHA256$" "$RUNNER_TEMP/signer.txt"
           fi
           cd "$RUNNER_TEMP" && sha256sum "$APK" > "$APK.sha256"
           ls -lh "$APK"
