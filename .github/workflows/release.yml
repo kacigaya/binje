@@ -1,8 +1,8 @@
 name: Release apps
 
 # Publish a GitHub release (tag vX.Y.Z) to build the Android phone and TV APKs and the unsigned iOS IPA and attach them.
-# A pull request that edits this file builds the IPA as a check, without EAS and without upload.
-# Run it by hand with a tag to add the IPA to an existing release.
+# A pull request that edits this file builds all apps as a check, without upload.
+# Run it by hand with a tag to build and attach the apps for an existing release.
 on:
   release:
     types: [published]
@@ -26,31 +26,38 @@ env:
 
 jobs:
   android:
-    if: github.event_name == 'release'
     runs-on: ubuntu-26.04
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         include:
-          - profile: preview
+          - tv: "0"
             suffix: ""
-          - profile: preview_tv
+          - tv: "1"
             suffix: -tv
     env:
-      APK: binje-${{ github.event.release.tag_name }}${{ matrix.suffix }}.apk
+      APK: binje-${{ github.event.release.tag_name || inputs.tag || 'v0.0.0-check' }}${{ matrix.suffix }}.apk
+      EXPO_TV: ${{ matrix.tv }}
+      EXPO_PUBLIC_API_BASE_URL: https://binje.duckdns.org
+      SIGNER_SHA256: 17d00737a119fcca25aceb11b12148ec46fcc54bb24fa7785a618dac2488e7a5
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.event.release.tag_name || inputs.tag || github.sha }}
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.0
       - uses: actions/setup-node@v7
         with:
           node-version: 24
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
       - run: bun install --frozen-lockfile
       - name: Check tag matches app version
+        if: github.event_name != 'pull_request'
         working-directory: apps/mobile
         run: |
           version=$(node -p "require('./app.json').expo.version")
@@ -58,20 +65,55 @@ jobs:
             echo "::error::Tag $TAG does not match app.json version $version"
             exit 1
           fi
-      - uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-      - name: Build APK on EAS
+      - name: Set version code from app version
         working-directory: apps/mobile
-        env:
-          PROFILE: ${{ matrix.profile }}
         run: |
-          eas build --platform android --profile "$PROFILE" --non-interactive --wait --json > "$RUNNER_TEMP/build.json"
-          url=$(node -p "require(process.argv[1])[0].artifacts.buildUrl" "$RUNNER_TEMP/build.json")
-          curl -fsSL "$url" -o "$RUNNER_TEMP/$APK"
+          node -e '
+            const fs = require("fs");
+            const config = JSON.parse(fs.readFileSync("app.json", "utf8"));
+            const [major, minor, patch] = config.expo.version.split(".").map(Number);
+            if (![major, minor, patch].every((part) => Number.isInteger(part) && part >= 0 && part < 100)) throw new Error("Version must be X.Y.Z with parts below 100");
+            config.expo.android.versionCode = major * 10000 + minor * 100 + patch;
+            fs.writeFileSync("app.json", JSON.stringify(config, null, 2));
+            console.log("versionCode", config.expo.android.versionCode);
+          '
+      - name: Generate the Android project
+        working-directory: apps/mobile
+        run: bunx expo prebuild --platform android --clean
+      - name: Build APK
+        working-directory: apps/mobile/android
+        env:
+          EVENT: ${{ github.event_name }}
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          signing=()
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            signing=(
+              -Pandroid.injected.signing.store.file="$RUNNER_TEMP/release.jks"
+              -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD"
+              -Pandroid.injected.signing.key.alias="$KEY_ALIAS"
+              -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
+            )
+          elif [ "$EVENT" != pull_request ]; then
+            echo "::error::Android signing secrets are missing"
+            exit 1
+          fi
+          ./gradlew assembleRelease --no-daemon "${signing[@]}"
+          rm -f "$RUNNER_TEMP/release.jks"
+          cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/$APK"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            apksigner=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner
+            "$apksigner" verify --print-certs "$RUNNER_TEMP/$APK" | tee "$RUNNER_TEMP/signer.txt"
+            grep -Eq "certificate SHA-256 digest: $SIGNER_SHA256$" "$RUNNER_TEMP/signer.txt"
+          fi
           cd "$RUNNER_TEMP" && sha256sum "$APK" > "$APK.sha256"
+          ls -lh "$APK"
       - name: Attach APK to release
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$TAG" "$RUNNER_TEMP/$APK" "$RUNNER_TEMP/$APK.sha256" --clobber
