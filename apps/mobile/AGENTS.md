@@ -10,6 +10,7 @@
   such as `0.86-stable` inside an `npm:` alias. Without the root override, Bun installs stock
   `react-native` copies for peer dependencies.
 - `EXPO_TV=1` makes prebuild and EAS (`development_tv`, `preview_tv`) target Android TV.
+- Release APKs build with Gradle in `.github/workflows/release.yml`, not EAS. The EAS free plan ran out of Android builds on 2026-11-17. The default EAS keystore signs them (certificate SHA-256 `17d00737…e7a5`).
   Gate TV-only UI on `Platform.isTV` so phone behavior does not change.
   TV Home, Search, and Details live in `TV*Screen.tsx` files. Route files pick them with `Platform.isTV`.
   Android TV moves focus on key-down but sends remote events on key-up. Code that reads the focused element in a remote handler must allow for this.
