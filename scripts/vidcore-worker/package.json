@@ -1,0 +1,8 @@
+{
+  "name": "binje-vidcore-worker",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "happy-dom": "21.0.4"
+  }
+}

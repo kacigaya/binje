@@ -1,25 +1,45 @@
-# Vidcore browser resolver
+# Vidcore resolver
 
-`scripts/vidcore_resolver.py` runs Vidcore's player in a WebSkrap browser and returns its HLS URL to b!nje. b!nje checks and proxies the stream like any other source.
+## Browser-free worker
 
-## Setup
+The isolated worker starts sending HLS candidates as soon as it finds them. The app checks each playlist and a media segment. It closes the connection after the first stream passes. The worker keeps compiled player scripts in memory for subsequent requests.
 
-1. Install WebSkrap 3 with Chromium and Xvfb.
+1. On Linux, make Bun, Node.js 26, and Bubblewrap available. Put Node.js 26 on the unit's system PATH, outside user homes. The worker needs unprivileged user namespaces and a Bubblewrap build that can run without setuid.
+2. Install the repo dependencies with `bun install --frozen-lockfile`. Install the worker dependencies with `npm ci --ignore-scripts --prefix scripts/vidcore-worker`.
+3. Build the service with `bun build --target=node --packages=external scripts/vidcore-worker/service.ts --outfile build/vidcore-service.mjs`.
+4. Set the existing resolver host, port, and token in the private environment.
+5. Run `node build/vidcore-service.mjs`, or install the [worker systemd unit](../deploy/binje-vidcore-worker.service). If you keep the Chromium resolver running for rollback, use a separate port.
+6. Set the app's `VIDCORE_RESOLVER_URL` and `VIDCORE_RESOLVER_TOKEN` to match the selected service.
+
+Bubblewrap runs the player code without host network access or service credentials. The service forwards HTTPS requests only to Vidcore. The app uses its existing public-network checks for playlists and media segments. Run the service under a dedicated account and expose it only to the app.
+
+The service runs up to two requests at once. If both workers are busy, it returns HTTP 503 so the app can try its other providers.
+
+The player adapter derives from [x8rr/movies at bf57ffd](https://github.com/x8rr/movies/blob/bf57ffd/src/vidcore.js) under its [MIT license](../scripts/vidcore-worker/LICENSE). Vidcore can change its player code, so verify both movie and episode resolution before switching services.
+
+## Chromium resolver
+
+`scripts/vidcore_resolver.py` runs Vidcore's player in Chromium and captures the first HLS playlist request through the DevTools pipe. b!nje checks and proxies the stream like any other source. Vidcore's embed handles the source lookup.
+
+### Setup
+
+1. Set up Python 3.11 or later and Chromium. On a Linux host without a display, use `xvfb-run` from Xvfb with `xauth`.
 2. Put these values in the service's private environment:
 
    | Variable | Value |
    | --- | --- |
    | `VIDCORE_RESOLVER_TOKEN` | A random ASCII secret with at least 32 characters. |
    | `VIDCORE_RESOLVER_HOST`, `VIDCORE_RESOLVER_PORT` | Optional. The default is `127.0.0.1:3040`. |
+   | `VIDCORE_CHROMIUM_PATH` | Optional. The default is `/usr/bin/chromium`. |
+   | `VIDCORE_CHROMIUM_SANDBOX` | Set to `0` only on an isolated host that blocks Chromium's sandbox. |
    | `GLUETUN_PROXY_URL`, `GLUETUN_PROXY_USER`, `GLUETUN_PROXY_PASSWORD` | Optional browser proxy. Leave unset. |
-   | `WEBSKRAP_CHROMIUM_SANDBOX` | Set to `0` only on hosts that block Chromium's sandbox. |
 
-3. Run the script, or install [the systemd unit](../deploy/binje-vidcore-resolver.service).
+3. Run `xvfb-run -a python3 scripts/vidcore_resolver.py`, or install [the systemd unit](../deploy/binje-vidcore-resolver.service).
 4. Set `VIDCORE_RESOLVER_URL` and the same `VIDCORE_RESOLVER_TOKEN` in the app's private environment.
 
-Keep the service on a private interface, and let only the app reach it. An app deployment does not update this service. After the script changes, install it again and restart the unit.
+Keep the service on a private interface, and let only the app reach it. An app deployment does not update this service. When upgrading from the WebSkrap version, install the script and unit together. If Chromium lives in a home directory, expose its full installation directory with a read-only systemd bind mount and set `VIDCORE_CHROMIUM_PATH` to the mounted executable. Replace `WEBSKRAP_CHROMIUM_SANDBOX` with `VIDCORE_CHROMIUM_SANDBOX` if the old service needed that setting. Reload systemd before restarting the service.
 
-## Behavior
+### Behavior
 
 - The endpoint accepts a movie ID or a TV episode. Every request needs the bearer secret.
 - The browser can reach only Vidcore's own hosts. Media, subtitle searches, and service workers are blocked.

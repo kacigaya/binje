@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 import vidcore_resolver
-from vidcore_resolver import guard_browser, handler_class, is_playlist, is_provider_request, player_path, resolve, serve, watch_browser
+from vidcore_resolver import Chromium, guard_browser, handler_class, is_playlist, is_provider_request, player_path, resolve, serve, watch_browser
 
 
 class MediaTests(unittest.TestCase):
@@ -37,23 +37,50 @@ class MediaTests(unittest.TestCase):
 
 
 class BrowserTests(unittest.IsolatedAsyncioTestCase):
-    def session(self):
-        connection = SimpleNamespace(on=Mock(), off=Mock(), send=AsyncMock())
-        page = SimpleNamespace(connection=connection, session_id="page-1", goto=AsyncMock())
-        session = SimpleNamespace(new_page=AsyncMock(return_value=page), close_page=AsyncMock(),
-                                  browser=SimpleNamespace(connection=connection))
-        return session, page, connection
+    def connection(self):
+        return SimpleNamespace(on=Mock(), off=Mock(), send=AsyncMock())
+
+    async def test_devtools_pipe_routes_responses_and_scopes_events(self):
+        reader = asyncio.StreamReader()
+        writer = Mock()
+        chromium = Chromium(writer, reader)
+        listener = Mock()
+        chromium.on("Network.requestWillBeSent", listener, session_id="player")
+
+        def write(data):
+            command = json.loads(data[:-1])
+            self.assertTrue(data.endswith(b"\0"))
+            self.assertEqual(command["sessionId"], "player")
+            for session_id in ("other-page", "player"):
+                event = {"method": "Network.requestWillBeSent", "sessionId": session_id,
+                         "params": {"request": {"url": "https://cdn.test/a.m3u8"}}}
+                reader.feed_data(json.dumps(event).encode() + b"\0")
+            reader.feed_data(json.dumps({"id": command["id"], "result": {}}).encode() + b"\0")
+
+        writer.write.side_effect = write
+        self.assertEqual(await chromium.send("Network.enable", session_id="player"), {})
+        listener.assert_called_once_with({"request": {"url": "https://cdn.test/a.m3u8"}})
+        reader.feed_eof()
+        await chromium.reader
+        with self.assertRaises(ConnectionError):
+            await chromium.send("Browser.getVersion")
 
     async def test_captures_playlist_and_removes_listener(self):
-        session, page, connection = self.session()
+        connection = self.connection()
 
-        async def navigate(*_args, **_kwargs):
-            connection.on.call_args.args[1]({"request": {"url": "https://cdn.test/master.m3u8"}})
+        async def send(method, *_args, **_kwargs):
+            if method == "Target.createTarget":
+                return {"targetId": "target-1"}
+            if method == "Target.attachToTarget":
+                return {"sessionId": "page-1"}
+            if method == "Page.navigate":
+                connection.on.call_args.args[1]({"request": {"url": "https://cdn.test/master.m3u8"}})
+            return {}
 
-        page.goto.side_effect = navigate
-        self.assertEqual(await resolve(session, "/movie/1"), {"url": "https://cdn.test/master.m3u8"})
-        connection.off.assert_called_once_with("Network.requestWillBeSent", connection.on.call_args.args[1], session_id="page-1")
-        session.close_page.assert_awaited_once_with(page)
+        connection.send.side_effect = send
+        self.assertEqual(await resolve(connection, "/movie/1"), {"url": "https://cdn.test/master.m3u8"})
+        connection.off.assert_called_once_with("Network.requestWillBeSent", session_id="page-1")
+        self.assertEqual(connection.send.call_args.args, ("Target.closeTarget", {"targetId": "target-1"}))
 
     async def test_full_slots_fail_fast_and_queue_time_keeps_page_time(self):
         page_seconds = {"1": 0.8, "3": 0.6}
@@ -96,16 +123,16 @@ class BrowserTests(unittest.IsolatedAsyncioTestCase):
                 thread.join()
 
     async def test_closes_page_after_navigation_fails(self):
-        session, page, connection = self.session()
-        page.goto.side_effect = TimeoutError
+        connection = self.connection()
+        connection.send.side_effect = [{"targetId": "target-1"}, {"sessionId": "page-1"}, {}, {}, {}, TimeoutError, {}]
         with self.assertRaises(TimeoutError):
-            await resolve(session, "/movie/1")
-        session.close_page.assert_awaited_once_with(page)
+            await resolve(connection, "/movie/1")
+        self.assertEqual(connection.send.call_args.args, ("Target.closeTarget", {"targetId": "target-1"}))
         connection.off.assert_called_once()
 
     async def test_browser_guard_blocks_media_and_offsite_requests(self):
-        session, _, connection = self.session()
-        await guard_browser(session, "proxy-user", "proxy-password")
+        connection = self.connection()
+        await guard_browser(connection, "proxy-user", "proxy-password")
         handlers = {call.args[0]: call.args[1] for call in connection.on.call_args_list}
         request = handlers["Fetch.requestPaused"]
         cases = [
@@ -123,8 +150,8 @@ class BrowserTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(connection.send.call_args.args[0], method)
 
     async def test_proxy_credentials_never_answer_site_challenges(self):
-        session, _, connection = self.session()
-        await guard_browser(session, "proxy-user", "proxy-password")
+        connection = self.connection()
+        await guard_browser(connection, "proxy-user", "proxy-password")
         handlers = {call.args[0]: call.args[1] for call in connection.on.call_args_list}
         auth = handlers["Fetch.authRequired"]
         for source in ["Server", "Proxy"]:
@@ -136,26 +163,26 @@ class BrowserTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(answer, expected)
 
     async def test_health_check_logs_failure_without_sensitive_error_text(self):
-        session, _, connection = self.session()
+        connection = self.connection()
         connection.send.side_effect = ConnectionError("secret-token")
         with self.assertLogs("vidcore_resolver", level="ERROR") as logs:
             with self.assertRaisesRegex(RuntimeError, "Browser connection failed"):
-                await watch_browser(session)
+                await watch_browser(connection)
         self.assertIn("ConnectionError", logs.output[0])
         self.assertNotIn("secret-token", logs.output[0])
 
     async def test_browser_failure_stops_http_server_and_exits_for_systemd_restart(self):
-        session, _, connection = self.session()
+        connection = self.connection()
         connection.send.side_effect = ConnectionError
-        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_class(asyncio.get_running_loop(), session, "x" * 32))
+        server = ThreadingHTTPServer(("127.0.0.1", 0), handler_class(asyncio.get_running_loop(), connection, "x" * 32))
         with self.assertLogs("vidcore_resolver", level="ERROR"):
             with self.assertRaisesRegex(RuntimeError, "Browser connection failed"):
-                await asyncio.wait_for(serve(session, server), timeout=2)
+                await asyncio.wait_for(serve(connection, server), timeout=2)
         self.assertEqual(server.fileno(), -1)
 
 
     async def test_idle_http_client_does_not_block_browser_recovery(self):
-        session, _, connection = self.session()
+        connection = self.connection()
         crash = asyncio.Event()
         accepted = threading.Event()
 
@@ -164,7 +191,7 @@ class BrowserTests(unittest.IsolatedAsyncioTestCase):
             raise ConnectionError
 
         connection.send.side_effect = fail_when_signaled
-        base = handler_class(asyncio.get_running_loop(), session, "x" * 32)
+        base = handler_class(asyncio.get_running_loop(), connection, "x" * 32)
 
         class Handler(base):
             def setup(self):
@@ -172,7 +199,7 @@ class BrowserTests(unittest.IsolatedAsyncioTestCase):
                 accepted.set()
 
         server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-        task = asyncio.create_task(serve(session, server))
+        task = asyncio.create_task(serve(connection, server))
         reader, writer = await asyncio.open_connection(*server.server_address)
         try:
             writer.write(b"POST /resolve HTTP/1.1\r\nHost:")

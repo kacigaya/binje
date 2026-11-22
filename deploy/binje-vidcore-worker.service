@@ -1,0 +1,23 @@
+[Unit]
+Description=b!nje isolated Vidcore resolver
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=binje-resolver
+Group=binje-resolver
+WorkingDirectory=/opt/binje-vidcore-worker
+EnvironmentFile=/etc/binje-vidcore-resolver/environment
+ExecStart=/usr/bin/env node build/vidcore-service.mjs
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=tmpfs
+MemoryMax=768M
+TasksMax=128
+
+[Install]
+WantedBy=multi-user.target

@@ -4,7 +4,49 @@ import { createTtlCache } from "@/lib/ttl-cache";
 const REFERER = "https://vidcore.io/";
 const cache = createTtlCache<ResolvedStream>(5 * 60 * 1000);
 
-// The local browser service runs Vidcore's rotating request code through Gluetun.
+async function probeCandidate(body: unknown, signal: AbortSignal): Promise<ResolvedStream | undefined> {
+  const url = isRecord(body) ? httpUrl(body.url) : undefined;
+  if (!url) return;
+  const referer = isRecord(body) && body.noReferrer === true ? undefined : REFERER;
+  const probe = await probeManifest(url, referer, signal);
+  if (probe) return { url, referer, tracks: [], height: probe.height };
+}
+
+async function firstPlayable(response: Response, signal: AbortSignal): Promise<ResolvedStream | undefined> {
+  if (response.headers.get("content-type")?.split(";")[0] !== "application/x-ndjson") {
+    return probeCandidate(await response.json(), signal);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) return;
+  const decoder = new TextDecoder();
+  let buffered = "";
+  let received = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        return buffered.trim() ? await probeCandidate(JSON.parse(buffered + decoder.decode()), signal) : undefined;
+      }
+      received += value.byteLength;
+      if (received > 64 * 1024) throw new Error("Vidcore resolver response is too large.");
+      buffered += decoder.decode(value, { stream: true });
+      let end = buffered.indexOf("\n");
+      while (end !== -1) {
+        const line = buffered.slice(0, end);
+        buffered = buffered.slice(end + 1);
+        if (line.trim()) {
+          const stream = await probeCandidate(JSON.parse(line), signal);
+          if (stream) return stream;
+        }
+        end = buffered.indexOf("\n");
+      }
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+  }
+}
+
 export function resolveVidcoreStream(params: ResolveParams): Promise<ResolvedStream> {
   return cache.get(resolveKey(params), async () => {
     const endpoint = httpUrl(process.env.VIDCORE_RESOLVER_URL);
@@ -26,10 +68,8 @@ export function resolveVidcoreStream(params: ResolveParams): Promise<ResolvedStr
       await response.body?.cancel();
       throw new Error("Vidcore browser resolver failed.");
     }
-    const body: unknown = await response.json();
-    const url = isRecord(body) ? httpUrl(body.url) : undefined;
-    const probe = url ? await probeManifest(url, REFERER, signal) : undefined;
-    if (!url || !probe) throw new Error("Vidcore has no playable stream.");
-    return { url, referer: REFERER, tracks: [], height: probe.height };
+    const stream = await firstPlayable(response, signal);
+    if (!stream) throw new Error("Vidcore has no playable stream.");
+    return stream;
   });
 }

@@ -53,6 +53,37 @@ test("rejects private media targets before making a request", async () => {
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
 
+test("probes streamed candidates in order and cancels after the first playable one", async () => {
+  configure();
+  const cancel = mock(() => {});
+  const encoder = new TextEncoder();
+  const candidates = new ReadableStream({
+    start(controller) {
+      const host = "https://203.0.113.150";
+      controller.enqueue(encoder.encode(`{"url":"${host}/bad.m3u8"}\n{"url":"${host}/good`));
+      controller.enqueue(encoder.encode(`.m3u8","noReferrer":true}\n{"url":"${host}/unused.m3u8"}\n`));
+    },
+    cancel,
+  });
+  const calls: string[] = [];
+  globalThis.fetch = mock(async (input: unknown, init?: RequestInit) => {
+    const url = String(input);
+    calls.push(new URL(url).pathname);
+    if (url.includes(":3040/")) {
+      return new Response(candidates, { headers: { "content-type": "application/x-ndjson; charset=utf-8" } });
+    }
+    if (url.endsWith("bad.m3u8")) return new Response("", { status: 403 });
+    expect(new Headers(init?.headers).get("referer")).toBeNull();
+    if (url.endsWith("good.m3u8")) return new Response("#EXTM3U\n#EXTINF:150,\nsegment.ts\n#EXT-X-ENDLIST\n");
+    return new Response("segment");
+  }) as unknown as typeof fetch;
+
+  const stream = await resolveVidcoreStream(params("6"));
+  expect(stream.url).toBe("https://203.0.113.150/good.m3u8");
+  expect(calls).toEqual(["/resolve", "/bad.m3u8", "/good.m3u8", "/segment.ts"]);
+  expect(cancel).toHaveBeenCalledTimes(1);
+});
+
 test("rejects service errors and evicts failed resolves", async () => {
   configure();
   const fetcher = mock(async () => new Response("failed", { status: 502 }));
