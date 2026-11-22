@@ -66,6 +66,7 @@ test("player fits video dimensions and resets to the loading ratio", async ({ pa
 });
 
 test("probes all sources if the preferred startup stream fails", async ({ page }) => {
+  await page.goto("about:blank");
   await page.unroute("**/api/sources?*");
   const lookups: (string | null)[] = [];
   await page.route("**/api/sources?*", (route) => {
@@ -76,13 +77,13 @@ test("probes all sources if the preferred startup stream fails", async ({ page }
   await page.unroute("**/api/resolve?*");
   await page.route("**/api/resolve?*", (route) => {
     const source = new URL(route.request().url()).searchParams.get("source");
-    return source === "vidcore" ? route.fulfill({ status: 502 }) : route.fulfill({ status: 200, json: { url: "https://example.test/fixture.m3u8", tracks: [] } });
+    if (source === "vidcore") return route.fulfill({ status: 502 });
   });
   const fallback = page.waitForRequest((request) => {
     const url = new URL(request.url());
     return url.pathname === "/api/resolve" && url.searchParams.get("source") === "vidsu";
   });
-  await page.reload();
+  await page.goto("/en/watch/353486");
   await fallback;
   expect(lookups).toEqual(["1", null]);
 });
