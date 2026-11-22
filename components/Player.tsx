@@ -901,6 +901,7 @@ export default function Player({
         <video
           ref={videoRef}
           aria-label={`${t("Video player")}: ${title}`}
+          autoPlay
           playsInline
           onLoadedMetadata={onLoadedMetadata}
           onResize={updateAspectRatio}

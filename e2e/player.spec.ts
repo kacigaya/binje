@@ -1,7 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function playLocalStream(page: Page, width: number, height: number, letterboxed = false) {
-  await page.locator("video").evaluate(async (video: HTMLVideoElement, size) => {
+  const element = page.locator("video");
+  await element.evaluate((video: HTMLVideoElement, size) => {
     if (video.srcObject instanceof MediaStream) {
       video.srcObject.getTracks().forEach((track) => track.stop());
     }
@@ -16,8 +17,8 @@ async function playLocalStream(page: Page, width: number, height: number, letter
     context.fillRect(0, (size.height - pictureHeight) / 2, size.width, pictureHeight);
     video.muted = true;
     video.srcObject = canvas.captureStream(1);
-    await video.play();
   }, { width, height, letterboxed });
+  await expect(element).toHaveJSProperty("paused", false);
 }
 
 async function expectRatio(page: Page, ratio: number) {
