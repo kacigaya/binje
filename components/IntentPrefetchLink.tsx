@@ -77,6 +77,7 @@ export default function IntentPrefetchLink({
       {...props}
       ref={ref}
       prefetch={intent ? true : "auto"}
+      data-prefetch-intent={intent ? "full" : undefined}
       onMouseEnter={(event) => {
         setIntent(true);
         onMouseEnter?.(event);
