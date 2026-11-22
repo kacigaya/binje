@@ -88,6 +88,27 @@ test("probes all sources if the preferred startup stream fails", async ({ page }
   expect(lookups).toEqual(["1", null]);
 });
 
+test("tries each default source when availability is empty", async ({ page }) => {
+  await page.goto("about:blank");
+  await page.unroute("**/api/sources?*");
+  await page.route("**/api/sources?*", (route) => route.fulfill({ json: { sources: [] } }));
+  await page.unroute("**/api/resolve?*");
+  const attempted: (string | null)[] = [];
+  const first = Promise.withResolvers<void>();
+  await page.route("**/api/resolve?*", async (route) => {
+    const source = new URL(route.request().url()).searchParams.get("source");
+    attempted.push(source);
+    if (source === "vidcore") await first.promise;
+    await route.fulfill({ status: 502 });
+  });
+  const availability = page.waitForResponse("**/api/sources?*");
+  await page.goto("/en/watch/353486");
+  await availability;
+  first.resolve();
+  await expect.poll(() => attempted).toEqual(["vidcore", "vidsu", "vidme", "vidru"]);
+  await expect(page.getByRole("button", { name: "Try Again", exact: true })).toBeVisible();
+});
+
 test("crop removes encoded bars and stays enabled in container fullscreen", async ({ page }) => {
   const crop = page.getByRole("button", { name: "Crop black bars" });
   await expect(crop).toBeDisabled();

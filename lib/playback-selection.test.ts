@@ -38,8 +38,13 @@ test("keeps a running stream only when no ranked source can play", () => {
   expect(selectPlaybackSource(undefined, [], "vidru")).toBe("vidru");
   expect(selectPlaybackSource([], [], "vidsu")).toBe("vidsu");
   expect(selectPlaybackSource(["vidcore"], ["vidcore"], "vidsu")).toBe("vidsu");
-  expect(selectPlaybackSource([], ["vidsu"], "vidsu")).toBeNull();
-  expect(selectPlaybackSource([], [])).toBeNull();
+});
+
+test("uses the default order when no providers passed availability checks", () => {
+  expect(selectPlaybackSource([], [])).toBe("vidcore");
+  expect(selectPlaybackSource([], ["vidcore"], "vidcore")).toBe("vidsu");
+  expect(selectPlaybackSource([], ["vidcore", "vidsu", "vidme"])).toBe("vidru");
+  expect(selectPlaybackSource([], ["vidcore", "vidsu", "vidme", "vidru"])).toBeNull();
 });
 
 test("ranks Frembed by height and keeps it out of default VO fallback", () => {
