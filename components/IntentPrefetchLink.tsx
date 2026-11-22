@@ -54,12 +54,19 @@ export default function IntentPrefetchLink({
     }
 
     let timer: number | undefined;
+    const scheduleDwell = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setIntent(true), DWELL_MS);
+    };
     // Watch the viewport's middle band; ratio thresholds exclude cards larger than that band.
     const observer = new IntersectionObserver(
       ([entry]) => {
-        window.clearTimeout(timer);
         if (entry?.isIntersecting) {
-          timer = window.setTimeout(() => setIntent(true), DWELL_MS);
+          scheduleDwell();
+          window.addEventListener("scroll", scheduleDwell, { passive: true });
+        } else {
+          window.clearTimeout(timer);
+          window.removeEventListener("scroll", scheduleDwell);
         }
       },
       { rootMargin: "-45% -10%" },
@@ -69,6 +76,7 @@ export default function IntentPrefetchLink({
     return () => {
       window.clearTimeout(timer);
       observer.disconnect();
+      window.removeEventListener("scroll", scheduleDwell);
     };
   }, [dwell, intent]);
 
