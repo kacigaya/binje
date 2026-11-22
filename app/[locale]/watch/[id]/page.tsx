@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import Image from "next/image";
+import Image from "@/components/TmdbImage";
 import Link from "next/link";
 import { locale as getRootLocale } from "next/root-params";
 import { cache, Suspense } from "react";

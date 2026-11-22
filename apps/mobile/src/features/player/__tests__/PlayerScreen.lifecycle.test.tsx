@@ -1,6 +1,6 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import { PlayerScreen } from '../PlayerScreen';
-import { resolveStream } from '../resolveStream';
+import { fetchAvailableSources, resolveStream } from '../resolveStream';
 
 const mockEvents: string[] = [];
 const mockBack = jest.fn();
@@ -58,7 +58,7 @@ jest.mock('../resolveStream', () => ({
   fetchAvailableSources: jest.fn().mockResolvedValue(['vidcore']),
   resolveStream: jest.fn(),
   proxiedHlsUrl: (url: string) => url,
-  selectPlaybackSource: () => 'vidcore',
+  selectPlaybackSource: jest.requireActual('../resolveStream').selectPlaybackSource,
 }));
 
 beforeEach(() => {
@@ -77,6 +77,16 @@ test('Back during playback does not call the released native player', async () =
   expect(() => fireEvent.press(view.getByLabelText('back'))).not.toThrow();
   expect(mockPlayer.release).toHaveBeenCalledTimes(1);
   expect(mockEvents.at(-1)).toBe('release');
+});
+
+test('looks up alternate sources after the preferred source fails', async () => {
+  jest.mocked(fetchAvailableSources)
+    .mockResolvedValueOnce(['vidcore'])
+    .mockResolvedValueOnce(['vidcore', 'vidsu']);
+  jest.mocked(resolveStream).mockRejectedValueOnce(new Error('Preferred source unavailable'));
+  render(<PlayerScreen type="movie" id={1} />);
+  await waitFor(() => expect(resolveStream).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }), 'vidsu'));
+  expect(jest.mocked(fetchAvailableSources).mock.calls.map(([, startup]) => startup)).toEqual([true, false]);
 });
 
 test('Back during source resolution cancels loading', async () => {

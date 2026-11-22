@@ -65,6 +65,28 @@ test("player fits video dimensions and resets to the loading ratio", async ({ pa
   await expectRatio(page, 16 / 9);
 });
 
+test("probes all sources if the preferred startup stream fails", async ({ page }) => {
+  await page.unroute("**/api/sources?*");
+  const lookups: (string | null)[] = [];
+  await page.route("**/api/sources?*", (route) => {
+    const startup = new URL(route.request().url()).searchParams.get("startup");
+    lookups.push(startup);
+    return route.fulfill({ json: { sources: startup ? ["vidcore"] : ["vidcore", "vidsu"] } });
+  });
+  await page.unroute("**/api/resolve?*");
+  await page.route("**/api/resolve?*", (route) => {
+    const source = new URL(route.request().url()).searchParams.get("source");
+    return source === "vidcore" ? route.fulfill({ status: 502 }) : route.fulfill({ status: 200, json: { url: "https://example.test/fixture.m3u8", tracks: [] } });
+  });
+  const fallback = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname === "/api/resolve" && url.searchParams.get("source") === "vidsu";
+  });
+  await page.reload();
+  await fallback;
+  expect(lookups).toEqual(["1", null]);
+});
+
 test("crop removes encoded bars and stays enabled in container fullscreen", async ({ page }) => {
   const crop = page.getByRole("button", { name: "Crop black bars" });
   await expect(crop).toBeDisabled();
@@ -472,7 +494,12 @@ async function playerWithSubtitle(page: Page, vtt: string, tracks = [{ file: "ht
   await page.route("**/api/hls?*", (route) => route.request().url().includes("subs.test")
     ? route.fulfill({ contentType: "text/vtt", body: vtt })
     : undefined);
+  const manifest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return url.pathname === "/api/hls" && url.searchParams.get("url") === "https://cdn.test/master.m3u8";
+  });
   await page.reload();
+  await manifest;
 }
 
 const cueStarts = (page: Page) => page.locator("video track").first().evaluate((track: HTMLTrackElement) =>

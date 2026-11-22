@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/TmdbImage";
 import type { ReactNode } from "react";
 import type { TMDBImageAsset } from "@/types/tmdb";
 import { logoUrl } from "@/lib/tmdb";

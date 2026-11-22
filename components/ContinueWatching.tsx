@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/TmdbImage";
 import type { MouseEvent } from "react";
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -75,7 +75,7 @@ export default function ContinueWatching() {
             // Stored data comes from localStorage, so check the still path type.
             const episodeStill =
               item.type === "tv" && typeof item.episodeStillPath === "string"
-                ? stillUrl(item.episodeStillPath, "original")
+                ? stillUrl(item.episodeStillPath)
                 : null;
             const logo =
               typeof item.logoPath === "string" ? logoUrl(item.logoPath) : null;

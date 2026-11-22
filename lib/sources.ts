@@ -22,8 +22,10 @@ const RESOLVERS: Record<PlaybackSource, (params: ResolveParams) => Promise<Resol
 
 // Drop sources past this deadline so the availability route stays within maxDuration.
 const PROBE_DEADLINE_MS = 15_000;
+const PREFERRED_SOURCE_HEAD_START_MS = 2_000;
 const AVAILABILITY_TTL_MS = 2 * 60 * 1000;
 const availabilityCache = createTtlCache<PlaybackSource[]>(AVAILABILITY_TTL_MS);
+const [preferredSource] = PLAYBACK_SOURCES;
 
 // Register streams and subtitle tracks with the Referer their hosts need.
 export async function resolvePlaybackSource(source: PlaybackSource, params: ResolveParams): Promise<ResolvedStream> {
@@ -49,19 +51,34 @@ async function availableHeight(source: PlaybackSource, params: ResolveParams) {
 }
 
 // Rank playable sources by quality. Resolver caches let playback reuse these results.
-export function availablePlaybackSources(params: ResolveParams, audio: "vo" | "vf" = "vo"): Promise<PlaybackSource[]> {
+export function availablePlaybackSources(params: ResolveParams, audio: "vo" | "vf" = "vo", startup = false): Promise<PlaybackSource[]> {
   const sources = audio === "vf" ? ["frembed"] as const : PLAYBACK_SOURCES.filter((source) => source !== "frembed");
-  return availabilityCache.get(`${resolveKey(params)}:${audio}`, async () => {
-    const checks = await Promise.allSettled(
-      sources.map((source) => withDeadline(availableHeight(source, params), PROBE_DEADLINE_MS)),
-    );
-    const heights: Partial<Record<PlaybackSource, number>> = {};
-    sources.forEach((source, index) => {
-      const check = checks[index];
-      if (check.status === "fulfilled" && check.value !== undefined) heights[source] = check.value;
+  const cacheKey = `${resolveKey(params)}:${audio}`;
+  if (startup && audio === "vo") {
+    return availabilityCache.get(`${cacheKey}:startup`, async () => {
+      const preferred = availableHeight(preferredSource, params);
+      const height = await withDeadline(preferred, PREFERRED_SOURCE_HEAD_START_MS).catch(() => undefined);
+      return height !== undefined && height >= 2160 ? [preferredSource] : probeAll(preferred);
     });
-    return rankPlaybackSources(heights);
-  });
+  }
+  return probeAll();
+
+  function probeAll(preferred?: Promise<number | undefined>) {
+    return availabilityCache.get(cacheKey, async () => {
+      const checks = await Promise.allSettled(
+        sources.map((source) => withDeadline(
+          source === preferredSource && preferred ? preferred : availableHeight(source, params),
+          PROBE_DEADLINE_MS,
+        )),
+      );
+      const heights: Partial<Record<PlaybackSource, number>> = {};
+      sources.forEach((source, index) => {
+        const check = checks[index];
+        if (check.status === "fulfilled" && check.value !== undefined) heights[source] = check.value;
+      });
+      return rankPlaybackSources(heights);
+    });
+  }
 }
 
 // The title query shared by /api/resolve and /api/sources; null when invalid.

@@ -9,6 +9,7 @@ const WORKER_DIR = fileURLToPath(new URL("../scripts/vidcore-worker/", import.me
 const MAX_REPLY = 2 * 1024 * 1024;
 const MAX_LINE = 64 * 1024;
 const EXTRACT_TIMEOUT = 10_000;
+const WORKER_IDLE_TIMEOUT = 5 * 60_000;
 const ALLOWED_HEADERS = ["user-agent", "referer", "origin", "accept", "content-type"];
 
 type Message = Record<string, unknown>;
@@ -63,6 +64,7 @@ class Slot {
   child?: ChildProcessWithoutNullStreams;
   job?: Job;
   stopTimer?: ReturnType<typeof setTimeout>;
+  idleTimer?: ReturnType<typeof setTimeout>;
 
   start() {
     const node = realpathSync(process.execPath);
@@ -140,10 +142,13 @@ class Slot {
     this.job = undefined;
     job?.abort.abort();
     job?.finish();
+    const child = this.child;
+    if (child) this.idleTimer = setTimeout(() => this.reset(child), WORKER_IDLE_TIMEOUT);
   }
 
   reset(child: ChildProcessWithoutNullStreams) {
     if (this.child !== child) return;
+    clearTimeout(this.idleTimer);
     this.child = undefined;
     child.kill("SIGKILL");
     this.finish();
@@ -219,6 +224,7 @@ const server = createServer(async (request, response) => {
     slot.cancel(job);
     response.end();
   }, EXTRACT_TIMEOUT);
+  clearTimeout(slot.idleTimer);
   slot.job = job;
   response.on("close", () => slot.cancel(job));
   response.writeHead(200, { "Content-Type": "application/x-ndjson" });

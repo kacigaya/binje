@@ -33,7 +33,7 @@ import {
   updatePlayHistoryProgress,
 } from "@/lib/play-history";
 import type { PlaybackSource } from "@/lib/sources";
-import { isPlaybackSource, selectPlaybackSource } from "@/lib/playback-selection";
+import { isPlaybackSource, PLAYBACK_SOURCES, selectPlaybackSource } from "@/lib/playback-selection";
 import { applySync, type SubtitleSync } from "@/lib/subtitle-timing";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
@@ -148,7 +148,7 @@ export default function Player({
   }, [episode, imdbId, season, title, tmdbId, type, year]);
 
   // undefined while probing; null if the probe failed.
-  const [available, setAvailable] = useState<Keyed<PlaybackSource[] | null> | null>(null);
+  const [available, setAvailable] = useState<(Keyed<PlaybackSource[] | null> & { full: boolean }) | null>(null);
   const [failed, setFailed] = useState<Keyed<PlaybackSource[]> | null>(null);
   const [playing, setPlaying] = useState<Keyed<PlaybackSource> | null>(null);
   const [probeKey, setProbeKey] = useState(0);
@@ -157,6 +157,7 @@ export default function Player({
   const [vfAvailable, setVfAvailable] = useState<Keyed<PlaybackSource[] | null> | null>(null);
   const availableList = forMedia(available, mediaKey);
   const failedList = forMedia(failed, mediaKey) ?? [];
+  const fullSearch = failedList.includes(PLAYBACK_SOURCES[0]);
   const vfList = forMedia(vfAvailable, mediaKey);
   const vfSource = vfList?.find((item) => !failedList.includes(item)) ?? null;
   const vfUnavailable = vfList !== undefined && vfSource === null;
@@ -166,18 +167,18 @@ export default function Player({
   // VO keeps playing while VF is probed, and takes over again if VF fails.
   const playingVf = audio === "vf" && vfSource !== null;
   const source = playingVf ? vfSource : selectPlaybackSource(availableList, failedList, forMedia(playing, mediaKey));
-  const exhausted = source === null && availableList !== undefined;
+  const exhausted = source === null && availableList !== undefined && (!fullSearch || available?.full);
   const awaitingSources = source === null && !exhausted;
 
   useEffect(() => {
     let cancelled = false;
-    void fetchSources(mediaQuery).then((list) => {
-      if (!cancelled) setAvailable({ key: mediaKey, value: list });
+    void fetchSources(fullSearch ? mediaQuery : `${mediaQuery}&startup=1`).then((list) => {
+      if (!cancelled) setAvailable({ key: mediaKey, value: list, full: fullSearch });
     });
     return () => {
       cancelled = true;
     };
-  }, [mediaKey, mediaQuery, probeKey]);
+  }, [mediaKey, mediaQuery, probeKey, fullSearch]);
 
   // Probe VF once per title, on first request; switching back to VO keeps the answer.
   const vfRequestRef = useRef<string | null>(null);

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/TmdbImage";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Clock, Play } from "lucide-react";
@@ -133,7 +133,7 @@ export default function SeasonEpisodes({
       ) : (
         <ol className="-mx-2 space-y-1">
           {episodes.map((ep) => {
-            const still = stillUrl(ep.still_path, "original");
+            const still = stillUrl(ep.still_path);
             const isLast = last?.season === season && last.episode === ep.episode_number;
             const airDate = formatAirDate(locale, ep.air_date);
             // Unrated episodes report 0, which would read as a bad score.

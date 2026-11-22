@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type MouseEvent, type ReactNode, type RefObject } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/TmdbImage";
 import Link from "next/link";
 import { Play, Clock } from "lucide-react";
 import { ChevronLeftIcon } from "@/components/ui/chevron-left";
@@ -202,7 +202,7 @@ export default function TVPlayer({
       <>
               {episodes.map((ep) => {
               // Let Next resize the original so cards stay sharp on high-density screens.
-              const still = stillUrl(ep.still_path, "original");
+              const still = stillUrl(ep.still_path);
               const isActive = ep.episode_number === episode;
               // Unrated episodes report 0, which would read as a bad score.
               const rating =

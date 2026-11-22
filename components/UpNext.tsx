@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/TmdbImage";
 import { useEffect, useEffectEvent, useState } from "react";
 import { useTranslations } from "@/lib/use-locale";
 

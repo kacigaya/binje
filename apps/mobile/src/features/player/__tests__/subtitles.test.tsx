@@ -2,16 +2,17 @@ import { act, render } from "@testing-library/react-native";
 import type { VideoPlayer } from "expo-video";
 import * as client from "../../../api/client";
 import { Captions } from "../Captions";
-import { activeCueText, fetchCues, nextCueEdge, fetchTitleSubtitles, subtitleUrl, trackLabels } from "../subtitles";
+import { indexCues, fetchCues, fetchTitleSubtitles, subtitleUrl, trackLabels } from "../subtitles";
 
 jest.mock("../../../api/client", () => ({ apiRequest: jest.fn() }));
 const request = client.apiRequest as jest.Mock;
 const cues = [{ start: 1, end: 3, text: "One" }, { start: 2, end: 4, text: "Two" }];
 
 test("shows every cue that covers the position", () => {
-  expect(activeCueText(cues, 0.5)).toBe("");
-  expect(activeCueText(cues, 2.5)).toBe("One\nTwo");
-  expect(activeCueText(cues, 3)).toBe("Two");
+  const cueAt = indexCues(cues);
+  expect(cueAt(0.5).text).toBe("");
+  expect(cueAt(2.5).text).toBe("One\nTwo");
+  expect(cueAt(3).text).toBe("Two");
 });
 
 test("numbers repeated labels and names unlabeled tracks", () => {
@@ -50,9 +51,21 @@ test("captions follow the player position", () => {
 });
 
 test("finds the next cue edge", () => {
-  expect(nextCueEdge(cues, 0)).toBe(1);
-  expect(nextCueEdge(cues, 2.5)).toBe(3);
-  expect(nextCueEdge(cues, 4)).toBeUndefined();
+  const cueAt = indexCues(cues);
+  expect(cueAt(0).edge).toBe(1);
+  expect(cueAt(2.5).edge).toBe(3);
+  expect(cueAt(4).edge).toBeUndefined();
+});
+
+test("keeps long overlapping cues active across seeks", () => {
+  const cueAt = indexCues([
+    { start: 0, end: 90, text: "Long" },
+    { start: 10, end: 11, text: "Short" },
+    { start: 20, end: 21, text: "Later" },
+  ]);
+  expect(cueAt(50)).toEqual({ text: "Long", edge: 90 });
+  expect(cueAt(10)).toEqual({ text: "Long\nShort", edge: 11 });
+  expect(cueAt(90)).toEqual({ text: "", edge: undefined });
 });
 
 test("captions show a cue that starts and ends between position reports", () => {
