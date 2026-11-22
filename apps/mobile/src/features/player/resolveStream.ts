@@ -43,10 +43,11 @@ function isPlayableUrl(value: unknown): value is string {
   }
 }
 
-export async function fetchAvailableSources(media: StreamMedia): Promise<PlaybackSource[]> {
+export async function fetchAvailableSources(media: StreamMedia, startup = false, signal?: AbortSignal): Promise<PlaybackSource[]> {
   const result = await apiRequest<SourcesResponse>("/api/sources", {
-    query: buildResolveQuery(media),
+    query: { ...buildResolveQuery(media), ...(startup ? { startup: 1 } : {}) },
     timeoutMs: SOURCES_TIMEOUT_MS,
+    signal,
   });
   return Array.isArray(result.sources) ? result.sources.filter(isPlaybackSource) : [];
 }

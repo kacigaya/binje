@@ -7,19 +7,8 @@ test.use({ viewport, userAgent, deviceScaleFactor, isMobile, hasTouch });
 
 const BROWSE = "/en/movies";
 
-/** App Shell prefetches carry a segment header; full prefetches (`prefetch={true}`) do not. */
-function recordFullPrefetches(page: Page) {
-  const paths: string[] = [];
-  page.on("request", (request) => {
-    const headers = request.headers();
-    if (
-      headers["next-router-prefetch"] &&
-      !headers["next-router-segment-prefetch"]
-    ) {
-      paths.push(new URL(request.url()).pathname);
-    }
-  });
-  return paths;
+function fullPrefetchLinks(page: Page) {
+  return page.locator('a[data-prefetch-intent="full"][href*="/movie/"]');
 }
 
 async function openBrowse(page: Page) {
@@ -28,39 +17,36 @@ async function openBrowse(page: Page) {
   await page.waitForTimeout(1500);
 }
 
-/** Fully visible card links below the dwell band, not yet prefetched. */
-async function cardsBelowBand(page: Page, skip: string[]) {
-  return page.evaluate((skip) =>
-    [...document.querySelectorAll<HTMLAnchorElement>("a[href*='/movie/']")]
-      .map((a) => ({ path: new URL(a.href).pathname, rect: a.getBoundingClientRect() }))
+async function cardsBelowBand(page: Page) {
+  return page.locator("a[href*='/movie/']").evaluateAll((links: HTMLAnchorElement[]) =>
+    links.map((link, index) => ({ index, intent: link.dataset.prefetchIntent, rect: link.getBoundingClientRect() }))
       .filter(
-        ({ path, rect }) =>
+        ({ intent, rect }) =>
+          intent !== "full" &&
           rect.top > innerHeight * 0.6 &&
           rect.bottom < innerHeight &&
           rect.left >= 0 &&
-          rect.right <= innerWidth &&
-          !skip.includes(path),
+          rect.right <= innerWidth,
       )
-      .map(({ path, rect }) => ({
-        path,
+      .map(({ index, rect }) => ({
+        index,
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
-      })),
-  skip);
+      })));
 }
 
 test("cards prefetch once scrolling stops, not while it runs", async ({ page }) => {
   await openBrowse(page);
-  const prefetched = recordFullPrefetches(page);
+  const links = fullPrefetchLinks(page);
+  const initial = await links.count();
 
   for (let step = 0; step < 12; step++) {
     await page.mouse.wheel(0, 250);
     await page.waitForTimeout(250);
   }
-  expect(prefetched).toEqual([]);
+  expect(await links.count()).toBe(initial);
 
-  await expect.poll(() => prefetched.length, { timeout: 3000 }).toBeGreaterThan(0);
-  expect(prefetched.every((path) => path.startsWith("/en/movie/"))).toBe(true);
+  await expect.poll(() => links.count(), { timeout: 3000 }).toBeGreaterThan(initial);
 });
 
 test("dwell is skipped when the user saves data", async ({ page }) => {
@@ -70,27 +56,26 @@ test("dwell is skipped when the user saves data", async ({ page }) => {
     });
   });
   await openBrowse(page);
-  const prefetched = recordFullPrefetches(page);
 
   await page.mouse.wheel(0, 1000);
   await page.waitForTimeout(2000);
-  expect(prefetched).toEqual([]);
+  expect(await fullPrefetchLinks(page).count()).toBe(0);
 });
 
 test("a held touch prefetches, a swipe does not", async ({ page }) => {
   await openBrowse(page);
   await page.mouse.wheel(0, 1000);
   await page.waitForTimeout(1500);
-  const prefetched = recordFullPrefetches(page);
   const cdp = await page.context().newCDPSession(page);
-  const [held, swiped] = await cardsBelowBand(page, prefetched);
+  const [held, swiped] = await cardsBelowBand(page);
   if (!held || !swiped) throw new Error("need two visible cards below the dwell band");
 
   await cdp.send("Input.dispatchTouchEvent", {
     type: "touchStart",
     touchPoints: [{ x: held.x, y: held.y }],
   });
-  await expect.poll(() => prefetched, { timeout: 1000 }).toContain(held.path);
+  const cards = page.locator("a[href*='/movie/']");
+  await expect(cards.nth(held.index)).toHaveAttribute("data-prefetch-intent", "full");
   // Cancel instead of lifting so the press does not navigate.
   await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
 
@@ -109,5 +94,5 @@ test("a held touch prefetches, a swipe does not", async ({ page }) => {
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await page.waitForTimeout(500);
   expect(await page.evaluate(() => scrollY)).toBeLessThan(scrollBefore);
-  expect(prefetched).not.toContain(swiped.path);
+  await expect(cards.nth(swiped.index)).not.toHaveAttribute("data-prefetch-intent", "full");
 });

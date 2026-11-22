@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/TmdbImage";
 import ScrollArrows from "@/components/ScrollArrows";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 

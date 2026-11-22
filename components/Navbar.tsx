@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import Image from "@/components/TmdbImage";
 import { useRouter, usePathname } from "next/navigation";
 import { Loader2, Search } from "lucide-react";
 import { Menu as MenuNode, Search as SearchNode, X as XNode } from "lucide";

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import Image, { type ImageLoaderProps } from "next/image";
+import type { ImageLoaderProps } from "next/image";
+import Image from "@/components/TmdbImage";
 import { Info, Pause, Play } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import WatchNowLink from "@/components/WatchNowLink";

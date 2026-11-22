@@ -11,7 +11,11 @@ export async function GET(request: NextRequest) {
   const params = parseResolveParams(query);
   if (!params || (audio !== "vo" && audio !== "vf")) return NextResponse.json({ error: "Invalid params." }, { status: 400 });
 
-  const sources = await availablePlaybackSources(params, audio);
+  const startup = query.get("startup");
+  if (startup !== null && startup !== "1") return NextResponse.json({ error: "Invalid params." }, { status: 400 });
+  const sources = startup === "1"
+    ? await availablePlaybackSources(params, audio, true)
+    : await availablePlaybackSources(params, audio);
   return NextResponse.json({ sources }, {
     headers: { "cache-control": "private, max-age=120" },
   });

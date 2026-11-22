@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/TmdbImage";
 import { Bookmark, Star } from "lucide-react";
 import RemoveButton from "@/components/RemoveButton";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";

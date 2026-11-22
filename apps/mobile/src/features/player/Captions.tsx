@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 import type { VideoPlayer } from "expo-video";
 import { fonts } from "../../theme";
-import { activeCueText, nextCueEdge, type Cue } from "./subtitles";
+import { indexCues, type Cue } from "./subtitles";
 
 // The player reports its position every 0.25 s. A cue edge before the next report gets its own update.
 const TICK_MS = 250;
@@ -12,13 +12,14 @@ const TICK_MS = 250;
  * Screen readers skip it: the audio carries the same words.
  */
 export function Captions({ player, cues }: { player: Pick<VideoPlayer, "currentTime" | "playing" | "playbackRate" | "addListener">; cues: readonly Cue[] }) {
-  const [text, setText] = useState(() => activeCueText(cues, player.currentTime));
+  const cueAt = useMemo(() => indexCues(cues), [cues]);
+  const [text, setText] = useState(() => cueAt(player.currentTime).text);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const update = (time: number) => {
       clearTimeout(timer);
-      setText(activeCueText(cues, time));
-      const edge = nextCueEdge(cues, time);
+      const { text, edge } = cueAt(time);
+      setText(text);
       if (!player.playing || edge === undefined) return;
       const delay = ((edge - time) / (player.playbackRate || 1)) * 1000;
       // A few extra milliseconds put the read just past the edge.
@@ -26,7 +27,7 @@ export function Captions({ player, cues }: { player: Pick<VideoPlayer, "currentT
     };
     const subscription = player.addListener("timeUpdate", ({ currentTime }) => update(currentTime));
     return () => { clearTimeout(timer); subscription.remove(); };
-  }, [player, cues]);
+  }, [player, cueAt]);
   if (!text) return null;
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.box}>

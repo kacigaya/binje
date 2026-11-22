@@ -26,3 +26,10 @@ test("rejects unsupported availability audio", async () => {
   expect((await get("&audio=vostfr")).status).toBe(400);
   expect((await get("&audio=")).status).toBe(400);
 });
+
+test("opts in to a startup probe without changing the default contract", async () => {
+  const available = spyOn(sources, "availablePlaybackSources").mockResolvedValue(["vidcore"]);
+  expect(await (await get("&startup=1")).json()).toEqual({ sources: ["vidcore"] });
+  expect(available.mock.calls[0][2]).toBe(true);
+  expect((await get("&startup=0")).status).toBe(400);
+});

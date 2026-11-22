@@ -18,8 +18,9 @@ export function selectPlaybackSource(
   playing?: PlaybackSource,
 ): PlaybackSource | null {
   const running = playing && !failed.includes(playing) ? playing : null;
-  if (available == null && running) return running;
-  const best = (available ?? PLAYBACK_SOURCES.filter((source) => source !== "frembed")).find((source) => !failed.includes(source));
+  if (!available?.length && running) return running;
+  const candidates = available?.length ? available : PLAYBACK_SOURCES.filter((source) => source !== "frembed");
+  const best = candidates.find((source) => !failed.includes(source));
   // Keep playback running if the availability response omits its source.
   return best ?? running;
 }

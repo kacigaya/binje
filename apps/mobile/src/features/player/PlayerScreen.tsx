@@ -29,6 +29,7 @@ import {
 } from "./resolveStream";
 import NativeCastControls from "./CastControls";
 import type { MobileMediaType, StreamResponse } from "../../types/api";
+import { PLAYBACK_SOURCES } from "../../../../../lib/playback-selection";
 
 // Only TV has focus guides; react-native-web has no TVFocusGuideView, and touch needs no trap.
 const FocusTrap = Platform.isTV ? TVFocusGuideView : View;
@@ -43,7 +44,7 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   const [episode, setEpisode] = useState(initialEpisode ?? 1);
   const [attempt, setAttempt] = useState(0);
   const [resolving, setResolving] = useState(false);
-  const [available, setAvailable] = useState<Keyed<PlaybackSource[] | null> | null>(null);
+  const [available, setAvailable] = useState<(Keyed<PlaybackSource[] | null> & { full: boolean }) | null>(null);
   const [failed, setFailed] = useState<Keyed<PlaybackSource[]> | null>(null);
   const [playing, setPlaying] = useState<Keyed<PlaybackSource> | null>(null);
   const [stream, setStream] = useState<Keyed<StreamResponse> | null>(null);
@@ -87,8 +88,10 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   const imdbId = details.data?.stream.imdbId;
   const streamMedia = useMemo<StreamMedia | null>(() => originalTitle ? { type, id, title: originalTitle, year, imdbId, ...(type === 'tv' ? { season, episode } : {}) } : null, [type, id, originalTitle, year, imdbId, season, episode]);
   const availableList = forMedia(available, mediaKey);
-  const source = selectPlaybackSource(availableList, forMedia(failed, mediaKey) ?? [], forMedia(playing, mediaKey));
-  const exhausted = source === null && availableList !== undefined;
+  const failedList = forMedia(failed, mediaKey) ?? [];
+  const fullSearch = failedList.includes(PLAYBACK_SOURCES[0]);
+  const source = selectPlaybackSource(availableList, failedList, forMedia(playing, mediaKey));
+  const exhausted = source === null && availableList !== undefined && (!fullSearch || available?.full);
   const currentStream = forMedia(stream, mediaKey);
   const player = useVideoPlayer(null, instance => { instance.loop = false; instance.timeUpdateEventInterval = 0.25; instance.keepScreenOnWhilePlaying = true; });
   const loader = useMemo(() => createPlaybackLoader(player), [player]);
@@ -113,10 +116,13 @@ export function PlayerScreen({ type, id, initialSeason, initialEpisode }: { type
   }, [player, mediaKey]);
   useEffect(() => {
     if (!streamMedia) return;
-    let active = true;
-    void fetchAvailableSources(streamMedia).then(value => { if (active) setAvailable({ key: mediaKey, value }); }).catch(() => { if (active) setAvailable({ key: mediaKey, value: null }); });
-    return () => { active = false; };
-  }, [streamMedia, mediaKey, attempt]);
+    const controller = new AbortController();
+    const store = (value: PlaybackSource[] | null) => {
+      if (!controller.signal.aborted) setAvailable({ key: mediaKey, value, full: fullSearch });
+    };
+    void fetchAvailableSources(streamMedia, !fullSearch, controller.signal).then(store).catch(() => store(null));
+    return () => controller.abort();
+  }, [streamMedia, mediaKey, attempt, fullSearch]);
   useEffect(() => {
     player.pause();
     if (!streamMedia || !source) return;

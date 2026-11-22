@@ -31,18 +31,31 @@ export async function fetchCues(track: SubtitleTrack, signal?: AbortSignal): Pro
   return parseCues(await response.text());
 }
 
-/** Overlapping cues show together, in file order. */
-export function activeCueText(cues: readonly Cue[], time: number) {
-  return cues.filter((cue) => cue.start <= time && time < cue.end).map((cue) => cue.text).join("\n");
+function firstTimeAfter(times: readonly number[], time: number) {
+  let left = 0;
+  let right = times.length;
+  while (left < right) {
+    const middle = Math.floor((left + right) / 2);
+    if (times[middle] > time) right = middle;
+    else left = middle + 1;
+  }
+  return left;
 }
 
-/** The first cue start or end after `time`. */
-export function nextCueEdge(cues: readonly Cue[], time: number) {
-  let edge: number | undefined;
-  for (const cue of cues) {
-    for (const value of [cue.start, cue.end]) if (value > time && (edge === undefined || value < edge)) edge = value;
-  }
-  return edge;
+export function indexCues(cuesByStart: readonly Cue[]) {
+  let latestEnd = -Infinity;
+  const ends = cuesByStart.map(({ end }) => (latestEnd = Math.max(latestEnd, end)));
+  const edges = cuesByStart.flatMap(({ start, end }) => [start, end]).sort((a, b) => a - b);
+
+  return (time: number) => {
+    const lines: string[] = [];
+    for (let index = firstTimeAfter(ends, time); index < cuesByStart.length; index++) {
+      const cue = cuesByStart[index];
+      if (cue.start > time) break;
+      if (cue.end > time) lines.push(cue.text);
+    }
+    return { text: lines.join("\n"), edge: edges[firstTimeAfter(edges, time)] };
+  };
 }
 
 /** Providers repeat labels such as "English"; number the repeats like the web player. */

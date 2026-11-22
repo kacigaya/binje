@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/TmdbImage";
 import { useSyncExternalStore } from "react";
 import { Star } from "lucide-react";
 import CardWatchlistToggle from "@/components/CardWatchlistToggle";
