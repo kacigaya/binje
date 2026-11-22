@@ -11,11 +11,11 @@ The isolated worker starts sending HLS candidates as soon as it finds them. The 
 5. Run `node build/vidcore-service.mjs`, or install the [worker systemd unit](../deploy/binje-vidcore-worker.service). If you keep the Chromium resolver running for rollback, use a separate port.
 6. Set the app's `VIDCORE_RESOLVER_URL` and `VIDCORE_RESOLVER_TOKEN` to match the selected service.
 
-Before switching production, run the worker on a separate private port. Compare it with the Chromium resolver using the same movie and episode requests. Check successful playback, resolve latency, and peak service memory with both slots active. Switch the app to the worker only after these checks pass. Stop the Chromium service to reclaim its memory. If playback degrades, start Chromium again and restore the previous resolver endpoint.
+Before switching production, run the worker on a separate private port. Compare it with the Chromium resolver using the same movie and episode requests. Check successful playback, resolve latency, and peak service memory with overlapping requests. Switch the app to the worker only after these checks pass. Stop the Chromium service to reclaim its memory. If playback degrades, start Chromium again and restore the previous resolver endpoint.
 
 Bubblewrap runs the player code without host network access or service credentials. The service forwards HTTPS requests only to Vidcore. The app uses its existing public-network checks for playlists and media segments. Run the service under a dedicated account and expose it only to the app.
 
-The service runs up to two requests at once. If both workers are busy, it returns HTTP 503 so the app can try its other providers.
+The service extracts one stream at a time and lets one other request wait up to six seconds. Requests that exceed this limit receive HTTP 503 so the app can try its other providers. Queueing and extraction share a 12-second budget. If Vidcore returns HTTP 429, the worker stops extraction and pauses new work for the upstream `Retry-After` interval, or 30 seconds when the provider gives no usable interval.
 
 The player adapter derives from [x8rr/movies at bf57ffd](https://github.com/x8rr/movies/blob/bf57ffd/src/vidcore.js) under its [MIT license](../scripts/vidcore-worker/LICENSE). Vidcore can change its player code, so verify both movie and episode resolution before switching services.
 

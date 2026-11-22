@@ -143,8 +143,6 @@ export async function* candidates(type, id, season, episode, signal) {
     const timers = new Set();
     let closed = false;
     let lastStreamToken = null;
-    const prefetched = new Map();
-    let getServers = () => [];
     const ctx = {};
     for (const k of Object.getOwnPropertyNames(globalThis)) {
         try {
@@ -251,23 +249,6 @@ export async function* candidates(type, id, season, episode, signal) {
                 lastStreamToken = token;
                 return r;
             };
-            const servers = getServers();
-            if (!prefetched.has(url) && servers.some((server) => server.data === token)) {
-                const prefix = url.slice(0, url.length - token.length);
-                for (const server of servers.slice(0, 8)) {
-                    const target = prefix + server.data;
-                    if (!prefetched.has(target)) {
-                        const response = fetch(target, { ...reqOpts, signal: AbortSignal.timeout(SERVER_TIMEOUT) });
-                        response.catch(() => {});
-                        prefetched.set(target, response);
-                    }
-                }
-            }
-            const prefetchedResponse = prefetched.get(url);
-            if (prefetchedResponse) {
-                return prefetchedResponse.then((response) => done(response.clone()))
-                    .catch(() => new Response("", { status: 504 }));
-            }
             return fetch(url, { ...reqOpts, signal: AbortSignal.timeout(SERVER_TIMEOUT) })
                 .then(done)
                 .catch(() => new Response("", { status: 504 }));
@@ -388,7 +369,6 @@ export async function* candidates(type, id, season, episode, signal) {
         const deadline = Date.now() + TOTAL_TIMEOUT;
         render();
         const serversHook = () => st.hooks.find((h) => h?.state && Array.isArray(h.v) && h.v.length && h.v.every((s) => s && s.name && s.data));
-        getServers = () => serversHook()?.v || [];
         await wait(TOTAL_TIMEOUT, () => serversHook());
         const sh = serversHook();
         if (!sh)
@@ -425,6 +405,7 @@ export async function* candidates(type, id, season, episode, signal) {
                 if (source && !source.mp4 && !/\.mp4(?:[?#]|$)/i.test(source.url) && !delivered.has(source.url)) {
                     delivered.add(source.url);
                     yield { url: source.url, noReferrer: source.noReferrer === true };
+                    await wait(1000, () => signal.aborted);
                 }
                 await wait(1500, () => sh.v.every((s) => s.failed || !s.selected));
             }

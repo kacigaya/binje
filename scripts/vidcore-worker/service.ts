@@ -1,16 +1,21 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { timingSafeEqual } from "node:crypto";
 import { readlinkSync, realpathSync } from "node:fs";
-import { createServer } from "node:http";
+import { createServer, type ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
 import { fetchPublic } from "../../lib/safe-fetch";
+import { createResolveQueue } from "./resolve-queue";
+import { retryAt } from "./retry-after";
 
 const WORKER_DIR = fileURLToPath(new URL("../scripts/vidcore-worker/", import.meta.url));
 const MAX_REPLY = 2 * 1024 * 1024;
 const MAX_LINE = 64 * 1024;
 const EXTRACT_TIMEOUT = 10_000;
+const SLOT_WAIT_TIMEOUT = 6_000;
+const REQUEST_TIMEOUT = 12_000;
 const WORKER_IDLE_TIMEOUT = 5 * 60_000;
 const ALLOWED_HEADERS = ["user-agent", "referer", "origin", "accept", "content-type"];
+let pausedUntil = 0;
 
 type Message = Record<string, unknown>;
 type Job = {
@@ -22,6 +27,7 @@ type Job = {
 };
 
 async function relay(message: Message, signal: AbortSignal): Promise<Message> {
+  if (pausedUntil > Date.now()) return { status: 429 };
   if (typeof message.url !== "string" || message.url.length > 8192) throw new Error("Invalid URL.");
   const url = new URL(message.url);
   if (url.origin !== "https://vidcore.io" || url.username || url.password) throw new Error("Invalid origin.");
@@ -42,6 +48,11 @@ async function relay(message: Message, signal: AbortSignal): Promise<Message> {
     redirect: "manual",
     signal,
   });
+  if (response.status === 429) {
+    pausedUntil = Math.max(pausedUntil, retryAt(response.headers.get("retry-after"), Date.now()));
+    await response.body?.cancel().catch(() => {});
+    return { status: 429 };
+  }
   const reader = response.body?.getReader();
   if (!reader) return { status: response.status };
   const chunks: Uint8Array[] = [];
@@ -128,7 +139,10 @@ class Slot {
           this.send({ kind: "fetch-result", id: message.id, ...result });
         }
       };
-      void relay(message, job.abort.signal).then(send, () => send({ error: true }));
+      void relay(message, job.abort.signal).then((result) => {
+        if (result.status === 429) this.cancel(job);
+        else send(result);
+      }, () => send({ error: true }));
     }
   }
 
@@ -166,9 +180,17 @@ class Slot {
 const token = process.env.VIDCORE_RESOLVER_TOKEN;
 if (!token || !/^[\x00-\x7f]{32,}$/.test(token)) throw new Error("Invalid resolver token.");
 const expected = Buffer.from("Bearer " + token);
-const slots = [new Slot(), new Slot()];
+const slot = new Slot();
+const acquire = createResolveQueue();
 const mediaId = /^[1-9][0-9]{0,11}$/;
 const coordinate = /^[1-9][0-9]{0,4}$/;
+
+function paused(response: ServerResponse) {
+  const seconds = Math.ceil((pausedUntil - Date.now()) / 1_000);
+  if (seconds <= 0) return false;
+  response.writeHead(503, { "Retry-After": String(seconds) }).end();
+  return true;
+}
 
 const server = createServer(async (request, response) => {
   response.setHeader("Cache-Control", "no-store");
@@ -199,36 +221,55 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  const slot = slots.find((candidate) => !candidate.job);
-  if (!slot) {
-    response.writeHead(503).end();
+  if (paused(response)) return;
+  const started = performance.now();
+  const connection = new AbortController();
+  response.once("close", () => connection.abort());
+  const release = await acquire(AbortSignal.any([connection.signal, AbortSignal.timeout(SLOT_WAIT_TIMEOUT)]));
+  if (!release) {
+    if (!connection.signal.aborted && !paused(response)) response.writeHead(503).end();
+    return;
+  }
+  if (connection.signal.aborted || paused(response)) {
+    release();
     return;
   }
   try {
     if (!slot.child) slot.start();
   } catch {
+    release();
     response.writeHead(502).end();
     return;
   }
+  const finishResponse = () => {
+    if (connection.signal.aborted) return;
+    if (!response.headersSent) {
+      if (paused(response)) return;
+      response.writeHead(200, { "Content-Type": "application/x-ndjson" });
+    }
+    response.end();
+  };
   const job: Job = {
     abort: new AbortController(),
     calls: 0,
     candidates: 0,
-    candidate: (value) => response.write(JSON.stringify(value) + "\n"),
+    candidate: (value) => {
+      if (!response.headersSent) response.writeHead(200, { "Content-Type": "application/x-ndjson" });
+      response.write(JSON.stringify(value) + "\n");
+    },
     finish: () => {
       clearTimeout(deadline);
-      response.end();
+      release();
+      finishResponse();
     },
   };
   const deadline = setTimeout(() => {
     slot.cancel(job);
-    response.end();
-  }, EXTRACT_TIMEOUT);
+    finishResponse();
+  }, Math.min(EXTRACT_TIMEOUT, REQUEST_TIMEOUT - (performance.now() - started)));
   clearTimeout(slot.idleTimer);
   slot.job = job;
   response.on("close", () => slot.cancel(job));
-  response.writeHead(200, { "Content-Type": "application/x-ndjson" });
-  response.flushHeaders();
   slot.send({ kind: "resolve", type: payload.type, id: String(payload.id), season: String(payload.season), episode: String(payload.episode) });
 });
 
