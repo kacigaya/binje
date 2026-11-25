@@ -4,7 +4,6 @@ import Image from "@/components/TmdbImage";
 import { useSyncExternalStore } from "react";
 import { Star } from "lucide-react";
 import CardWatchlistToggle from "@/components/CardWatchlistToggle";
-import GlassChip from "@/components/GlassChip";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
 import type { MediaItem } from "@/types/tmdb";
 import { posterUrl } from "@/lib/tmdb";
@@ -70,12 +69,6 @@ export default function MediaCard({
             sizes="(max-width: 640px) 160px, 185px"
           />
 
-          {/* Tinted glass paints its own colour; clear glass would copy the poster for each card. */}
-          <GlassChip material="tinted" className="absolute top-2 left-2 h-6 gap-1 bg-black/60 px-2 text-xs font-semibold text-white tabular-nums">
-            <Star aria-hidden="true" className="size-3 fill-current" />
-            {rating}
-          </GlassChip>
-
           {/* Decorative: the Continue Watching row carries the same progress
               with readable timings. */}
           {progress !== null && (
@@ -102,6 +95,14 @@ export default function MediaCard({
             </>
           )}
           {year && <span>{year}</span>}
+          <span aria-hidden="true">·</span>
+          <span className="flex items-center gap-1">
+            <Star
+              aria-hidden="true"
+              className="size-3 fill-muted-foreground text-muted-foreground"
+            />
+            {rating}
+          </span>
         </p>
       </IntentPrefetchLink>
 

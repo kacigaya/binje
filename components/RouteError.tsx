@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { RotateCCWIcon } from "@/components/ui/rotate-ccw";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
-import { GlassButton } from "@/components/liquid-glass";
+import { Button } from "@/components/ui/button";
 import { useTranslations } from "@/lib/use-locale";
 
 export default function RouteError({
@@ -42,15 +42,15 @@ export default function RouteError({
         </h2>
         <p className="max-w-md text-muted-foreground">{localizedMessage}</p>
       </div>
-      <GlassButton
+      <Button
         onClick={reset}
         {...retryFeedback}
-        tint={0.15}
-        icon={<RotateCCWIcon ref={retryIcon} size={16} />}
-        iconPosition="start"
+        variant="outline"
+        className="gap-2 rounded-full cursor-pointer"
       >
+        <RotateCCWIcon ref={retryIcon} size={16} />
         {t("Try Again")}
-      </GlassButton>
+      </Button>
     </div>
   );
 }

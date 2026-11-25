@@ -11,7 +11,6 @@ import { BookmarkIcon } from "@/components/ui/bookmark";
 import { ClapIcon } from "@/components/ui/clap";
 import { TvIcon } from "@/components/ui/tv";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
-import { GlassCard } from "@/components/liquid-glass";
 import Wordmark from "@/components/Wordmark";
 import {
   useState,
@@ -128,7 +127,7 @@ export default function Navbar() {
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
-  const panelRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const searchTriggerRef = useRef<HTMLButtonElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const [submitIcon, submitFeedback] = useAnimatedIcon();
@@ -148,43 +147,6 @@ export default function Navbar() {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
-
-  // The glass repaints its backdrop only on scroll, and rereads the page at most every 120 ms.
-  // Nudge it after its first draw and after images and fades finish under the bar; a non-bubbling
-  // event reaches the glass's capture listener and no app listener. Without WebGL it never draws,
-  // so nothing is watched.
-  useEffect(() => {
-    const nav = panelRef.current;
-    if (!nav) return;
-    let timer: number | undefined;
-    let watching = false;
-    const types = ["load", "animationend", "transitionend"];
-    const repaint = () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => nav.dispatchEvent(new Event("scroll")), 200);
-    };
-    const onChange = (event: Event) => {
-      const target = event.target;
-      if (!(target instanceof Element) || nav.contains(target)) return;
-      const under = target.getBoundingClientRect();
-      const bar = nav.getBoundingClientRect();
-      if (under.bottom > bar.top && under.top < bar.bottom && under.right > bar.left && under.left < bar.right) {
-        repaint();
-      }
-    };
-    const ready = new MutationObserver(() => {
-      repaint();
-      if (watching) return;
-      watching = true;
-      for (const type of types) document.addEventListener(type, onChange, true);
-    });
-    ready.observe(nav, { subtree: true, attributeFilter: ["data-glass-ready"] });
-    return () => {
-      window.clearTimeout(timer);
-      ready.disconnect();
-      for (const type of types) document.removeEventListener(type, onChange, true);
-    };
-  }, []);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -252,8 +214,8 @@ export default function Navbar() {
   }
 
   return (
-    <nav ref={panelRef} className="fixed top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 z-50">
-      <GlassCard tint={0.55} className="relative mx-auto max-w-7xl rounded-[2rem]">
+    <nav className="fixed top-[max(0.75rem,env(safe-area-inset-top))] left-3 right-3 z-50">
+      <div ref={panelRef} className="mx-auto max-w-7xl rounded-[2rem] bg-background/70 backdrop-blur-md border border-white/10 shadow-lg shadow-black/30">
         <div className="flex items-center justify-between gap-3 px-4 sm:px-6 h-16">
         <Link
           href={localizedHref(locale, "/")}
@@ -534,7 +496,7 @@ export default function Navbar() {
             </div>
           </div>
         </div>
-      </GlassCard>
+      </div>
     </nav>
   );
 }

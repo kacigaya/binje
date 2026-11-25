@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Compass } from "lucide-react";
-import { GlassButton } from "@/components/liquid-glass";
+import { buttonClassName } from "@/components/ui/button";
 import MotionProvider from "@/components/MotionProvider";
 import { HomeIcon } from "@/components/ui/home";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
@@ -25,20 +25,19 @@ export default function NotFound() {
           back home.
         </p>
       </div>
-      <GlassButton
-        asChild
-        tint={0.15}
-        icon={
-          <MotionProvider>
-            <HomeIcon ref={homeIcon} size={16} />
-          </MotionProvider>
-        }
-        iconPosition="start"
+      <Link
+        href="/"
+        {...homeFeedback}
+        className={buttonClassName({
+          variant: "outline",
+          className: "gap-2 rounded-full h-11 px-6 cursor-pointer",
+        })}
       >
-        <Link href="/" {...homeFeedback}>
-          Back to home
-        </Link>
-      </GlassButton>
+        <MotionProvider>
+          <HomeIcon ref={homeIcon} size={16} />
+        </MotionProvider>
+        Back to home
+      </Link>
     </div>
   );
 }

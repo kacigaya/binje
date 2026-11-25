@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { CheckIcon } from "@/components/ui/check";
 import { PlusIcon } from "@/components/ui/plus";
-import { GlassButton } from "@/components/liquid-glass";
+import { buttonClassName } from "@/components/ui/button";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import {
   isInWatchlist,
@@ -36,26 +36,30 @@ export default function WatchlistButton({ item }: { item: WatchlistInput }) {
   }, [added, icon]);
 
   return (
-    <GlassButton
+    <button
+      type="button"
       {...feedback}
-      size="lg"
-      tint={0.15}
       onClick={() => {
         savedByClick.current = !added;
         toggleWatchlistWithFeedback(item, added, t);
       }}
       aria-pressed={added}
-      icon={
-        added ? (
-          <CheckIcon ref={icon} size={20} />
-        ) : (
-          <PlusIcon ref={icon} size={20} />
-        )
-      }
-      iconPosition="start"
-      className="w-full sm:w-auto"
+      className={buttonClassName({
+        variant: "glass",
+        size: "xl",
+        className: `w-full sm:w-auto cursor-pointer ${
+          added
+            ? "border-accent-red/60 bg-accent-red/15 text-accent-red-text hover:bg-accent-red/25"
+            : ""
+        }`,
+      })}
     >
+      {added ? (
+        <CheckIcon ref={icon} size={20} />
+      ) : (
+        <PlusIcon ref={icon} size={20} />
+      )}
       {t(added ? "In Watchlist" : "Add to Watchlist")}
-    </GlassButton>
+    </button>
   );
 }

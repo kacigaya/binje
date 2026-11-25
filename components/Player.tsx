@@ -23,7 +23,7 @@ import {
 } from "@/components/PlayerControls";
 import SubtitleMenu, { DELAY_STEP, formatDelay, type SyncStatus } from "@/components/SubtitleMenu";
 import UpNext from "@/components/UpNext";
-import { GlassButton, GlassLayer } from "@/components/liquid-glass";
+import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { qualityClass } from "@/lib/quality-class";
 import { fetchResolve } from "@/lib/resolve-client";
@@ -959,10 +959,8 @@ export default function Player({
           <p
             key={subtitleNotice.id}
             role="status"
-            data-glass-host=""
             className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/75 px-3 py-1.5 text-xs font-semibold text-white tabular-nums"
           >
-            <GlassLayer material="tinted" swell={false} pull={false} />
             {subtitleNotice.text}
           </p>
         )}
@@ -970,13 +968,11 @@ export default function Player({
           <div
             key={seekHint.id}
             aria-hidden="true"
-            data-glass-host=""
             className={cn(
               "pointer-events-none absolute top-1/2 flex size-16 -translate-y-1/2 animate-in items-center justify-center rounded-full bg-black/60 text-white fade-in zoom-in-90 duration-150 motion-reduce:animate-none",
               seekHint.forward ? "right-[12%]" : "left-[12%]",
             )}
           >
-            <GlassLayer material="tinted" swell={false} pull={false} />
             <SkipIcon forward={seekHint.forward} />
           </div>
         )}
@@ -998,14 +994,15 @@ export default function Player({
               {statusText}
             </p>
             {exhausted && (
-              <GlassButton
+              <Button
+                type="button"
+                variant="outline"
                 onClick={retry}
-                tint={0.15}
-                icon={<RotateCcw aria-hidden="true" className="size-4" />}
-                iconPosition="start"
+                className="h-9 cursor-pointer gap-2 rounded-full px-4"
               >
+                <RotateCcw aria-hidden="true" className="size-4" />
                 {t("Try Again")}
-              </GlassButton>
+              </Button>
             )}
           </div>
         )}
@@ -1157,20 +1154,19 @@ export default function Player({
         {playbackControls && !loading && !awaitingSources && (
           // Center against the whole player because the toolbar and seek row have different heights.
           <div className="absolute inset-0 flex items-center justify-center gap-8 sm:hidden">
-            <GlassButton material="tinted" aria-label={t("Back 10 seconds")} onClick={() => skip(false)} className={cn("size-11 bg-black/40 px-0! text-white", interactive)}>
+            <ControlButton aria-label={t("Back 10 seconds")} onClick={() => skip(false)} className={cn("bg-black/40", interactive)}>
               <SkipIcon />
-            </GlassButton>
-            <GlassButton
-              material="tinted"
+            </ControlButton>
+            <ControlButton
               aria-label={paused ? t("Play") : t("Pause")}
               onClick={() => videoRef.current && togglePlayback(videoRef.current)}
-              className={cn("size-14 border border-white/15 bg-black/60 px-0! text-white", interactive)}
+              className={cn("size-14 border border-white/15 bg-black/60", interactive)}
             >
               <PlayIcon paused={paused} className="size-6!" />
-            </GlassButton>
-            <GlassButton material="tinted" aria-label={t("Forward 10 seconds")} onClick={() => skip(true)} className={cn("size-11 bg-black/40 px-0! text-white", interactive)}>
+            </ControlButton>
+            <ControlButton aria-label={t("Forward 10 seconds")} onClick={() => skip(true)} className={cn("bg-black/40", interactive)}>
               <SkipIcon forward />
-            </GlassButton>
+            </ControlButton>
           </div>
         )}
         {playbackControls && (
@@ -1195,9 +1191,9 @@ export default function Player({
         >
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-heading)" }}>{t("Episodes")}</h2>
-            <GlassButton aria-label={t("Close episodes")} title={t("Close episodes")} onClick={closeEpisodes} tint={0.15} className="size-11 px-0!">
+            <ControlButton aria-label={t("Close episodes")} title={t("Close episodes")} onClick={closeEpisodes} className="bg-white/10">
               <X aria-hidden="true" />
-            </GlassButton>
+            </ControlButton>
           </div>
           {episodes(containerRef)}
         </div>

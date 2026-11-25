@@ -4,11 +4,7 @@ import { useSyncExternalStore } from "react";
 import { Cookie } from "lucide-react";
 import { XIcon } from "@/components/ui/x";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
-import {
-  GlassActionButton,
-  GlassButton,
-  GlassCard,
-} from "@/components/liquid-glass";
+import { Button } from "@/components/ui/button";
 import { getConsent, setConsent, CONSENT_STORAGE_KEY } from "@/lib/consent";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -25,8 +21,6 @@ function getServerSnapshot(): undefined {
   return undefined;
 }
 
-const ACCEPTED_HOLD_MS = 1200;
-
 export default function CookiesBanner() {
   const { t } = useTranslations();
   const [dismissIcon, dismissFeedback] = useAnimatedIcon();
@@ -38,10 +32,9 @@ export default function CookiesBanner() {
 
   if (storedConsent !== null) return null;
 
-  // Let the success state land before the banner leaves.
   function accept() {
     setConsent("accepted");
-    window.setTimeout(() => notifyChange("accepted"), ACCEPTED_HOLD_MS);
+    notifyChange("accepted");
   }
 
   function dismiss() {
@@ -59,13 +52,14 @@ export default function CookiesBanner() {
   }
 
   return (
+    // The near-opaque panel gains nothing from backdrop blur.
     // Use a landmark because the banner does not take focus.
     <div
       role="region"
       aria-label={t("Cookie consent")}
       className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 mx-auto max-w-3xl animate-banner-enter sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))]"
     >
-      <GlassCard tint={0.55} className="relative flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center sm:gap-4 sm:py-2.5">
+      <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-background/95 p-3 shadow-2xl shadow-black/40 sm:flex-row sm:items-center sm:gap-4 sm:py-2.5">
         <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:items-center">
           <Cookie aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground sm:mt-0" />
           <p className="text-xs leading-relaxed text-muted-foreground">
@@ -77,18 +71,21 @@ export default function CookiesBanner() {
         </div>
 
         <div className="flex shrink-0 items-center justify-end gap-2">
-          <GlassButton onClick={dismiss} size="sm" tint={0.15}>
-            {t("Refuse")}
-          </GlassButton>
-          <GlassActionButton
-            onAction={accept}
+          <Button
+            onClick={dismiss}
             size="sm"
-            material="tinted"
-            className="bg-accent-red text-white"
-            successLabel={t("Accepted")}
+            variant="secondary"
+            className="h-8 px-4 text-xs font-semibold"
+          >
+            {t("Refuse")}
+          </Button>
+          <Button
+            onClick={accept}
+            size="sm"
+            className="h-8 px-4 text-xs font-semibold"
           >
             {t("Accept")}
-          </GlassActionButton>
+          </Button>
           <button
             type="button"
             onClick={dismiss}
@@ -99,7 +96,7 @@ export default function CookiesBanner() {
             <XIcon ref={dismissIcon} size={16} />
           </button>
         </div>
-      </GlassCard>
+      </div>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import Image from "next/image";
 import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
 import { Calendar, Tv, Layers } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { buttonClassName } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import CastRow from "@/components/CastRow";
@@ -13,7 +15,6 @@ import WatchlistButton from "@/components/WatchlistButton";
 import DetailHero from "@/components/DetailHero";
 import SeasonEpisodes from "@/components/SeasonEpisodes";
 import { Skeleton } from "@/components/ui/skeleton";
-import GlassChip from "@/components/GlassChip";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import {
   getTVDetails,
@@ -111,7 +112,7 @@ async function TVShowDetails({
       details={
         <>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground tabular-nums">
-            <GlassChip className="font-semibold text-foreground">
+            <div className="flex items-center gap-1.5 font-semibold text-foreground">
               <Image
                 src="/tmdb.svg"
                 alt="TMDB"
@@ -120,12 +121,12 @@ async function TVShowDetails({
                 className="h-4 w-auto shrink-0"
               />
               {formatRating(locale, show.vote_average) ?? translate(locale, "N/A")}
-            </GlassChip>
+            </div>
             <RottenTomatoesRating imdbId={show.external_ids.imdb_id} />
             {contentRating && (
-              <GlassChip className="text-xs font-semibold text-foreground/80">
+              <span className="rounded-md border border-white/15 px-1.5 text-xs font-semibold text-foreground/80">
                 {contentRating}
-              </GlassChip>
+              </span>
             )}
             <div className="flex items-center gap-1">
               <Layers aria-hidden="true" className="size-4" />
@@ -149,9 +150,13 @@ async function TVShowDetails({
 
           <div className="flex flex-wrap gap-2">
             {show.genres.map((g) => (
-              <GlassChip key={g.id} className="h-6 px-2 text-xs text-foreground/80">
+              <Badge
+                key={g.id}
+                variant="outline"
+                className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
+              >
                 {g.name}
-              </GlassChip>
+              </Badge>
             ))}
           </div>
 
@@ -160,7 +165,11 @@ async function TVShowDetails({
               href={localizedHref(locale, `/watch/tv/${show.id}`)}
               label={translate(locale, "Watch Now")}
               media={{ type: "tv", id: show.id }}
-              className="w-full sm:w-auto sm:px-10"
+              className={buttonClassName({
+                variant: "brand",
+                size: "xl",
+                className: "w-full sm:w-auto sm:px-10 cursor-pointer",
+              })}
             />
             <WatchlistButton
               item={{

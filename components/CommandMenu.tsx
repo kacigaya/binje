@@ -13,7 +13,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { localizedHref, type TranslationKey } from "@/lib/i18n";
-import { GlassCard } from "@/components/liquid-glass";
 import { useTranslations } from "@/lib/use-locale";
 import {
   MIN_SUGGESTION_QUERY_LENGTH,
@@ -132,8 +131,7 @@ export default function CommandMenu({ initialOpen = false }: { initialOpen?: boo
         <Dialog.Backdrop className="fixed inset-0 z-100 bg-black/70 backdrop-blur-sm" />
         <Dialog.Popup
           aria-label={t("Command menu")}
-          render={<GlassCard />}
-          className="fixed left-1/2 top-24 z-100 w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl outline-none"
+          className="fixed left-1/2 top-24 z-100 w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/10 bg-popover shadow-2xl shadow-black/50 outline-none"
         >
           <Dialog.Title className="sr-only">{t("Command menu")}</Dialog.Title>
           <div className="relative border-b border-white/10">

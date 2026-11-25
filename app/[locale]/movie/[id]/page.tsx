@@ -5,13 +5,14 @@ import Image from "next/image";
 import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
 import { Clock, Calendar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { buttonClassName } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import CastRow from "@/components/CastRow";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
 import WatchlistButton from "@/components/WatchlistButton";
 import DetailHero from "@/components/DetailHero";
-import GlassChip from "@/components/GlassChip";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import {
   getMovieDetails,
@@ -105,7 +106,7 @@ async function MovieDetails({
       details={
         <>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground tabular-nums">
-            <GlassChip className="font-semibold text-foreground">
+            <div className="flex items-center gap-1.5 font-semibold text-foreground">
               <Image
                 src="/tmdb.svg"
                 alt="TMDB"
@@ -114,12 +115,12 @@ async function MovieDetails({
                 className="h-4 w-auto shrink-0"
               />
               {formatRating(locale, movie.vote_average) ?? translate(locale, "N/A")}
-            </GlassChip>
+            </div>
             <RottenTomatoesRating imdbId={movie.imdb_id} />
             {contentRating && (
-              <GlassChip className="text-xs font-semibold text-foreground/80">
+              <span className="rounded-md border border-white/15 px-1.5 text-xs font-semibold text-foreground/80">
                 {contentRating}
-              </GlassChip>
+              </span>
             )}
             {movie.runtime > 0 && (
               <div className="flex items-center gap-1">
@@ -141,9 +142,13 @@ async function MovieDetails({
 
           <div className="flex flex-wrap gap-2">
             {movie.genres.map((g) => (
-              <GlassChip key={g.id} className="h-6 px-2 text-xs text-foreground/80">
+              <Badge
+                key={g.id}
+                variant="outline"
+                className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
+              >
                 {g.name}
-              </GlassChip>
+              </Badge>
             ))}
           </div>
 
@@ -152,7 +157,11 @@ async function MovieDetails({
               href={localizedHref(locale, `/watch/${movie.id}`)}
               label={translate(locale, "Watch Now")}
               media={{ type: "movie", id: movie.id }}
-              className="w-full sm:w-auto sm:px-10"
+              className={buttonClassName({
+                variant: "brand",
+                size: "xl",
+                className: "w-full sm:w-auto sm:px-10 cursor-pointer",
+              })}
             />
             <WatchlistButton
               item={{

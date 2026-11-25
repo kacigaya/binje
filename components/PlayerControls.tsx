@@ -5,7 +5,6 @@ import { Pause, Play, Volume1, Volume2, VolumeX } from "lucide";
 import { MorphIcon } from "morphicons/react";
 import type { ComponentProps, CSSProperties, ReactNode, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
-import { GlassButtonGroup, GlassLayer } from "@/components/liquid-glass";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -40,11 +39,8 @@ export function ControlButton({ className, ...props }: ComponentProps<"button">)
 
 export function ControlGroup({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    // The wrapper keeps responsive display classes: the group's own `inline-flex` would outrank them.
-    <div className={cn("flex", className)}>
-      <GlassButtonGroup size="lg" className="gap-1 border border-white/15 bg-black/75 text-white">
-        {children}
-      </GlassButtonGroup>
+    <div className={cn("flex items-center gap-1 rounded-full border border-white/15 bg-black/75 p-1", className)}>
+      {children}
     </div>
   );
 }
@@ -166,8 +162,7 @@ export function SeekBar({ videoRef, visible }: { videoRef: RefObject<HTMLVideoEl
           )}
         />
         {scrub !== null && (
-          <span data-glass-host="" className="pointer-events-none absolute bottom-full left-[calc(var(--progress)*100%)] mb-2 -translate-x-1/2 rounded-full border border-white/15 bg-black/75 px-2 py-1">
-            <GlassLayer material="tinted" swell={false} pull={false} />
+          <span className="pointer-events-none absolute bottom-full left-[calc(var(--progress)*100%)] mb-2 -translate-x-1/2 rounded-full border border-white/15 bg-black/75 px-2 py-1">
             {formatTime(scrub)}
           </span>
         )}

@@ -1,7 +1,6 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import { GlassButton } from "@/components/liquid-glass";
 import { XIcon } from "@/components/ui/x";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 
@@ -12,7 +11,7 @@ export default function RemoveButton({
   className,
   iconSize,
 }: {
-  onClick: (event: MouseEvent<HTMLElement>) => void;
+  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
   label: string;
   className: string;
   iconSize: number;
@@ -20,15 +19,14 @@ export default function RemoveButton({
   const [icon, feedback] = useAnimatedIcon();
 
   return (
-    <GlassButton
+    <button
+      type="button"
       onClick={onClick}
       {...feedback}
-      size="sm"
-      tint={0.15}
       aria-label={label}
-      className={`px-0! ${className}`}
+      className={className}
     >
       <XIcon ref={icon} size={iconSize} />
-    </GlassButton>
+    </button>
   );
 }
