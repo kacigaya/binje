@@ -7,8 +7,7 @@ import { Info, Pause, Play } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import WatchNowLink from "@/components/WatchNowLink";
 import IntentPrefetchLink from "@/components/IntentPrefetchLink";
-import { Badge } from "@/components/ui/badge";
-import { buttonClassName } from "@/components/ui/button";
+import { GlassBadge, GlassButton } from "@/components/liquid-glass";
 import type { MediaItem } from "@/types/tmdb";
 import { logoUrl } from "@/lib/tmdb";
 import ExpandableOverview from "@/components/ExpandableOverview";
@@ -225,9 +224,7 @@ export default function Hero({ items }: HeroProps) {
 
           <div className="flex items-center gap-3">
             {activeItem.media_type === "tv" && (
-              <Badge className="border-white/20 bg-white/10 text-xs text-foreground hover:bg-white/10">
-                {t("TV Series")}
-              </Badge>
+              <GlassBadge tint={0.4} className="text-xs">{t("TV Series")}</GlassBadge>
             )}
             <div className="flex items-center gap-1.5 font-semibold">
               <Image
@@ -263,27 +260,22 @@ export default function Hero({ items }: HeroProps) {
             <WatchNowLink
               href={localizedHref(locale, watchHref)}
               label={t("Watch Now")}
-              className={buttonClassName({
-                variant: "brand",
-                size: "xl",
-                className: "cursor-pointer",
-              })}
             />
-            <IntentPrefetchLink
-              href={localizedHref(locale, detailHref)}
-              className={buttonClassName({
-                variant: "glass",
-                size: "xl",
-                className: "cursor-pointer",
-              })}
+            <GlassButton
+              asChild
+              size="lg"
+              tint={0.15}
+              icon={<Info className="size-5" />}
+              iconPosition="start"
             >
-              <Info className="size-5" />
-              {t("Details")}
-            </IntentPrefetchLink>
+              <IntentPrefetchLink href={localizedHref(locale, detailHref)}>
+                {t("Details")}
+              </IntentPrefetchLink>
+            </GlassButton>
             {/* Keep this in the action row so the overlapping first rail cannot hide it. */}
             {rotates && safeItems.length > 1 && (
-              <button
-                type="button"
+              <GlassButton
+                tint={0.15}
                 onClick={() => setPaused((previous) => !previous)}
                 aria-pressed={paused}
                 aria-label={
@@ -291,14 +283,14 @@ export default function Hero({ items }: HeroProps) {
                     ? t("Resume featured titles")
                     : t("Pause featured titles")
                 }
-                className="ml-auto flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/40 text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60 sm:ml-2"
+                className="ml-auto w-10 !px-0 sm:ml-2"
               >
                 {paused ? (
                   <Play aria-hidden="true" className="size-4" />
                 ) : (
                   <Pause aria-hidden="true" className="size-4" />
                 )}
-              </button>
+              </GlassButton>
             )}
           </div>
         </div>

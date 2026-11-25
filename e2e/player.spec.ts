@@ -413,7 +413,10 @@ test("seek bar seeks on commit and formats time", async ({ page }) => {
 test("a source without subtitles offers the title's, off by default", async ({ page }) => {
   const lookups: string[] = [];
   page.on("request", (request) => {
-    if (new URL(request.url()).pathname === "/api/subtitles") lookups.push(request.url());
+    // The English page from beforeEach can still send its own lookup during the switch.
+    if (new URL(request.url()).pathname === "/api/subtitles" && new URL(request.frame().url()).pathname.startsWith("/fr/")) {
+      lookups.push(request.url());
+    }
   });
   await page.route("**/api/subtitles?*", (route) => route.fulfill({ json: {
     tracks: [

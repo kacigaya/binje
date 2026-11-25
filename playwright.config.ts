@@ -14,7 +14,11 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        // Software WebGL makes the liquid glass block the main thread; tests run its CSS fallback.
+        launchOptions: { args: ["--disable-3d-apis"] },
+      },
     },
   ],
   webServer: {

@@ -23,7 +23,7 @@ import {
 } from "@/components/PlayerControls";
 import SubtitleMenu, { DELAY_STEP, formatDelay, type SyncStatus } from "@/components/SubtitleMenu";
 import UpNext from "@/components/UpNext";
-import { Button } from "@/components/ui/button";
+import { GlassButton } from "@/components/liquid-glass";
 import { Select } from "@/components/ui/select";
 import { qualityClass } from "@/lib/quality-class";
 import { fetchResolve } from "@/lib/resolve-client";
@@ -994,15 +994,14 @@ export default function Player({
               {statusText}
             </p>
             {exhausted && (
-              <Button
-                type="button"
-                variant="outline"
+              <GlassButton
                 onClick={retry}
-                className="h-9 cursor-pointer gap-2 rounded-full px-4"
+                tint={0.15}
+                icon={<RotateCcw aria-hidden="true" className="size-4" />}
+                iconPosition="start"
               >
-                <RotateCcw aria-hidden="true" className="size-4" />
                 {t("Try Again")}
-              </Button>
+              </GlassButton>
             )}
           </div>
         )}
