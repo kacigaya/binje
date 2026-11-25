@@ -13,6 +13,7 @@ import { logoUrl } from "@/lib/tmdb";
 import ExpandableOverview from "@/components/ExpandableOverview";
 import { formatRating, localizedHref } from "@/lib/i18n";
 import { useTranslations } from "@/lib/use-locale";
+import GlassChip from "@/components/GlassChip";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 
 interface HeroProps {
@@ -226,7 +227,7 @@ export default function Hero({ items }: HeroProps) {
             {activeItem.media_type === "tv" && (
               <GlassBadge tint={0.4} className="text-xs">{t("TV Series")}</GlassBadge>
             )}
-            <div className="flex items-center gap-1.5 font-semibold">
+            <GlassChip className="font-semibold">
               <Image
                 src="/tmdb.svg"
                 alt=""
@@ -236,12 +237,12 @@ export default function Hero({ items }: HeroProps) {
                 className="h-4 w-auto shrink-0"
               />
               <span className="text-sm tabular-nums">{rating}</span>
-            </div>
+            </GlassChip>
             <RottenTomatoesRating imdbId={activeItem.imdbId} />
             {activeItem.contentRating && (
-              <span className="rounded border border-white/25 px-1.5 text-xs font-semibold text-foreground/80">
+              <GlassChip className="text-xs font-semibold text-foreground/80">
                 {activeItem.contentRating}
-              </span>
+              </GlassChip>
             )}
             {activeItem.date && (
               <span className="text-sm text-muted-foreground">

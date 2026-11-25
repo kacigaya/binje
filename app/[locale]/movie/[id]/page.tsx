@@ -5,13 +5,13 @@ import Image from "next/image";
 import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
 import { Clock, Calendar } from "lucide-react";
-import { GlassBadge } from "@/components/liquid-glass";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import CastRow from "@/components/CastRow";
 import CarouselSkeleton from "@/components/CarouselSkeleton";
 import WatchlistButton from "@/components/WatchlistButton";
 import DetailHero from "@/components/DetailHero";
+import GlassChip from "@/components/GlassChip";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import {
   getMovieDetails,
@@ -105,7 +105,7 @@ async function MovieDetails({
       details={
         <>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground tabular-nums">
-            <div className="flex items-center gap-1.5 font-semibold text-foreground">
+            <GlassChip className="font-semibold text-foreground">
               <Image
                 src="/tmdb.svg"
                 alt="TMDB"
@@ -114,12 +114,12 @@ async function MovieDetails({
                 className="h-4 w-auto shrink-0"
               />
               {formatRating(locale, movie.vote_average) ?? translate(locale, "N/A")}
-            </div>
+            </GlassChip>
             <RottenTomatoesRating imdbId={movie.imdb_id} />
             {contentRating && (
-              <span className="rounded-md border border-white/15 px-1.5 text-xs font-semibold text-foreground/80">
+              <GlassChip className="text-xs font-semibold text-foreground/80">
                 {contentRating}
-              </span>
+              </GlassChip>
             )}
             {movie.runtime > 0 && (
               <div className="flex items-center gap-1">
@@ -141,9 +141,9 @@ async function MovieDetails({
 
           <div className="flex flex-wrap gap-2">
             {movie.genres.map((g) => (
-              <GlassBadge key={g.id} speed={0} tint={0.4} className="text-xs">
+              <GlassChip key={g.id} className="h-6 px-2 text-xs text-foreground/80">
                 {g.name}
-              </GlassBadge>
+              </GlassChip>
             ))}
           </div>
 
