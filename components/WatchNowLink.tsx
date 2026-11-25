@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
+import { GlassButton } from "@/components/liquid-glass";
 import { PlayIcon } from "@/components/ui/play";
 import { formatPlaybackTime } from "@/lib/format-time";
 import { localizedHref } from "@/lib/i18n";
@@ -27,7 +28,7 @@ export default function WatchNowLink({
 }: {
   href: string;
   label: string;
-  className: string;
+  className?: string;
   media?: Pick<PlayHistoryItem, "type" | "id">;
 }) {
   const { locale, t } = useTranslations();
@@ -55,9 +56,17 @@ export default function WatchNowLink({
   }
 
   return (
-    <Link href={target} {...feedback} className={className}>
-      <PlayIcon ref={icon} size={20} />
-      {text}
-    </Link>
+    <GlassButton
+      asChild
+      size="lg"
+      material="tinted"
+      icon={<PlayIcon ref={icon} size={20} />}
+      iconPosition="start"
+      className={`bg-accent-red text-white ${className ?? ""}`}
+    >
+      <Link href={target} {...feedback}>
+        {text}
+      </Link>
+    </GlassButton>
   );
 }

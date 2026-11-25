@@ -91,6 +91,7 @@ const FRENCH = {
   "We store your watch history in your browser so you can pick up where you left off. No tracking, no third-party cookies.":
     "Nous enregistrons votre historique de visionnage dans votre navigateur pour reprendre là où vous vous êtes arrêté. Aucun suivi, aucun cookie tiers.",
   Accept: "Accepter",
+  Accepted: "Accepté",
   Refuse: "Refuser",
   "Something went wrong": "Une erreur est survenue",
   "We couldn’t load the content. This might be temporary. Please try again.":

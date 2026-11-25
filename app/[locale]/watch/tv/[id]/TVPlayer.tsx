@@ -11,7 +11,7 @@ import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { Select } from "@/components/ui/select";
 import Player from "@/components/Player";
 import ScrollArrows from "@/components/ScrollArrows";
-import { Button } from "@/components/ui/button";
+import { GlassButton } from "@/components/liquid-glass";
 import { useHorizontalScroll } from "@/lib/use-horizontal-scroll";
 import { stillUrl } from "@/lib/tmdb";
 import type { Episode } from "@/types/tmdb";
@@ -337,30 +337,26 @@ export default function TVPlayer({
         </div>
 
         <div className="grid grid-cols-2 gap-2 sm:ml-auto sm:flex">
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
+          <GlassButton
             onClick={prevEpisode}
             {...prevFeedback}
             disabled={!hasPrev}
-            className="h-10 rounded-full px-4 cursor-pointer"
+            tint={0.15}
+            icon={<ChevronLeftIcon ref={prevIcon} size={16} />}
+            iconPosition="start"
           >
-            <ChevronLeftIcon ref={prevIcon} size={16} />
             {t("Previous")}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
+          </GlassButton>
+          <GlassButton
             onClick={nextEpisode}
             {...nextFeedback}
             disabled={!hasNext}
-            className="h-10 rounded-full px-4 cursor-pointer"
+            tint={0.15}
+            icon={<ChevronRightIcon ref={nextIcon} size={16} />}
+            iconPosition="end"
           >
             {t("Next")}
-            <ChevronRightIcon ref={nextIcon} size={16} />
-          </Button>
+          </GlassButton>
         </div>
       </div>
 
