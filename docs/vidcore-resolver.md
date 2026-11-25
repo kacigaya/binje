@@ -13,7 +13,7 @@ The isolated worker starts sending HLS candidates as soon as it finds them. The 
 
 Before switching production, run the worker on a separate private port. Compare it with the Chromium resolver using the same movie and episode requests. Check successful playback, resolve latency, and peak service memory with overlapping requests. Switch the app to the worker only after these checks pass. Stop the Chromium service to reclaim its memory. If playback degrades, start Chromium again and restore the previous resolver endpoint.
 
-Bubblewrap runs the player code without host network access or service credentials. The service forwards HTTPS requests only to Vidcore. The app uses its existing public-network checks for playlists and media segments. Run the service under a dedicated account and expose it only to the app.
+Bubblewrap runs the player code without host network access or service credentials. The service forwards HTTPS requests only to Vidcore and accepts relayed replies up to 4 MiB, large enough for the player's biggest script chunk. The app uses its existing public-network checks for playlists and media segments. Run the service under a dedicated account and expose it only to the app.
 
 The service extracts one stream at a time and lets one other request wait up to six seconds. Requests that exceed this limit receive HTTP 503 so the app can try its other providers. Queueing and extraction share a 12-second budget. If Vidcore returns HTTP 429, the worker stops extraction and pauses new work for the upstream `Retry-After` interval, or 30 seconds when the provider gives no usable interval.
 

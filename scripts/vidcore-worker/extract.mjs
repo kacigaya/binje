@@ -2,20 +2,43 @@ import vm from "node:vm";
 import { Window } from "happy-dom";
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 const SERVER_TIMEOUT = 7000;
+const NEXT_SERVER_WAIT = 4500;
+const STREAM_POLL = 30;
+const RELAY_SOFT_LIMIT = 30;
+const RELAY_PER_SERVER = 7;
 const TOTAL_TIMEOUT = 10000;
+const SCRIPT_CACHE_LIMIT = 60;
 const scriptCache = new Map();
+let relayCalls = 0;
+function countFetch(url) {
+    relayCalls++;
+    return fetch(url, { headers: { "User-Agent": UA } });
+}
+export function patchPlayerChunk(code) {
+    const head = 'function H(e){if(!e||"object"!=typeof e)return;';
+    const i = code.indexOf(head);
+    if (i === -1)
+        return code;
+    return code.slice(0, i) + 'function H(e){try{window.__vidcoreMerge&&window.__vidcoreMerge(e)}catch(_){};' + head.slice("function H(e){".length) + code.slice(i + head.length);
+}
+export function refHooksForVideo(hooks) {
+    return hooks
+        .map((h, i) => ({ h, i }))
+        .filter(({ h }) => h && !h.state && h.current === null)
+        .map(({ i }) => i);
+}
 function getScript(url) {
     if (!scriptCache.has(url)) {
-        const p = fetch(url, { headers: { "User-Agent": UA } })
+        const p = countFetch(url)
             .then((r) => {
             if (!r.ok)
                 throw new Error("chunk " + r.status);
             return r.text();
         })
-            .then((code) => new vm.Script(code, { filename: url }));
+            .then((code) => new vm.Script(patchPlayerChunk(code), { filename: url }));
         p.catch(() => scriptCache.delete(url));
         scriptCache.set(url, p);
-        if (scriptCache.size > 60)
+        if (scriptCache.size > SCRIPT_CACHE_LIMIT)
             scriptCache.delete(scriptCache.keys().next().value);
     }
     return scriptCache.get(url);
@@ -41,13 +64,44 @@ function parsePage(html) {
     if (!modLine)
         throw new Error("no player module ref");
     const modId = JSON.parse(modLine.slice(modLine.indexOf(":") + 2))[0];
-    const chunks = [...new Set([...html.matchAll(/src="(\/_next\/static\/chunks\/[^"]+\.js)"/g)].map((m) => m[1]))].filter((c) => !/\/(webpack|main-app|polyfills)-/.test(c));
-    return { props, modId, chunks };
+    const srcs = [...new Set([...html.matchAll(/src="(\/_next\/static\/chunks\/[^"]+\.js)"/g)].map((m) => m[1]))];
+    const chunks = srcs.filter((c) => !/\/(webpack|main-app|polyfills)-/.test(c));
+    const runtime = srcs.find((c) => /\/webpack-/.test(c));
+    return { props, modId, chunks, runtime };
+}
+export function playerVariants(src) {
+    const out = new Map();
+    for (const m of src.matchAll(/(?:"([^"]+)"|([\w$-]+)):\w+\(\)\(\(\)=>Promise\.all\(\[([^\]]*)\]\)\.then\(\w+\.bind\(\w+,(\d+)\)/g)) {
+        out.set(m[1] ?? m[2], { chunks: [...m[3].matchAll(/\.e\((\d+)\)/g)].map((c) => Number(c[1])), mod: Number(m[4]) });
+    }
+    return out;
+}
+const chunkNamers = new Map();
+function chunkNamer(url) {
+    if (!chunkNamers.has(url)) {
+        const p = countFetch(url)
+            .then((r) => {
+            if (!r.ok)
+                throw new Error("runtime " + r.status);
+            return r.text();
+        })
+            .then((code) => {
+            const m = /\b(\w+)\.u=(\w+)=>(.+?),\1\.miniCssF=/.exec(code);
+            if (!m)
+                throw new Error("chunk namer not found");
+            return vm.runInNewContext(`(${m[2]})=>${m[3]}`, {}, { timeout: 1000 });
+        });
+        p.catch(() => chunkNamers.delete(url));
+        chunkNamers.set(url, p);
+        if (chunkNamers.size > 6)
+            chunkNamers.delete(chunkNamers.keys().next().value);
+    }
+    return chunkNamers.get(url);
 }
 function nativeLike(name) {
     return Object.defineProperty(function () { }.bind(null), "name", { value: name });
 }
-function makeFakeReact(win, onChange) {
+function makeFakeReact(onChange) {
     const st = { hooks: [], i: 0, effects: [] };
     const changed = (a, b) => !a || !b || a.length !== b.length || a.some((x, i) => !Object.is(x, b[i]));
     const R = {
@@ -73,9 +127,7 @@ function makeFakeReact(win, onChange) {
         useRef(init) {
             const i = st.i++;
             if (!(i in st.hooks))
-                st.hooks[i] = {
-                    current: init == null ? win.document.body.appendChild(win.document.createElement("video")) : init,
-                };
+                st.hooks[i] = { current: init };
             return st.hooks[i];
         },
         useMemo(f, d) {
@@ -103,7 +155,9 @@ function makeFakeReact(win, onChange) {
                 catch { }
             });
         },
-        useContext: () => undefined,
+        useContext(ctx) {
+            return ctx && typeof ctx === "object" ? ctx._currentValue : undefined;
+        },
         useId: () => ":r0:",
         useSyncExternalStore: (_s, get) => get(),
         useTransition: () => [false, (f) => f()],
@@ -111,7 +165,12 @@ function makeFakeReact(win, onChange) {
         useImperativeHandle() { },
         useDebugValue() { },
         useInsertionEffect() { },
-        createContext: (v) => ({ Provider: () => null, Consumer: () => null, _currentValue: v }),
+        createContext(v) {
+            const ctx = { _currentValue: v, _defaultValue: v };
+            ctx.Provider = { $$ctx: ctx };
+            ctx.Consumer = { $$consumer: ctx };
+            return ctx;
+        },
         forwardRef: (f) => f,
         memo: (f) => f,
         lazy: (f) => f,
@@ -131,18 +190,19 @@ function makeFakeReact(win, onChange) {
     return { R, st };
 }
 export async function* candidates(type, id, season, episode, signal) {
+    relayCalls = 0;
     const base = "https://vidcore.io";
     const isTV = type === "tv";
     const path = isTV ? `/tv/${id}/${season}/${episode}` : `/movie/${id}`;
-    const pageResp = await fetch(base + path, { headers: { "User-Agent": UA } });
+    const pageResp = await countFetch(base + path);
     if (!pageResp.ok)
         throw new Error("page " + pageResp.status);
-    const { props, modId, chunks } = parsePage(await pageResp.text());
+    let { props, modId, chunks, runtime } = parsePage(await pageResp.text());
     const scripts = await Promise.all(chunks.map((c) => getScript(base + c)));
     const win = new Window({ url: base + path, width: 1280, height: 720 });
     const timers = new Set();
     let closed = false;
-    let lastStreamToken = null;
+    const videoRefs = new Set();
     const ctx = {};
     for (const k of Object.getOwnPropertyNames(globalThis)) {
         try {
@@ -176,9 +236,32 @@ export async function* candidates(type, id, season, episode, signal) {
         removeEventListener() { },
         postMessage() { },
         open: () => null,
-        MediaSource: undefined,
-        ManagedMediaSource: undefined,
+        __vidcoreMerge: (obj) => {
+            const ref = obj?.videoRef;
+            if (ref && typeof ref === "object" && "current" in ref)
+                videoRefs.add(ref);
+        },
+        MediaSource: class MediaSource {
+            constructor() {
+                this.readyState = "closed";
+                this.duration = NaN;
+                this.sourceBuffers = [];
+                this.activeSourceBuffers = [];
+            }
+            static isTypeSupported(type) {
+                return typeof type === "string" && /mpegurl|mp4|mp2t/i.test(type);
+            }
+            addSourceBuffer() {
+                return { abort() { }, addEventListener() { }, appendBuffer() { }, remove() { }, setTimestampOffset() { }, removeEventListener() { }, mode: "segments", updating: false, buffered: { length: 0 } };
+            }
+            removeSourceBuffer() { }
+            addEventListener() { }
+            removeEventListener() { }
+            endOfStream() { }
+            setDuration() { }
+        },
         WebKitMediaSource: undefined,
+        ManagedMediaSource: undefined,
         XMLHttpRequest: class {
             open() { }
             send() {
@@ -237,6 +320,7 @@ export async function* candidates(type, id, season, episode, signal) {
             let url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
             if (url.startsWith("/"))
                 url = base + url;
+            relayCalls++;
             if (new URL(url).origin !== base || /\/wyzie\b/.test(url))
                 return Promise.resolve(new Response("", { status: 404 }));
             const h = new Headers(opts.headers);
@@ -244,13 +328,7 @@ export async function* candidates(type, id, season, episode, signal) {
             h.set("Referer", base + path);
             h.set("Origin", base);
             const reqOpts = { ...opts, headers: h };
-            const token = new URL(url).pathname.split("/").pop();
-            const done = (r) => {
-                lastStreamToken = token;
-                return r;
-            };
             return fetch(url, { ...reqOpts, signal: AbortSignal.timeout(SERVER_TIMEOUT) })
-                .then(done)
                 .catch(() => new Response("", { status: 504 }));
         },
         webpackChunk_N_E: [],
@@ -273,20 +351,41 @@ export async function* candidates(type, id, season, episode, signal) {
     };
     try {
         const vmCtx = vm.createContext(ctx);
-        for (const s of scripts) {
-            try {
-                s.runInContext(vmCtx, { timeout: 15000 });
+        const runAll = (list) => {
+            for (const s of list) {
+                try {
+                    s.runInContext(vmCtx, { timeout: 15000 });
+                }
+                catch { }
             }
-            catch { }
-        }
+        };
+        runAll(scripts);
         const modules = {};
-        for (const entry of ctx.webpackChunk_N_E)
-            Object.assign(modules, entry[1]);
+        const collect = () => {
+            for (const entry of ctx.webpackChunk_N_E)
+                Object.assign(modules, entry[1]);
+        };
+        collect();
         if (!modules[modId])
             throw new Error("player module missing");
+        const { artifact, ...rest } = props;
+        const variant = playerVariants(modules[modId].toString()).get(artifact);
+        if (variant) {
+            if (!runtime)
+                throw new Error("no webpack runtime");
+            const name = await chunkNamer(base + runtime);
+            const paths = variant.chunks.map((id) => "/_next/" + name(id)).filter((p) => !/undefined/.test(p) && !chunks.includes(p));
+            const extra = await Promise.allSettled(paths.map((p) => getScript(base + p)));
+            runAll(extra.filter((r) => r.status === "fulfilled").map((r) => r.value));
+            collect();
+            if (!modules[variant.mod])
+                throw new Error("player variant module missing");
+            modId = variant.mod;
+            props = rest;
+        }
         let scheduled = false;
         let renders = 0;
-        const { R, st } = makeFakeReact(win, () => {
+        const { R, st } = makeFakeReact(() => {
             if (scheduled || closed)
                 return;
             scheduled = true;
@@ -345,6 +444,7 @@ export async function* candidates(type, id, season, episode, signal) {
         const Comp = req(modId).default;
         if (typeof Comp !== "function")
             throw new Error("player component not found");
+        let video = null;
         const render = () => {
             renders++;
             st.i = 0;
@@ -356,63 +456,89 @@ export async function* candidates(type, id, season, episode, signal) {
             st.effects = [];
             for (const f of effs)
                 f();
+            if (video && !closed) {
+                for (const ref of videoRefs)
+                    if (ref.current == null)
+                        ref.current = video;
+                for (const i of videoHookIndexes)
+                    if (st.hooks[i] && st.hooks[i].current == null)
+                        st.hooks[i].current = video;
+            }
         };
         const wait = (ms, pred) => new Promise((resolve) => {
             const t0 = Date.now();
             const tick = () => {
                 if (signal.aborted || closed || pred() || Date.now() - t0 > ms)
                     return resolve();
-                setTimeout(tick, 50);
+                setTimeout(tick, STREAM_POLL);
             };
             tick();
         });
         const deadline = Date.now() + TOTAL_TIMEOUT;
+        let videoHookIndexes = [];
         render();
         const serversHook = () => st.hooks.find((h) => h?.state && Array.isArray(h.v) && h.v.length && h.v.every((s) => s && s.name && s.data));
         await wait(TOTAL_TIMEOUT, () => serversHook());
         const sh = serversHook();
         if (!sh)
             return;
+        video = win.document.createElement("video");
+        win.document.body.appendChild(video);
+        if (videoRefs.size) {
+            for (const ref of videoRefs)
+                ref.current ??= video;
+        }
+        else {
+            videoHookIndexes = refHooksForVideo(st.hooks);
+            for (const i of videoHookIndexes)
+                if (st.hooks[i])
+                    st.hooks[i].current = video;
+        }
         const seen = new Set();
-        const byServer = new Map();
-        const harvest = () => {
+        const delivered = new Set();
+        const streamValue = (h) => {
+            const v = h && (h.state ? h.v : h.current);
+            return v && typeof v === "object" && typeof v.url === "string" && /^https?:/.test(v.url) ? v : null;
+        };
+        const fresh = () => {
+            const out = [];
             for (const h of st.hooks) {
-                const v = h && (h.state ? h.v : h.current);
-                if (!v || typeof v !== "object" || seen.has(v))
-                    continue;
-                if (typeof v.url !== "string" || !/^https?:/.test(v.url) || !("tracks" in v || "noReferrer" in v))
+                const v = streamValue(h);
+                if (!v || seen.has(v))
                     continue;
                 seen.add(v);
-                const srv = sh.v.find((s) => s.data === lastStreamToken);
-                if (srv && !byServer.has(srv.name))
-                    byServer.set(srv.name, { name: srv.name, description: srv.description, obj: v });
+                out.push(v);
             }
+            return out;
         };
-        const delivered = new Set();
-        const poller = setInterval(harvest, 20);
-        try {
-            for (const { name } of [...sh.v]) {
-                if (signal.aborted || Date.now() > deadline)
-                    break;
-                harvest();
-                if (!byServer.has(name)) {
-                    sh.set((list) => list.map((s) => ({ ...s, selected: s.name === name, failed: s.name !== name })));
-                    await wait(Math.min(SERVER_TIMEOUT, deadline - Date.now()), () => byServer.has(name)
-                        || sh.v.some((server) => server.name === name && server.failed));
-                    harvest();
-                }
-                const source = byServer.get(name)?.obj;
-                if (source && !source.mp4 && !/\.mp4(?:[?#]|$)/i.test(source.url) && !delivered.has(source.url)) {
-                    delivered.add(source.url);
+        const hasFreshStream = () => st.hooks.some((h) => {
+            const v = streamValue(h);
+            return v && !seen.has(v);
+        });
+        const emit = (source) => {
+            if (source.mp4 || /\.mp4(?:[?#]|$)/i.test(source.url) || delivered.has(source.url))
+                return false;
+            delivered.add(source.url);
+            return true;
+        };
+        let yielded = 0;
+        for (const { name } of [...sh.v]) {
+            if (signal.aborted || Date.now() > deadline || relayCalls + RELAY_PER_SERVER > RELAY_SOFT_LIMIT)
+                break;
+            sh.set((list) => list.map((s) => { s.selected = s.name === name; return s; }));
+            await wait(Math.min(NEXT_SERVER_WAIT, deadline - Date.now()), () => hasFreshStream());
+            for (const source of fresh()) {
+                if (emit(source)) {
+                    yielded++;
                     yield { url: source.url, noReferrer: source.noReferrer === true };
-                    await wait(1000, () => signal.aborted);
                 }
-                await wait(1500, () => sh.v.every((s) => s.failed || !s.selected));
             }
-            harvest();
+            if (yielded && relayCalls + RELAY_PER_SERVER > RELAY_SOFT_LIMIT)
+                break;
         }
-        finally {
-            clearInterval(poller);
+        for (const source of fresh()) {
+            if (emit(source))
+                yield { url: source.url, noReferrer: source.noReferrer === true };
         }
     }
     finally {

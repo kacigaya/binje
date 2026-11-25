@@ -8,7 +8,7 @@ import { createResolveQueue } from "./resolve-queue";
 import { retryAt } from "./retry-after";
 
 const WORKER_DIR = fileURLToPath(new URL("../scripts/vidcore-worker/", import.meta.url));
-const MAX_REPLY = 2 * 1024 * 1024;
+const MAX_REPLY = 4 * 1024 * 1024;
 const MAX_LINE = 64 * 1024;
 const EXTRACT_TIMEOUT = 10_000;
 const SLOT_WAIT_TIMEOUT = 6_000;
