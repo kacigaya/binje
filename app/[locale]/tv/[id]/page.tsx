@@ -5,7 +5,7 @@ import Image from "next/image";
 import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
 import { Calendar, Tv, Layers } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { GlassBadge } from "@/components/liquid-glass";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import CastRow from "@/components/CastRow";
@@ -149,13 +149,9 @@ async function TVShowDetails({
 
           <div className="flex flex-wrap gap-2">
             {show.genres.map((g) => (
-              <Badge
-                key={g.id}
-                variant="outline"
-                className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
-              >
+              <GlassBadge key={g.id} speed={0} tint={0.4} className="text-xs">
                 {g.name}
-              </Badge>
+              </GlassBadge>
             ))}
           </div>
 

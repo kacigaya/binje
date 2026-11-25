@@ -1153,19 +1153,20 @@ export default function Player({
         {playbackControls && !loading && !awaitingSources && (
           // Center against the whole player because the toolbar and seek row have different heights.
           <div className="absolute inset-0 flex items-center justify-center gap-8 sm:hidden">
-            <ControlButton aria-label={t("Back 10 seconds")} onClick={() => skip(false)} className={cn("bg-black/40", interactive)}>
+            <GlassButton material="tinted" aria-label={t("Back 10 seconds")} onClick={() => skip(false)} className={cn("size-11 bg-black/40 px-0! text-white", interactive)}>
               <SkipIcon />
-            </ControlButton>
-            <ControlButton
+            </GlassButton>
+            <GlassButton
+              material="tinted"
               aria-label={paused ? t("Play") : t("Pause")}
               onClick={() => videoRef.current && togglePlayback(videoRef.current)}
-              className={cn("size-14 border border-white/15 bg-black/60", interactive)}
+              className={cn("size-14 border border-white/15 bg-black/60 px-0! text-white", interactive)}
             >
               <PlayIcon paused={paused} className="size-6!" />
-            </ControlButton>
-            <ControlButton aria-label={t("Forward 10 seconds")} onClick={() => skip(true)} className={cn("bg-black/40", interactive)}>
+            </GlassButton>
+            <GlassButton material="tinted" aria-label={t("Forward 10 seconds")} onClick={() => skip(true)} className={cn("size-11 bg-black/40 px-0! text-white", interactive)}>
               <SkipIcon forward />
-            </ControlButton>
+            </GlassButton>
           </div>
         )}
         {playbackControls && (
@@ -1190,9 +1191,9 @@ export default function Player({
         >
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold" style={{ fontFamily: "var(--font-heading)" }}>{t("Episodes")}</h2>
-            <ControlButton aria-label={t("Close episodes")} title={t("Close episodes")} onClick={closeEpisodes} className="bg-white/10">
+            <GlassButton aria-label={t("Close episodes")} title={t("Close episodes")} onClick={closeEpisodes} tint={0.15} className="size-11 px-0!">
               <X aria-hidden="true" />
-            </ControlButton>
+            </GlassButton>
           </div>
           {episodes(containerRef)}
         </div>

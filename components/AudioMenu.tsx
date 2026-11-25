@@ -7,6 +7,7 @@ import { MorphIcon } from "morphicons/react";
 import { useId, type RefObject } from "react";
 import AudioLanguageIcon from "@/components/AudioLanguageIcon";
 import { controlButtonClass } from "@/components/PlayerControls";
+import { GlassCard } from "@/components/liquid-glass";
 import { useTranslations } from "@/lib/use-locale";
 
 export default function AudioMenu({
@@ -36,9 +37,9 @@ export default function AudioMenu({
       </Popover.Trigger>
       <Popover.Portal container={container}>
         <Popover.Positioner positionMethod="fixed" sideOffset={8} collisionPadding={8} className="z-50 outline-none">
-          <Popover.Popup className="max-h-[var(--available-height)] w-56 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl border border-white/10 bg-popover text-sm text-foreground shadow-lg shadow-black/40 outline-none">
+          <Popover.Popup render={<GlassCard />} className="flex max-h-[var(--available-height)] w-56 max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-2xl text-sm text-foreground outline-none">
             <Popover.Title className="sr-only">{t("Audio")}</Popover.Title>
-            <fieldset className="min-w-0 p-1" disabled={disabled}>
+            <fieldset className="min-h-0 min-w-0 overflow-y-auto p-1" disabled={disabled}>
               <legend className="sr-only">{t("Audio")}</legend>
               {(["vo", "vf"] as const).map((version) => (
                 <label

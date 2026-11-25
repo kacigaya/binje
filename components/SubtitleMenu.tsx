@@ -8,6 +8,7 @@ import type { RefObject } from "react";
 import { useId } from "react";
 import { controlButtonClass } from "@/components/PlayerControls";
 import { cn } from "@/lib/utils";
+import { GlassCard } from "@/components/liquid-glass";
 import { useTranslations } from "@/lib/use-locale";
 
 export const DELAY_STEP = 0.5;
@@ -66,7 +67,7 @@ export default function SubtitleMenu({
       </Popover.Trigger>
       <Popover.Portal container={container}>
         <Popover.Positioner positionMethod="fixed" sideOffset={8} collisionPadding={8} className="z-50 outline-none">
-          <Popover.Popup className="flex max-h-[min(28rem,70dvh,var(--available-height))] w-72 max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-popover text-sm text-foreground shadow-lg shadow-black/40 outline-none">
+          <Popover.Popup render={<GlassCard />} className="flex max-h-[min(28rem,70dvh,var(--available-height))] w-72 max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-2xl text-sm text-foreground outline-none">
             <Popover.Title className="sr-only">{t("Subtitles")}</Popover.Title>
             {on && (
               <div className="flex shrink-0 flex-col gap-1 border-b border-white/10 p-2">

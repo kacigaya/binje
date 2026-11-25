@@ -92,6 +92,7 @@ const FRENCH = {
     "Nous enregistrons votre historique de visionnage dans votre navigateur pour reprendre là où vous vous êtes arrêté. Aucun suivi, aucun cookie tiers.",
   Accept: "Accepter",
   Accepted: "Accepté",
+  Language: "Langue",
   Refuse: "Refuser",
   "Something went wrong": "Une erreur est survenue",
   "We couldn’t load the content. This might be temporary. Please try again.":

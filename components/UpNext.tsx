@@ -1,5 +1,6 @@
 "use client";
 
+import { GlassButton } from "@/components/liquid-glass";
 import Image from "@/components/TmdbImage";
 import { useEffect, useEffectEvent, useState } from "react";
 import { useTranslations } from "@/lib/use-locale";
@@ -52,21 +53,12 @@ export default function UpNext({ label, still, onPlay, onCancel }: {
           <div className="h-full origin-left bg-accent-red transition-transform duration-1000 ease-linear motion-reduce:transition-none" style={{ transform: `scaleX(${left / UP_NEXT_SECONDS})` }} />
         </div>
         <div className="flex gap-2 pt-1">
-          <button
-            type="button"
-            autoFocus
-            onClick={onPlay}
-            className="inline-flex h-9 cursor-pointer items-center rounded-full bg-white px-4 text-sm font-semibold text-black text-shadow-none shadow-lg shadow-black/50 outline-none transition hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-accent-red/60"
-          >
+          <GlassButton material="tinted" size="sm" autoFocus onClick={onPlay} className="bg-white text-black text-shadow-none">
             {t("Play now")}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="inline-flex h-9 cursor-pointer items-center rounded-full bg-black/60 px-4 text-sm font-medium text-white shadow-lg shadow-black/50 outline-none transition hover:bg-black/75 focus-visible:ring-2 focus-visible:ring-accent-red/60"
-          >
+          </GlassButton>
+          <GlassButton material="tinted" size="sm" onClick={onCancel} className="bg-black/60 text-white">
             {t("Cancel")}
-          </button>
+          </GlassButton>
         </div>
       </div>
     </section>

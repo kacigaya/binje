@@ -3,6 +3,7 @@
 import { Select as BaseSelect } from "@base-ui/react/select";
 import { Check } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
+import { GlassCard, GlassLayer } from "@/components/liquid-glass";
 import { ChevronDownIcon } from "@/components/ui/chevron-down";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import { cn } from "@/lib/utils";
@@ -50,11 +51,14 @@ function Select<T extends string | number>({
       <BaseSelect.Trigger
         aria-label={ariaLabel}
         {...chevronFeedback}
+        // Icon triggers sit inside the player's glass bar; a second lens there would melt into it.
+        data-glass-host={icon ? undefined : ""}
         className={cn(
           "flex cursor-pointer items-center gap-1.5 outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60",
           className,
         )}
       >
+        {!icon && <GlassLayer tint={0.15} />}
         {label && (
           <span aria-hidden="true" className="shrink-0 text-muted-foreground">
             {label}
@@ -77,7 +81,8 @@ function Select<T extends string | number>({
           alignItemWithTrigger={alignItemWithTrigger}
           className="z-50 outline-none"
         >
-          <BaseSelect.Popup className="max-h-72 overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-popover p-1 text-sm text-foreground shadow-lg shadow-black/40">
+          <BaseSelect.Popup render={<GlassCard />} className="flex max-h-72 flex-col overflow-hidden rounded-2xl text-sm text-foreground outline-none">
+            <BaseSelect.List className="min-h-0 overflow-y-auto overscroll-contain p-1">
             {items.map((item) => (
               <BaseSelect.Item
                 key={String(item.value)}
@@ -90,6 +95,7 @@ function Select<T extends string | number>({
                 </BaseSelect.ItemIndicator>
               </BaseSelect.Item>
             ))}
+            </BaseSelect.List>
           </BaseSelect.Popup>
         </BaseSelect.Positioner>
       </BaseSelect.Portal>
