@@ -4,6 +4,7 @@ import Image from "@/components/TmdbImage";
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Clock, Play } from "lucide-react";
+import { GlassButton } from "@/components/liquid-glass";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatAirDate, formatRating, localizedHref } from "@/lib/i18n";
@@ -112,8 +113,9 @@ export default function SeasonEpisodes({
       ) : episodes === null ? (
         <div role="alert" className="flex items-center gap-3 text-sm text-muted-foreground">
           <p>{t("Couldn’t load episodes.")}</p>
-          <button
-            type="button"
+          <GlassButton
+            size="sm"
+            tint={0.15}
             onClick={() =>
               setEpisodesBySeason((prev) => {
                 const next = { ...prev };
@@ -121,10 +123,9 @@ export default function SeasonEpisodes({
                 return next;
               })
             }
-            className="inline-flex h-9 cursor-pointer items-center rounded-full border border-white/15 px-3 font-medium text-foreground transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
           >
             {t("Try again")}
-          </button>
+          </GlassButton>
         </div>
       ) : episodes.length === 0 ? (
         <p className="text-sm text-muted-foreground">

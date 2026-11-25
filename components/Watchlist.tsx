@@ -29,7 +29,7 @@ export default function Watchlist() {
     () => EMPTY_WATCHLIST,
   );
 
-  function removeItem(event: MouseEvent<HTMLButtonElement>, item: WatchlistItem) {
+  function removeItem(event: MouseEvent<HTMLElement>, item: WatchlistItem) {
     event.preventDefault();
     event.stopPropagation();
     const previous = getWatchlist();
@@ -100,7 +100,7 @@ export default function Watchlist() {
               onClick={(event) => removeItem(event, item)}
               label={`${t("Remove from watchlist")}: ${item.title}`}
               iconSize={16}
-              className="absolute right-2 top-2 z-10 flex size-8 cursor-pointer items-center justify-center rounded-lg border border-white/20 bg-black/65 text-white transition-colors hover:bg-accent-red hover:border-accent-red/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red"
+              className="absolute right-2 top-2 z-10 size-8 rounded-lg"
             />
           </div>
         );

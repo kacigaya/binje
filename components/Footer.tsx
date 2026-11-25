@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { GlassButtonGroup } from "@/components/liquid-glass";
 import Wordmark from "@/components/Wordmark";
 import { CONSENT_STORAGE_KEY } from "@/lib/consent";
 import { LOCALES, localizedHref, type Locale } from "@/lib/i18n";
@@ -74,7 +75,7 @@ export default function Footer() {
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6">
-          <div className="flex items-center rounded-full border border-white/10 bg-white/5 p-0.5 text-xs font-semibold">
+          <GlassButtonGroup size="sm" material="clear" tint={0.15} aria-label={t("Language")} className="text-xs">
             <Suspense
               fallback={
                 <LocaleLinkList locale={locale} path={pathname} search="" />
@@ -82,7 +83,7 @@ export default function Footer() {
             >
               <LocaleLinks locale={locale} path={pathname} />
             </Suspense>
-          </div>
+          </GlassButtonGroup>
           <button
             type="button"
             onClick={() => {

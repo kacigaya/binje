@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import GlassChip from "@/components/GlassChip";
 
 const scores = new Map<string, number | null>();
 
@@ -52,7 +53,7 @@ export default function RottenTomatoesRating({
   if (score === null) return null;
 
   return (
-    <div className="flex items-center gap-1.5 font-semibold text-foreground">
+    <GlassChip className="font-semibold text-foreground">
       <Image
         src="/rotten-tomatoes.svg"
         alt=""
@@ -62,6 +63,6 @@ export default function RottenTomatoesRating({
         className="size-4 shrink-0"
       />
       <span className="text-sm">{score}%</span>
-    </div>
+    </GlassChip>
   );
 }

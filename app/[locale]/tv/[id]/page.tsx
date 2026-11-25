@@ -5,7 +5,6 @@ import Image from "next/image";
 import { locale as getRootLocale } from "next/root-params";
 import { Suspense } from "react";
 import { Calendar, Tv, Layers } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import Carousel from "@/components/Carousel";
 import CastRow from "@/components/CastRow";
@@ -14,6 +13,7 @@ import WatchlistButton from "@/components/WatchlistButton";
 import DetailHero from "@/components/DetailHero";
 import SeasonEpisodes from "@/components/SeasonEpisodes";
 import { Skeleton } from "@/components/ui/skeleton";
+import GlassChip from "@/components/GlassChip";
 import RottenTomatoesRating from "@/components/RottenTomatoesRating.client";
 import {
   getTVDetails,
@@ -111,7 +111,7 @@ async function TVShowDetails({
       details={
         <>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground tabular-nums">
-            <div className="flex items-center gap-1.5 font-semibold text-foreground">
+            <GlassChip className="font-semibold text-foreground">
               <Image
                 src="/tmdb.svg"
                 alt="TMDB"
@@ -120,12 +120,12 @@ async function TVShowDetails({
                 className="h-4 w-auto shrink-0"
               />
               {formatRating(locale, show.vote_average) ?? translate(locale, "N/A")}
-            </div>
+            </GlassChip>
             <RottenTomatoesRating imdbId={show.external_ids.imdb_id} />
             {contentRating && (
-              <span className="rounded-md border border-white/15 px-1.5 text-xs font-semibold text-foreground/80">
+              <GlassChip className="text-xs font-semibold text-foreground/80">
                 {contentRating}
-              </span>
+              </GlassChip>
             )}
             <div className="flex items-center gap-1">
               <Layers aria-hidden="true" className="size-4" />
@@ -149,13 +149,9 @@ async function TVShowDetails({
 
           <div className="flex flex-wrap gap-2">
             {show.genres.map((g) => (
-              <Badge
-                key={g.id}
-                variant="outline"
-                className="h-5 px-2 border-white/15 text-foreground/80 text-xs"
-              >
+              <GlassChip key={g.id} className="h-6 px-2 text-xs text-foreground/80">
                 {g.name}
-              </Badge>
+              </GlassChip>
             ))}
           </div>
 

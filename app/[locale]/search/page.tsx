@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { XIcon } from "@/components/ui/x";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
 import Link from "next/link";
+import { GlassButton } from "@/components/liquid-glass";
 import MediaCard from "@/components/MediaCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { localizedHref } from "@/lib/i18n";
@@ -238,13 +239,9 @@ function SearchContent() {
           <p className="text-muted-foreground">
             {t("The search service did not respond. Your query is fine.")}
           </p>
-          <button
-            type="button"
-            onClick={() => doSearch(query)}
-            className="mt-6 inline-flex h-11 cursor-pointer items-center rounded-full border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
-          >
+          <GlassButton tint={0.15} onClick={() => doSearch(query)} className="mt-6">
             {t("Try again")}
-          </button>
+          </GlassButton>
         </div>
       )}
 
@@ -260,12 +257,9 @@ function SearchContent() {
           <p className="text-muted-foreground">
             {t("Try a different search term or check the spelling.")}
           </p>
-          <Link
-            href={localizedHref(locale, "/movies")}
-            className="mt-6 inline-flex h-11 items-center rounded-full border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
-          >
-            {t("Browse movies")}
-          </Link>
+          <GlassButton asChild tint={0.15} className="mt-6">
+            <Link href={localizedHref(locale, "/movies")}>{t("Browse movies")}</Link>
+          </GlassButton>
         </div>
       )}
 
@@ -281,12 +275,9 @@ function SearchContent() {
           <p className="text-muted-foreground">
             {t("Start typing to search thousands of titles.")}
           </p>
-          <Link
-            href={localizedHref(locale, "/movies")}
-            className="mt-6 inline-flex h-11 items-center rounded-full border border-white/15 px-6 text-sm font-semibold transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/60"
-          >
-            {t("Browse movies")}
-          </Link>
+          <GlassButton asChild tint={0.15} className="mt-6">
+            <Link href={localizedHref(locale, "/movies")}>{t("Browse movies")}</Link>
+          </GlassButton>
         </div>
       )}
     </div>

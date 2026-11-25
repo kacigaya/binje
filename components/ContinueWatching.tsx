@@ -35,7 +35,7 @@ export default function ContinueWatching() {
   const { scrollRef, canScrollLeft, canScrollRight, scroll } =
     useHorizontalScroll(items);
 
-  function removeItem(event: MouseEvent<HTMLButtonElement>, item: PlayHistoryItem) {
+  function removeItem(event: MouseEvent<HTMLElement>, item: PlayHistoryItem) {
     event.preventDefault();
     event.stopPropagation();
     const previous = getPlayHistory();
@@ -112,7 +112,7 @@ export default function ContinueWatching() {
                   onClick={(event) => removeItem(event, item)}
                   label={`${t("Remove from continue watching")}: ${item.title}`}
                   iconSize={14}
-                  className="absolute right-1.5 top-1.5 z-10 flex size-7 items-center justify-center rounded-full bg-black/75 text-white transition-colors hover:bg-accent-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red/70"
+                  className="absolute right-1.5 top-1.5 z-10 size-7"
                 />
                 <IntentPrefetchLink
                   dwell
