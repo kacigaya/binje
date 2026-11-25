@@ -5,7 +5,7 @@ import { Pause, Play, Volume1, Volume2, VolumeX } from "lucide";
 import { MorphIcon } from "morphicons/react";
 import type { ComponentProps, CSSProperties, ReactNode, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
-import { GlassButtonGroup } from "@/components/liquid-glass";
+import { GlassButtonGroup, GlassLayer } from "@/components/liquid-glass";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/lib/use-locale";
 
@@ -166,7 +166,8 @@ export function SeekBar({ videoRef, visible }: { videoRef: RefObject<HTMLVideoEl
           )}
         />
         {scrub !== null && (
-          <span className="pointer-events-none absolute bottom-full left-[calc(var(--progress)*100%)] mb-2 -translate-x-1/2 rounded-full border border-white/15 bg-black/75 px-2 py-1">
+          <span data-glass-host="" className="pointer-events-none absolute bottom-full left-[calc(var(--progress)*100%)] mb-2 -translate-x-1/2 rounded-full border border-white/15 bg-black/75 px-2 py-1">
+            <GlassLayer material="tinted" swell={false} pull={false} />
             {formatTime(scrub)}
           </span>
         )}

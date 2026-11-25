@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
+import { GlassButton } from "@/components/liquid-glass";
 import { CheckIcon } from "@/components/ui/check";
 import { PlusIcon } from "@/components/ui/plus";
 import { useAnimatedIcon } from "@/lib/use-animated-icon";
@@ -33,18 +34,20 @@ export default function CardWatchlistToggle({
   const label = `${t(added ? "Remove from watchlist" : "Add to Watchlist")}: ${item.title}`;
 
   return (
-    <button
-      type="button"
+    <GlassButton
       {...feedback}
+      size="sm"
+      material={added ? "tinted" : "clear"}
+      tint={0.15}
       onClick={() => toggleWatchlistWithFeedback(item, added, t)}
       aria-pressed={added}
       aria-label={label}
       title={label}
       className={cn(
-        "z-10 flex size-8 cursor-pointer items-center justify-center rounded-lg border text-white transition-[opacity,background-color] duration-200 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-red",
+        "z-10 size-8 rounded-lg px-0! transition-opacity duration-200 focus-visible:opacity-100",
         added
-          ? "border-accent-red/60 bg-accent-red"
-          : "border-white/20 bg-black/65 hover:bg-black/80 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100",
+          ? "bg-accent-red text-white"
+          : "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100",
         className,
       )}
     >
@@ -53,6 +56,6 @@ export default function CardWatchlistToggle({
       ) : (
         <PlusIcon ref={icon} size={16} />
       )}
-    </button>
+    </GlassButton>
   );
 }

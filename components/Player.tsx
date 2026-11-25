@@ -23,7 +23,7 @@ import {
 } from "@/components/PlayerControls";
 import SubtitleMenu, { DELAY_STEP, formatDelay, type SyncStatus } from "@/components/SubtitleMenu";
 import UpNext from "@/components/UpNext";
-import { GlassButton } from "@/components/liquid-glass";
+import { GlassButton, GlassLayer } from "@/components/liquid-glass";
 import { Select } from "@/components/ui/select";
 import { qualityClass } from "@/lib/quality-class";
 import { fetchResolve } from "@/lib/resolve-client";
@@ -959,8 +959,10 @@ export default function Player({
           <p
             key={subtitleNotice.id}
             role="status"
+            data-glass-host=""
             className="pointer-events-none absolute top-1/4 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-black/75 px-3 py-1.5 text-xs font-semibold text-white tabular-nums"
           >
+            <GlassLayer material="tinted" swell={false} pull={false} />
             {subtitleNotice.text}
           </p>
         )}
@@ -968,11 +970,13 @@ export default function Player({
           <div
             key={seekHint.id}
             aria-hidden="true"
+            data-glass-host=""
             className={cn(
               "pointer-events-none absolute top-1/2 flex size-16 -translate-y-1/2 animate-in items-center justify-center rounded-full bg-black/60 text-white fade-in zoom-in-90 duration-150 motion-reduce:animate-none",
               seekHint.forward ? "right-[12%]" : "left-[12%]",
             )}
           >
+            <GlassLayer material="tinted" swell={false} pull={false} />
             <SkipIcon forward={seekHint.forward} />
           </div>
         )}
